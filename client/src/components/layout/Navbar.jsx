@@ -1,0 +1,124 @@
+import React, { useState } from 'react';
+import { Link, useNavigate } from 'react-router-dom';
+import { Menu, X, Bell, LogOut, User } from 'lucide-react';
+import { useAuth } from '../../context/AuthContext';
+import Avatar from '../common/Avatar';
+import NotificationPanel from '../notifications/NotificationPanel';
+import { useNotifications } from '../../context/NotificationContext';
+
+const Navbar = ({ onMenuClick }) => {
+  const { profile, signOut } = useAuth();
+  const { unreadCount } = useNotifications();
+  const navigate = useNavigate();
+  const [showNotifications, setShowNotifications] = useState(false);
+  const [showProfileMenu, setShowProfileMenu] = useState(false);
+
+  const handleLogout = async () => {
+    await signOut();
+    navigate('/login');
+  };
+
+  return (
+    <nav className="bg-white shadow-md fixed top-0 left-0 right-0 z-40">
+      <div className="max-w-full mx-auto px-4 sm:px-6 lg:px-8">
+        <div className="flex justify-between items-center h-16">
+          {/* Left Side - Logo & Menu */}
+          <div className="flex items-center">
+            <button
+              onClick={onMenuClick}
+              className="p-2 rounded-lg hover:bg-gray-100 lg:hidden"
+            >
+              <Menu className="w-6 h-6 text-gray-600" />
+            </button>
+
+            <Link to="/" className="flex items-center ml-2">
+              <div className="flex items-center">
+                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
+                  <span className="text-white font-bold text-xl">T</span>
+                </div>
+                <div className="ml-3 hidden sm:block">
+                  <h1 className="text-xl font-bold text-gray-800">Thapar Transport</h1>
+                  <p className="text-xs text-gray-500">Management System</p>
+                </div>
+              </div>
+            </Link>
+          </div>
+
+          {/* Right Side - Notifications & Profile */}
+          <div className="flex items-center gap-4">
+            {/* Notifications */}
+            <div className="relative">
+              <button
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2 rounded-lg hover:bg-gray-100 relative"
+              >
+                <Bell className="w-6 h-6 text-gray-600" />
+                {unreadCount > 0 && (
+                  <span className="absolute top-1 right-1 w-5 h-5 bg-red-500 text-white text-xs rounded-full flex items-center justify-center">
+                    {unreadCount > 9 ? '9+' : unreadCount}
+                  </span>
+                )}
+              </button>
+
+              {/* Notification Panel */}
+              {showNotifications && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowNotifications(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 z-50">
+                    <NotificationPanel onClose={() => setShowNotifications(false)} />
+                  </div>
+                </>
+              )}
+            </div>
+
+            {/* Profile Menu */}
+            <div className="relative">
+              <button
+                onClick={() => setShowProfileMenu(!showProfileMenu)}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100"
+              >
+                <Avatar name={profile?.full_name} size="sm" />
+                <div className="hidden md:block text-left">
+                  <p className="text-sm font-medium text-gray-800">{profile?.full_name}</p>
+                  <p className="text-xs text-gray-500 capitalize">{profile?.role}</p>
+                </div>
+              </button>
+
+              {/* Profile Dropdown */}
+              {showProfileMenu && (
+                <>
+                  <div
+                    className="fixed inset-0 z-40"
+                    onClick={() => setShowProfileMenu(false)}
+                  ></div>
+                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                    <Link
+                      to="/profile"
+                      className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"
+                      onClick={() => setShowProfileMenu(false)}
+                    >
+                      <User className="w-4 h-4 text-gray-600" />
+                      <span className="text-sm text-gray-700">My Profile</span>
+                    </Link>
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-2 hover:bg-gray-100 text-left"
+                    >
+                      <LogOut className="w-4 h-4 text-red-600" />
+                      <span className="text-sm text-red-600">Logout</span>
+                    </button>
+                  </div>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </nav>
+  );
+};
+
+export default Navbar;
