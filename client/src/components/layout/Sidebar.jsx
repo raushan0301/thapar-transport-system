@@ -17,7 +17,12 @@ import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/constants';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { profile } = useAuth();
+  const { profile, loading } = useAuth();
+
+  // Wait for profile to load
+  if (loading || !profile) {
+    return null; // Don't show sidebar until profile is loaded
+  }
 
   // Navigation items based on role
   const getNavItems = () => {

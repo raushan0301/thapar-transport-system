@@ -1,4 +1,4 @@
-import React, { createContext, useContext, useEffect, useState } from 'react';
+import React, { createContext, useContext, useEffect, useState, useRef } from 'react';
 import { supabase } from '../services/supabase';
 import toast from 'react-hot-toast';
 
@@ -16,62 +16,116 @@ export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+  const loadingProfile = useRef(false); // Use ref to track loading state
 
-  useEffect(() => {
-    // Check active session
-    checkUser();
+useEffect(() => {
+  let mounted = true;
 
-    // Listen for auth changes
-    const { data: authListener } = supabase.auth.onAuthStateChange(
+  async function init() {
+    // 1. Load session manually first
+    const { data: { session } } = await supabase.auth.getSession();
+
+    console.log("Initial Session:", session?.user?.email);
+
+    if (session?.user && mounted) {
+      setUser(session.user);
+      await loadProfile(session.user.id, session.user.email);
+    }
+
+    // 2. Attach listeners only AFTER session is initialized
+    const { data: listener } = supabase.auth.onAuthStateChange(
       async (event, session) => {
-        if (session?.user) {
+        console.log("Auth Event:", event);
+
+        if (event === 'SIGNED_IN' && session?.user) {
           setUser(session.user);
-          await fetchUserProfile(session.user.id);
-        } else {
+          await loadProfile(session.user.id, session.user.email);
+        }
+
+        if (event === 'SIGNED_OUT') {
           setUser(null);
           setProfile(null);
         }
-        setLoading(false);
       }
     );
 
-    return () => {
-      authListener.subscription.unsubscribe();
-    };
-  }, []);
+    // Now mark loading complete AFTER session+profile
+    if (mounted) setLoading(false);
 
-  const checkUser = async () => {
-    try {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (session?.user) {
-        setUser(session.user);
-        await fetchUserProfile(session.user.id);
-      }
-    } catch (error) {
-      console.error('Error checking user:', error);
-    } finally {
-      setLoading(false);
+    return () => listener.subscription.unsubscribe();
+  }
+
+  init();
+
+  return () => { mounted = false };
+}, []);
+ // Empty dependency array - runs once on mount
+
+  const loadProfile = async (userId, userEmail) => {
+    // Prevent concurrent loads
+    if (loadingProfile.current) {
+      console.log('⏭️ Skipping - profile already loading');
+      return;
     }
-  };
 
-  const fetchUserProfile = async (userId) => {
+    loadingProfile.current = true;
+
     try {
+      console.log('🔍 Loading profile for:', userId);
+      
       const { data, error } = await supabase
         .from('users')
         .select('*')
         .eq('id', userId)
         .single();
 
-      if (error) throw error;
+      if (error) {
+        console.error('❌ Profile fetch error:', error.message, error.code);
+        
+        if (error.code === 'PGRST116') {
+          console.log('➕ Creating new profile...');
+          
+          const { data: newProfile, error: createError } = await supabase
+            .from('users')
+            .insert([
+              {
+                id: userId,
+                email: userEmail,
+                full_name: userEmail.split('@')[0],
+                role: 'user',
+              },
+            ])
+            .select()
+            .single();
+
+          if (createError) {
+            console.error('❌ Create profile error:', createError);
+            toast.error('Failed to create profile');
+            loadingProfile.current = false;
+            return;
+          }
+
+          console.log('✅ Profile created:', newProfile);
+          setProfile(newProfile);
+          loadingProfile.current = false;
+          return;
+        }
+        
+        loadingProfile.current = false;
+        return;
+      }
+
+      console.log('✅ Profile loaded:', data);
       setProfile(data);
     } catch (error) {
-      console.error('Error fetching profile:', error);
+      console.error('💥 Exception loading profile:', error);
+    } finally {
+      loadingProfile.current = false;
     }
   };
 
-  const signUp = async (email, password, fullName, role = 'user') => {
+  const signUp = async (email, password, fullName) => {
     try {
-      // Sign up with Supabase Auth
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -79,21 +133,24 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      // Create user profile
-      const { error: profileError } = await supabase
-        .from('users')
-        .insert([
-          {
-            id: data.user.id,
-            email,
-            full_name: fullName,
-            role,
-          },
-        ]);
+      if (data.user) {
+        const { error: profileError } = await supabase
+          .from('users')
+          .insert([
+            {
+              id: data.user.id,
+              email,
+              full_name: fullName,
+              role: 'user',
+            },
+          ]);
 
-      if (profileError) throw profileError;
+        if (profileError) {
+          console.error('Profile creation error:', profileError);
+        }
+      }
 
-      toast.success('Account created! Please check your email for verification.');
+      toast.success('Account created successfully!');
       return { data, error: null };
     } catch (error) {
       toast.error(error.message);
@@ -110,7 +167,7 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
-      toast.success('Logged in successfully!');
+      toast.success('Welcome back!');
       return { data, error: null };
     } catch (error) {
       toast.error(error.message);
@@ -125,41 +182,12 @@ export const AuthProvider = ({ children }) => {
 
       setUser(null);
       setProfile(null);
+      loadingProfile.current = false;
       toast.success('Logged out successfully!');
+      
+      window.location.href = '/login';
     } catch (error) {
       toast.error(error.message);
-    }
-  };
-
-  const resetPassword = async (email) => {
-    try {
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/reset-password`,
-      });
-
-      if (error) throw error;
-
-      toast.success('Password reset link sent to your email!');
-      return { error: null };
-    } catch (error) {
-      toast.error(error.message);
-      return { error };
-    }
-  };
-
-  const updatePassword = async (newPassword) => {
-    try {
-      const { error } = await supabase.auth.updateUser({
-        password: newPassword,
-      });
-
-      if (error) throw error;
-
-      toast.success('Password updated successfully!');
-      return { error: null };
-    } catch (error) {
-      toast.error(error.message);
-      return { error };
     }
   };
 
@@ -170,8 +198,6 @@ export const AuthProvider = ({ children }) => {
     signUp,
     signIn,
     signOut,
-    resetPassword,
-    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

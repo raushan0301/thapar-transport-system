@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useEffect, useState } from 'react';
 import { supabase } from '../services/supabase';
 import { useAuth } from './AuthContext';
-import toast from 'react-hot-toast';
 
 const NotificationContext = createContext({});
 
@@ -20,65 +19,64 @@ export const NotificationProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
-    if (user) {
-      fetchNotifications();
-      subscribeToNotifications();
+    if (!user) {
+      setNotifications([]);
+      setUnreadCount(0);
+      return;
     }
 
+    let channel;
+
+    const fetchNotifications = async () => {
+      setLoading(true);
+      try {
+        const { data, error } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', user.id)
+          .order('created_at', { ascending: false })
+          .limit(20);
+
+        if (error) throw error;
+
+        setNotifications(data || []);
+        setUnreadCount((data || []).filter((n) => !n.is_read).length);
+      } catch (error) {
+        console.error('Error fetching notifications:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    const subscribeToNotifications = () => {
+      channel = supabase
+        .channel(`notifications_${user.id}`)
+        .on(
+          'postgres_changes',
+          {
+            event: 'INSERT',
+            schema: 'public',
+            table: 'notifications',
+            filter: `user_id=eq.${user.id}`,
+          },
+          (payload) => {
+            console.log('New notification:', payload);
+            setNotifications((prev) => [payload.new, ...prev]);
+            setUnreadCount((prev) => prev + 1);
+          }
+        )
+        .subscribe();
+    };
+
+    fetchNotifications();
+    subscribeToNotifications();
+
     return () => {
-      // Cleanup subscription
-      supabase.removeAllChannels();
+      if (channel) {
+        supabase.removeChannel(channel);
+      }
     };
   }, [user]);
-
-  const fetchNotifications = async () => {
-    if (!user) return;
-
-    setLoading(true);
-    try {
-      const { data, error } = await supabase
-        .from('notifications')
-        .select('*')
-        .eq('user_id', user.id)
-        .order('created_at', { ascending: false })
-        .limit(20);
-
-      if (error) throw error;
-
-      setNotifications(data);
-      setUnreadCount(data.filter((n) => !n.is_read).length);
-    } catch (error) {
-      console.error('Error fetching notifications:', error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const subscribeToNotifications = () => {
-    if (!user) return;
-
-    const channel = supabase
-      .channel('notifications')
-      .on(
-        'postgres_changes',
-        {
-          event: 'INSERT',
-          schema: 'public',
-          table: 'notifications',
-          filter: `user_id=eq.${user.id}`,
-        },
-        (payload) => {
-          setNotifications((prev) => [payload.new, ...prev]);
-          setUnreadCount((prev) => prev + 1);
-          toast.success(payload.new.title);
-        }
-      )
-      .subscribe();
-
-    return () => {
-      supabase.removeChannel(channel);
-    };
-  };
 
   const markAsRead = async (notificationId) => {
     try {
@@ -112,10 +110,31 @@ export const NotificationProvider = ({ children }) => {
 
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
-      toast.success('All notifications marked as read');
     } catch (error) {
       console.error('Error marking all as read:', error);
-      toast.error('Failed to mark all as read');
+    }
+  };
+
+  const refreshNotifications = async () => {
+    if (!user) return;
+
+    setLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('notifications')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('created_at', { ascending: false })
+        .limit(20);
+
+      if (error) throw error;
+
+      setNotifications(data || []);
+      setUnreadCount((data || []).filter((n) => !n.is_read).length);
+    } catch (error) {
+      console.error('Error refreshing notifications:', error);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -125,7 +144,7 @@ export const NotificationProvider = ({ children }) => {
     loading,
     markAsRead,
     markAllAsRead,
-    refreshNotifications: fetchNotifications,
+    refreshNotifications,
   };
 
   return (
