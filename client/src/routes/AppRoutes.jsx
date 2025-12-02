@@ -26,10 +26,12 @@ import EditRequest from '../pages/user/EditRequest';
 import HeadDashboard from '../pages/head/HeadDashboard';
 import HeadPendingApprovals from '../pages/head/PendingApprovals';
 import HeadApprovalHistory from '../pages/head/ApprovalHistory';
+import HeadReviewRequest from '../pages/head/ReviewRequest';
 
 // Admin Pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminPendingReview from '../pages/admin/PendingReview';
+import AdminReviewRequest from '../pages/admin/ReviewRequest';
 import VehicleAssignment from '../pages/admin/VehicleAssignment';
 import TravelCompletion from '../pages/admin/TravelCompletion';
 import VehicleManagement from '../pages/admin/VehicleManagement';
@@ -42,6 +44,7 @@ import AuditLogs from '../pages/admin/AuditLogs';
 import AuthorityDashboard from '../pages/authority/AuthorityDashboard';
 import AuthorityPendingApprovals from '../pages/authority/PendingApprovals';
 import AuthorityApprovalHistory from '../pages/authority/ApprovalHistory';
+import AuthorityReviewRequest from '../pages/authority/ReviewRequest';
 
 // Registrar Pages
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
@@ -177,6 +180,16 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/head/review/:id"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.HEAD]}>
+              <HeadReviewRequest />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
 
       {/* Admin Routes */}
       <Route
@@ -185,6 +198,16 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
               <AdminPendingReview />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/review/:id"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+              <AdminReviewRequest />
             </RoleRoute>
           </PrivateRoute>
         }
