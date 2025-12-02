@@ -20,6 +20,7 @@ import UserDashboard from '../pages/user/UserDashboard';
 import NewRequest from '../pages/user/NewRequest';
 import MyRequests from '../pages/user/MyRequests';
 import RequestDetails from '../pages/user/RequestDetails';
+import EditRequest from '../pages/user/EditRequest';
 
 // Head Pages
 import HeadDashboard from '../pages/head/HeadDashboard';
@@ -141,6 +142,16 @@ const AppRoutes = () => {
         element={
           <PrivateRoute>
             <RequestDetails />
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/edit-request/:id"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.USER]}>
+              <EditRequest />
+            </RoleRoute>
           </PrivateRoute>
         }
       />

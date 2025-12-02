@@ -7,7 +7,8 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Car, Info, Clock, CheckCircle2, Edit } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Users, Car, Info, Clock, CheckCircle2, Edit, Trash2 } from 'lucide-react';
+import toast from 'react-hot-toast';
 
 const RequestDetails = () => {
   const { id } = useParams();
@@ -19,6 +20,7 @@ const RequestDetails = () => {
 
   useEffect(() => {
     if (id && user?.id) fetchRequestDetails();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [id, user]);
 
   const fetchRequestDetails = async () => {
@@ -81,6 +83,28 @@ const RequestDetails = () => {
     }
   };
 
+  const handleDelete = async () => {
+    if (!window.confirm(`Are you sure you want to delete request ${request.request_number}? This action cannot be undone.`)) {
+      return;
+    }
+
+    try {
+      const { error } = await supabase
+        .from('transport_requests')
+        .delete()
+        .eq('id', id)
+        .eq('user_id', user.id);
+
+      if (error) throw error;
+
+      toast.success('Request deleted successfully!');
+      navigate('/my-requests');
+    } catch (err) {
+      console.error('Error deleting request:', err);
+      toast.error('Failed to delete request');
+    }
+  };
+
   if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
   if (!request) return <DashboardLayout><div className="text-center py-12"><p className="text-gray-500">Request not found</p></div></DashboardLayout>;
 
@@ -107,13 +131,22 @@ const RequestDetails = () => {
               </div>
             </div>
             {canEdit && (
-              <Button
-                variant="primary"
-                icon={Edit}
-                onClick={() => navigate(`/edit-request/${request.id}`)}
-              >
-                Edit Request
-              </Button>
+              <div className="flex space-x-3">
+                <Button
+                  variant="secondary"
+                  icon={Trash2}
+                  onClick={handleDelete}
+                >
+                  Delete
+                </Button>
+                <Button
+                  variant="primary"
+                  icon={Edit}
+                  onClick={() => navigate(`/edit-request/${request.id}`)}
+                >
+                  Edit Request
+                </Button>
+              </div>
             )}
           </div>
         </div>
