@@ -304,6 +304,16 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
+      <Route
+        path="/authority/review/:id"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
+              <AuthorityReviewRequest />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
 
       {/* Registrar Routes */}
       <Route

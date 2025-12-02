@@ -100,13 +100,19 @@ export const updateRequest = async (requestId, updateData) => {
 export const getPredefinedHeads = async () => {
   try {
     const { data, error } = await supabase
-      .from('predefined_heads')
-      .select('*, user:users(id, full_name, email, department)')
-      .eq('is_active', true)
-      .order('created_at', { ascending: false });
+      .from('users')
+      .select('id, full_name, email, department, phone')
+      .eq('role', 'head')
+      .order('full_name', { ascending: true });
 
     if (error) throw error;
-    return { data, error: null };
+
+    // Transform data to match expected format (HeadSelector expects { user: {...} })
+    const transformedData = data?.map(head => ({
+      user: head
+    })) || [];
+
+    return { data: transformedData, error: null };
   } catch (error) {
     console.error('Error fetching heads:', error);
     return { data: null, error };

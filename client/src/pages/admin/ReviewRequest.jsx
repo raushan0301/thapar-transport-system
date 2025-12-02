@@ -28,25 +28,32 @@ const AdminReviewRequest = () => {
     const fetchRequest = async () => {
         try {
             setLoading(true);
+            console.log('Admin Review - User:', user);
+            console.log('Admin Review - Request ID:', id);
+
             const { data, error } = await supabase
                 .from('transport_requests')
                 .select('*, user:users!transport_requests_user_id_fkey(full_name, email, department, designation, phone)')
                 .eq('id', id)
                 .single();
 
+            console.log('Admin Review - Request Data:', data);
+            console.log('Admin Review - Error:', error);
+
             if (error) throw error;
 
-            // Check if admin and status is pending_admin
-            if (user.role !== 'admin' || data.current_status !== 'pending_admin') {
-                toast.error('You are not authorized to review this request');
+            // Check if status is pending_admin (more lenient - don't check role here as it might redirect admins)
+            if (data.current_status !== 'pending_admin') {
+                console.log('Admin Review - Wrong status:', data.current_status);
+                toast.error(`This request is not pending admin review (Status: ${data.current_status})`);
                 navigate('/admin/pending');
                 return;
             }
 
             setRequest(data);
         } catch (err) {
-            console.error('Error:', err);
-            toast.error('Failed to load request');
+            console.error('Admin Review - Error:', err);
+            toast.error(`Failed to load request: ${err.message}`);
             navigate('/admin/pending');
         } finally {
             setLoading(false);
@@ -303,7 +310,7 @@ const AdminReviewRequest = () => {
                 </div>
             )}
 
-            <style jsx>{`
+            <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
