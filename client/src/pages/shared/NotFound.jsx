@@ -18,11 +18,9 @@ const NotFound = () => {
               Go Home
             </Button>
           </Link>
-          <button onClick={() => window.history.back()}>
-            <Button variant="outline" icon={ArrowLeft}>
-              Go Back
-            </Button>
-          </button>
+          <Button variant="outline" icon={ArrowLeft} onClick={() => window.history.back()}>
+            Go Back
+          </Button>
         </div>
       </div>
     </div>

@@ -14,10 +14,19 @@ export const formatDate = (date) => {
   return format(new Date(date), 'dd MMM yyyy');
 };
 
-// Format date and time
+// Format date and time (with proper timezone handling)
 export const formatDateTime = (date) => {
   if (!date) return '';
-  return format(new Date(date), 'dd MMM yyyy, hh:mm a');
+  const dateObj = new Date(date);
+  return dateObj.toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: 'Asia/Kolkata' // IST timezone
+  });
 };
 
 // Format time only

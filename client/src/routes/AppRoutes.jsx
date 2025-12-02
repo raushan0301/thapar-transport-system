@@ -22,12 +22,12 @@ import MyRequests from '../pages/user/MyRequests';
 import RequestDetails from '../pages/user/RequestDetails';
 
 // Head Pages
-//import HeadDashboard from '../pages/head/HeadDashboard';
+import HeadDashboard from '../pages/head/HeadDashboard';
 import HeadPendingApprovals from '../pages/head/PendingApprovals';
 import HeadApprovalHistory from '../pages/head/ApprovalHistory';
 
 // Admin Pages
-//import AdminDashboard from '../pages/admin/AdminDashboard';
+import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminPendingReview from '../pages/admin/PendingReview';
 import VehicleAssignment from '../pages/admin/VehicleAssignment';
 import TravelCompletion from '../pages/admin/TravelCompletion';
@@ -38,14 +38,46 @@ import ExportData from '../pages/admin/ExportData';
 import AuditLogs from '../pages/admin/AuditLogs';
 
 // Authority Pages
-//import AuthorityDashboard from '../pages/authority/AuthorityDashboard';
+import AuthorityDashboard from '../pages/authority/AuthorityDashboard';
 import AuthorityPendingApprovals from '../pages/authority/PendingApprovals';
 import AuthorityApprovalHistory from '../pages/authority/ApprovalHistory';
 
 // Registrar Pages
-//import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
+import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
 import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
 import RegistrarApprovalHistory from '../pages/registrar/ApprovalHistory';
+import Loader from '../components/common/Loader';
+
+// Dashboard Router - Shows correct dashboard based on user role
+const DashboardRouter = () => {
+  const { profile } = useAuth();
+
+  // Show loader while profile is loading
+  if (!profile) {
+    return (
+      <div className="flex justify-center items-center h-64">
+        <Loader size="lg" />
+      </div>
+    );
+  }
+
+  // Route to appropriate dashboard based on role
+  switch (profile.role) {
+    case ROLES.HEAD:
+      return <HeadDashboard />;
+    case ROLES.ADMIN:
+      return <AdminDashboard />;
+    case ROLES.DIRECTOR:
+    case ROLES.DEPUTY_DIRECTOR:
+    case ROLES.DEAN:
+      return <AuthorityDashboard />;
+    case ROLES.REGISTRAR:
+      return <RegistrarDashboard />;
+    case ROLES.USER:
+    default:
+      return <UserDashboard />;
+  }
+};
 
 const AppRoutes = () => {
   const { user } = useAuth();
@@ -53,13 +85,13 @@ const AppRoutes = () => {
   return (
     <Routes>
       {/* Public Routes */}
-      <Route 
-        path="/login" 
-        element={user ? <Navigate to="/dashboard" replace /> : <Login />} 
+      <Route
+        path="/login"
+        element={user ? <Navigate to="/dashboard" replace /> : <Login />}
       />
-      <Route 
-        path="/register" 
-        element={user ? <Navigate to="/dashboard" replace /> : <Register />} 
+      <Route
+        path="/register"
+        element={user ? <Navigate to="/dashboard" replace /> : <Register />}
       />
       <Route path="/forgot-password" element={<ForgotPassword />} />
 
@@ -73,15 +105,15 @@ const AppRoutes = () => {
         }
       />
 
-   {/* Dashboard - Role Based */}
-<Route
-  path="/dashboard"
-  element={
-    <PrivateRoute>
-      <UserDashboard />
-    </PrivateRoute>
-  }
-/>
+      {/* Dashboard - Role Based */}
+      <Route
+        path="/dashboard"
+        element={
+          <PrivateRoute>
+            <DashboardRouter />
+          </PrivateRoute>
+        }
+      />
 
       {/* User Routes */}
       <Route

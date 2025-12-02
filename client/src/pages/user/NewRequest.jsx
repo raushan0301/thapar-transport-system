@@ -1,7 +1,6 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import Card from '../../components/common/Card';
 import Input from '../../components/common/Input';
 import Textarea from '../../components/common/Textarea';
 import Button from '../../components/common/Button';
@@ -10,7 +9,8 @@ import FileUpload from '../../components/forms/FileUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createRequest } from '../../services/requestService';
 import { validateTransportRequest } from '../../utils/validators';
-import { FileText, Send } from 'lucide-react';
+import { handleSupabaseError, showSuccess } from '../../utils/errorHandler';
+import { FileText, Send, Calendar, MapPin, Users, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const NewRequest = () => {
@@ -19,7 +19,6 @@ const NewRequest = () => {
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
   const [attachments, setAttachments] = useState([]);
-
   const [formData, setFormData] = useState({
     department: profile?.department || '',
     designation: profile?.designation || '',
@@ -33,19 +32,25 @@ const NewRequest = () => {
     head_type: 'predefined',
   });
 
+  useEffect(() => {
+    if (profile) {
+      setFormData((prev) => ({
+        ...prev,
+        department: profile.department || prev.department,
+        designation: profile.designation || prev.designation,
+      }));
+    }
+  }, [profile]);
+
   const handleChange = (e) => {
     const { name, value } = e.target;
     setFormData((prev) => ({ ...prev, [name]: value }));
-    if (errors[name]) {
-      setErrors((prev) => ({ ...prev, [name]: '' }));
-    }
+    if (errors[name]) setErrors((prev) => ({ ...prev, [name]: '' }));
   };
 
   const handleHeadChange = (headData) => {
     setFormData((prev) => ({ ...prev, ...headData }));
-    if (errors.head) {
-      setErrors((prev) => ({ ...prev, head: '' }));
-    }
+    if (errors.head) setErrors((prev) => ({ ...prev, head: '' }));
   };
 
   const handleFileUpload = (fileData) => {
@@ -54,8 +59,6 @@ const NewRequest = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    // Validate
     const validationErrors = validateTransportRequest(formData);
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
@@ -64,9 +67,7 @@ const NewRequest = () => {
     }
 
     setLoading(true);
-
     try {
-      // Prepare request data
       const requestData = {
         user_id: profile.id,
         department: formData.department,
@@ -83,159 +84,90 @@ const NewRequest = () => {
         is_editable: true,
       };
 
-      // Create request
       const { data, error } = await createRequest(requestData);
-
       if (error) {
-        toast.error('Failed to create request');
+        handleSupabaseError(error, 'create your request');
         return;
       }
 
-      // TODO: Upload attachments if any
-      // For now, we'll skip this and implement later
-
-      toast.success('Transport request submitted successfully!');
-      navigate('/my-requests');
+      showSuccess('Transport request submitted successfully!');
+      navigate('/user/requests');
     } catch (error) {
       console.error('Submit error:', error);
-      toast.error('Failed to submit request');
+      handleSupabaseError(error, 'submit your request');
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <DashboardLayout>
-      <div className="flex items-center gap-3 mb-6">
-        <FileText className="w-8 h-8 text-blue-600" />
-        <h1 className="text-3xl font-bold text-gray-900">New Transport Request</h1>
-      </div>
-
-      <Card>
-        <form onSubmit={handleSubmit}>
-          {/* Section A - Request Details */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">
-              Request Details
-            </h2>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-              <Input
-                label="Department"
-                name="department"
-                value={formData.department}
-                onChange={handleChange}
-                placeholder="Enter department"
-                error={errors.department}
-                required
-              />
-
-              <Input
-                label="Designation"
-                name="designation"
-                value={formData.designation}
-                onChange={handleChange}
-                placeholder="Enter designation"
-                error={errors.designation}
-                required
-              />
-
-              <Input
-                label="Date of Visit"
-                type="date"
-                name="date_of_visit"
-                value={formData.date_of_visit}
-                onChange={handleChange}
-                error={errors.date_of_visit}
-                min={new Date().toISOString().split('T')[0]}
-                required
-              />
-
-              <Input
-                label="Time of Visit"
-                type="time"
-                name="time_of_visit"
-                value={formData.time_of_visit}
-                onChange={handleChange}
-                error={errors.time_of_visit}
-                required
-              />
-
-              <Input
-                label="Place of Visit"
-                name="place_of_visit"
-                value={formData.place_of_visit}
-                onChange={handleChange}
-                placeholder="Enter place/location"
-                error={errors.place_of_visit}
-                required
-              />
-
-              <Input
-                label="Number of Persons"
-                type="number"
-                name="number_of_persons"
-                value={formData.number_of_persons}
-                onChange={handleChange}
-                min="1"
-                error={errors.number_of_persons}
-                required
-              />
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <DashboardLayout>
+        <div className="max-w-4xl mx-auto">
+          {/* Header */}
+          <div className="mb-8 animate-slideDown">
+            <div className="flex items-center space-x-3 mb-2">
+              <FileText className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
+              <h1 className="text-4xl font-bold text-gray-900">New Transport Request</h1>
             </div>
-
-            <Textarea
-              label="Purpose of Visit"
-              name="purpose"
-              value={formData.purpose}
-              onChange={handleChange}
-              placeholder="Enter purpose of visit"
-              rows={4}
-              error={errors.purpose}
-              required
-            />
+            <p className="text-gray-600">Fill in the details to submit your transport request</p>
           </div>
 
-          {/* Head Selection */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">
-              Approval Head
-            </h2>
-            <HeadSelector
-              value={{ head_id: formData.head_id, custom_head_email: formData.custom_head_email }}
-              onChange={handleHeadChange}
-              error={errors.head}
-            />
-          </div>
+          {/* Form Card */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8" style={{ animation: 'slideUp 0.6s ease-out' }}>
+            <form onSubmit={handleSubmit} className="space-y-8">
+              {/* Request Details Section */}
+              <div>
+                <div className="flex items-center space-x-2 mb-6">
+                  <Info className="w-5 h-5 text-blue-600" strokeWidth={1.5} />
+                  <h2 className="text-xl font-semibold text-gray-900">Request Details</h2>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                  <Input label="Department" name="department" value={formData.department} onChange={handleChange} placeholder="Your department" error={errors.department} required />
+                  <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Your designation" error={errors.designation} required />
+                  <Input label="Date of Visit" type="date" name="date_of_visit" value={formData.date_of_visit} onChange={handleChange} error={errors.date_of_visit} min={new Date().toISOString().split('T')[0]} required leftIcon={Calendar} />
+                  <Input label="Time of Visit" type="time" name="time_of_visit" value={formData.time_of_visit} onChange={handleChange} error={errors.time_of_visit} required />
+                  <Input label="Place of Visit" name="place_of_visit" value={formData.place_of_visit} onChange={handleChange} placeholder="Destination" error={errors.place_of_visit} required leftIcon={MapPin} />
+                  <Input label="Number of Persons" type="number" name="number_of_persons" value={formData.number_of_persons} onChange={handleChange} min="1" error={errors.number_of_persons} required leftIcon={Users} />
+                </div>
+                <div className="mt-6">
+                  <Textarea label="Purpose of Visit" name="purpose" value={formData.purpose} onChange={handleChange} placeholder="Describe the purpose of your visit" rows={4} error={errors.purpose} required />
+                </div>
+              </div>
 
-          {/* File Upload */}
-          <div className="mb-6">
-            <h2 className="text-xl font-semibold text-gray-800 mb-4 pb-2 border-b">
-              Attachments
-            </h2>
-            <FileUpload onUploadComplete={handleFileUpload} existingFiles={attachments} />
-          </div>
+              {/* Head Selection */}
+              <div>
+                <div className="flex items-center space-x-2 mb-6">
+                  <Users className="w-5 h-5 text-purple-600" strokeWidth={1.5} />
+                  <h2 className="text-xl font-semibold text-gray-900">Approval Head</h2>
+                </div>
+                <HeadSelector value={{ head_id: formData.head_id, custom_head_email: formData.custom_head_email }} onChange={handleHeadChange} error={errors.head} />
+              </div>
 
-          {/* Submit Button */}
-          <div className="flex gap-3">
-            <Button
-              type="submit"
-              variant="primary"
-              loading={loading}
-              icon={Send}
-            >
-              Submit Request
-            </Button>
-            <Button
-              type="button"
-              variant="outline"
-              onClick={() => navigate('/my-requests')}
-            >
-              Cancel
-            </Button>
+              {/* File Upload */}
+              <div>
+                <div className="flex items-center space-x-2 mb-6">
+                  <FileText className="w-5 h-5 text-green-600" strokeWidth={1.5} />
+                  <h2 className="text-xl font-semibold text-gray-900">Attachments (Optional)</h2>
+                </div>
+                <FileUpload onUploadComplete={handleFileUpload} existingFiles={attachments} />
+              </div>
+
+              {/* Submit Buttons */}
+              <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
+                <Button type="button" variant="secondary" onClick={() => navigate('/user/requests')}>Cancel</Button>
+                <Button type="submit" variant="primary" loading={loading} icon={Send}>Submit Request</Button>
+              </div>
+            </form>
           </div>
-        </form>
-      </Card>
-    </DashboardLayout>
+        </div>
+      </DashboardLayout>
+
+      <style jsx>{`
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+      `}</style>
+    </div>
   );
 };
 

@@ -18,61 +18,70 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const loadingProfile = useRef(false); // Use ref to track loading state
 
-useEffect(() => {
-  let mounted = true;
+  useEffect(() => {
+    let mounted = true;
 
-  async function init() {
-    // 1. Load session manually first
-    const { data: { session } } = await supabase.auth.getSession();
+    async function init() {
+      try {
+        // 1. Load session manually first
+        const { data: { session } } = await supabase.auth.getSession();
 
-    console.log("Initial Session:", session?.user?.email);
+        // Session loaded
 
-    if (session?.user && mounted) {
-      setUser(session.user);
-      await loadProfile(session.user.id, session.user.email);
-    }
-
-    // 2. Attach listeners only AFTER session is initialized
-    const { data: listener } = supabase.auth.onAuthStateChange(
-      async (event, session) => {
-        console.log("Auth Event:", event);
-
-        if (event === 'SIGNED_IN' && session?.user) {
+        if (session?.user && mounted) {
           setUser(session.user);
+          // Wait for profile to load before continuing
           await loadProfile(session.user.id, session.user.email);
         }
 
-        if (event === 'SIGNED_OUT') {
-          setUser(null);
-          setProfile(null);
+        // 2. Attach listeners only AFTER session is initialized
+        const { data: listener } = supabase.auth.onAuthStateChange(
+          async (event, session) => {
+            // Auth event triggered
+
+            if (event === 'SIGNED_IN' && session?.user) {
+              setUser(session.user);
+              await loadProfile(session.user.id, session.user.email);
+            }
+
+            if (event === 'SIGNED_OUT') {
+              setUser(null);
+              setProfile(null);
+            }
+          }
+        );
+
+        // Cleanup function
+        return () => listener.subscription.unsubscribe();
+      } catch (error) {
+        console.error('❌ Auth initialization error:', error);
+      } finally {
+        // Now mark loading complete AFTER session+profile are loaded
+        if (mounted) {
+          setLoading(false);
         }
       }
-    );
+    }
 
-    // Now mark loading complete AFTER session+profile
-    if (mounted) setLoading(false);
+    init();
 
-    return () => listener.subscription.unsubscribe();
-  }
-
-  init();
-
-  return () => { mounted = false };
-}, []);
- // Empty dependency array - runs once on mount
+    return () => {
+      mounted = false;
+    };
+  }, []); // Empty dependency array - runs once on mount
 
   const loadProfile = async (userId, userEmail) => {
     // Prevent concurrent loads
     if (loadingProfile.current) {
-      console.log('⏭️ Skipping - profile already loading');
+      // Profile already loading, skip
       return;
     }
 
     loadingProfile.current = true;
 
     try {
-      console.log('🔍 Loading profile for:', userId);
-      
+      // Loading profile
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -81,10 +90,10 @@ useEffect(() => {
 
       if (error) {
         console.error('❌ Profile fetch error:', error.message, error.code);
-        
+
         if (error.code === 'PGRST116') {
-          console.log('➕ Creating new profile...');
-          
+          // Creating new profile
+
           const { data: newProfile, error: createError } = await supabase
             .from('users')
             .insert([
@@ -105,17 +114,17 @@ useEffect(() => {
             return;
           }
 
-          console.log('✅ Profile created:', newProfile);
+          // Profile created successfully
           setProfile(newProfile);
           loadingProfile.current = false;
           return;
         }
-        
+
         loadingProfile.current = false;
         return;
       }
 
-      console.log('✅ Profile loaded:', data);
+      // Profile loaded successfully
       setProfile(data);
     } catch (error) {
       console.error('💥 Exception loading profile:', error);
@@ -184,11 +193,16 @@ useEffect(() => {
       setProfile(null);
       loadingProfile.current = false;
       toast.success('Logged out successfully!');
-      
+
       window.location.href = '/login';
     } catch (error) {
       toast.error(error.message);
     }
+  };
+
+  const refreshProfile = async () => {
+    if (!user?.id) return;
+    await loadProfile(user.id, user.email);
   };
 
   const value = {
@@ -198,6 +212,7 @@ useEffect(() => {
     signUp,
     signIn,
     signOut,
+    refreshProfile,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

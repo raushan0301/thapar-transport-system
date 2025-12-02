@@ -1,21 +1,100 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import Card from '../../components/common/Card';
-import { CheckCircle } from 'lucide-react';
+import Button from '../../components/common/Button';
+import Loader from '../../components/common/Loader';
+import { supabase } from '../../services/supabase';
+import { formatDate } from '../../utils/helpers';
+import { CheckCircle2, Search, Eye } from 'lucide-react';
 
 const TravelCompletion = () => {
+  const navigate = useNavigate();
+  const [requests, setRequests] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [searchTerm, setSearchTerm] = useState('');
+
+  useEffect(() => {
+    fetchRequests();
+  }, []);
+
+  const fetchRequests = async () => {
+    try {
+      setLoading(true);
+      const { data, error } = await supabase.from('transport_requests').select('*, user:users!transport_requests_user_id_fkey(full_name), vehicle:vehicles(vehicle_number)').eq('current_status', 'vehicle_assigned').order('date_of_visit', { ascending: true });
+      if (error) throw error;
+      setRequests(data || []);
+    } catch (err) {
+      console.error('Error:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const filteredRequests = requests.filter(req => req.request_number?.toLowerCase().includes(searchTerm.toLowerCase()));
+
+  if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
+
   return (
-    <DashboardLayout>
-      <h1 className="text-3xl font-bold text-gray-900 mb-6">Travel Completion</h1>
-      
-      <Card>
-        <div className="text-center py-12 text-gray-500">
-          <CheckCircle className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-          <p className="text-lg">No travels to complete</p>
-          <p className="text-sm mt-2">Completed travels awaiting details will appear here</p>
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+      <DashboardLayout>
+        <div className="mb-8 animate-slideDown">
+          <div className="flex items-center space-x-3 mb-2">
+            <CheckCircle2 className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
+            <h1 className="text-4xl font-bold text-gray-900">Travel Completion</h1>
+          </div>
+          <p className="text-gray-600">Mark trips as completed and add post-travel details</p>
         </div>
-      </Card>
-    </DashboardLayout>
+
+        <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-200" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '100ms', opacity: 0, animationFillMode: 'forwards' }}>
+          <div className="relative">
+            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" strokeWidth={1.5} />
+            <input type="text" placeholder="Search requests..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" />
+          </div>
+        </div>
+
+        {filteredRequests.length === 0 ? (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '200ms', opacity: 0, animationFillMode: 'forwards' }}>
+            <CheckCircle2 className="w-16 h-16 mx-auto mb-4 text-gray-300" strokeWidth={1.5} />
+            <p className="text-gray-500">No trips awaiting completion</p>
+          </div>
+        ) : (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 overflow-hidden" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '200ms', opacity: 0, animationFillMode: 'forwards' }}>
+            <table className="w-full">
+              <thead className="bg-gray-50 border-b border-gray-200">
+                <tr>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Request #</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">User</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Vehicle</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Destination</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Action</th>
+                </tr>
+              </thead>
+              <tbody>
+                {filteredRequests.map((req, i) => (
+                  <tr key={req.id} className="border-b border-gray-100 hover:bg-blue-50 transition-colors" style={{ animation: 'slideRight 0.4s ease-out', animationDelay: `${i * 50}ms`, opacity: 0, animationFillMode: 'forwards' }}>
+                    <td className="px-6 py-4 font-semibold text-blue-600">{req.request_number}</td>
+                    <td className="px-6 py-4 text-gray-900">{req.user?.full_name}</td>
+                    <td className="px-6 py-4 text-gray-600">{req.vehicle?.vehicle_number || 'N/A'}</td>
+                    <td className="px-6 py-4 text-gray-600">{formatDate(req.date_of_visit)}</td>
+                    <td className="px-6 py-4 text-gray-900">{req.place_of_visit}</td>
+                    <td className="px-6 py-4">
+                      <Button variant="ghost" size="sm" icon={Eye} onClick={() => navigate(`/request/${req.id}`)}>Complete</Button>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+      </DashboardLayout>
+
+      <style jsx>{`
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideRight { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }
+      `}</style>
+    </div>
   );
 };
 
