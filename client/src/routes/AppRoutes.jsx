@@ -124,7 +124,7 @@ const AppRoutes = () => {
         path="/new-request"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.USER]}>
+            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
               <NewRequest />
             </RoleRoute>
           </PrivateRoute>
@@ -134,7 +134,7 @@ const AppRoutes = () => {
         path="/my-requests"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.USER]}>
+            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
               <MyRequests />
             </RoleRoute>
           </PrivateRoute>
@@ -152,7 +152,7 @@ const AppRoutes = () => {
         path="/edit-request/:id"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.USER]}>
+            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
               <EditRequest />
             </RoleRoute>
           </PrivateRoute>

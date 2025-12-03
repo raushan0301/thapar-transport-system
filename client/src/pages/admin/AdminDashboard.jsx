@@ -380,7 +380,7 @@ const AdminDashboard = () => {
       </DashboardLayout>
 
       {/* Custom Animations */}
-      <style jsx>{`
+      <style>{`
         @keyframes slideUp {
           from {
             opacity: 0;

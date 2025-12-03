@@ -22,7 +22,11 @@ const VehicleAssignment = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('transport_requests').select('*, user:users!transport_requests_user_id_fkey(full_name, email)').in('current_status', ['approved_awaiting_vehicle', 'pending_authority', 'pending_registrar']).order('submitted_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('transport_requests')
+        .select('*, user:users!transport_requests_user_id_fkey(full_name, email)')
+        .eq('current_status', 'pending_vehicle')
+        .order('submitted_at', { ascending: false });
       if (error) throw error;
       setRequests(data || []);
     } catch (err) {
@@ -97,7 +101,7 @@ const VehicleAssignment = () => {
         )}
       </DashboardLayout>
 
-      <style jsx>{`
+      <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideRight { from { opacity: 0; transform: translateX(-20px); } to { opacity: 1; transform: translateX(0); } }

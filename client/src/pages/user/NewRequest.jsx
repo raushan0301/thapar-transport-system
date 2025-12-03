@@ -12,6 +12,7 @@ import { validateTransportRequest } from '../../utils/validators';
 import { handleSupabaseError, showSuccess } from '../../utils/errorHandler';
 import { FileText, Send, Calendar, MapPin, Users, Info } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { ROLES } from '../../utils/constants';
 
 const NewRequest = () => {
   const navigate = useNavigate();
@@ -59,12 +60,23 @@ const NewRequest = () => {
 
   const handleSubmit = async (e) => {
     e.preventDefault();
+
+    // Check if user is authority (Director, Deputy Director, Dean, Registrar, Admin, Head)
+    const isAuthority = [ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR, ROLES.ADMIN, ROLES.HEAD].includes(profile?.role);
+
     const validationErrors = validateTransportRequest(formData);
+
+    // Remove head validation error for authorities (they don't need head approval)
+    if (isAuthority && validationErrors.head) {
+      delete validationErrors.head;
+    }
+
     if (Object.keys(validationErrors).length > 0) {
       setErrors(validationErrors);
       toast.error('Please fix the errors in the form');
       return;
     }
+
 
     setLoading(true);
     try {
@@ -77,10 +89,10 @@ const NewRequest = () => {
         place_of_visit: formData.place_of_visit,
         purpose: formData.purpose,
         number_of_persons: parseInt(formData.number_of_persons),
-        head_id: formData.head_id || null,
-        custom_head_email: formData.custom_head_email || null,
-        head_type: formData.head_type,
-        current_status: 'pending_head',
+        head_id: isAuthority ? null : (formData.head_id || null),
+        custom_head_email: isAuthority ? null : (formData.custom_head_email || null),
+        head_type: isAuthority ? null : formData.head_type,
+        current_status: isAuthority ? 'pending_admin' : 'pending_head',
         is_editable: true,
       };
 
@@ -91,7 +103,7 @@ const NewRequest = () => {
       }
 
       showSuccess('Transport request submitted successfully!');
-      navigate('/user/requests');
+      navigate('/my-requests');
     } catch (error) {
       console.error('Submit error:', error);
       handleSupabaseError(error, 'submit your request');
@@ -135,14 +147,17 @@ const NewRequest = () => {
                 </div>
               </div>
 
-              {/* Head Selection */}
-              <div>
-                <div className="flex items-center space-x-2 mb-6">
-                  <Users className="w-5 h-5 text-purple-600" strokeWidth={1.5} />
-                  <h2 className="text-xl font-semibold text-gray-900">Approval Head</h2>
+
+              {/* Head Selection - Only for regular users */}
+              {![ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR, ROLES.ADMIN, ROLES.HEAD].includes(profile?.role) && (
+                <div>
+                  <div className="flex items-center space-x-2 mb-6">
+                    <Users className="w-5 h-5 text-purple-600" strokeWidth={1.5} />
+                    <h2 className="text-xl font-semibold text-gray-900">Approval Head</h2>
+                  </div>
+                  <HeadSelector value={{ head_id: formData.head_id, custom_head_email: formData.custom_head_email }} onChange={handleHeadChange} error={errors.head} />
                 </div>
-                <HeadSelector value={{ head_id: formData.head_id, custom_head_email: formData.custom_head_email }} onChange={handleHeadChange} error={errors.head} />
-              </div>
+              )}
 
               {/* File Upload */}
               <div>

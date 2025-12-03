@@ -248,7 +248,7 @@ const EditRequest = () => {
                 </div>
             </DashboardLayout>
 
-            <style jsx>{`
+            <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
