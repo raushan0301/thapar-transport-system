@@ -6,34 +6,115 @@ import { StatusBadge } from '../../components/common/Badge';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { Truck, Search, Eye } from 'lucide-react';
+import { Truck, Search, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const VehicleAssignment = () => {
   const navigate = useNavigate();
   const [requests, setRequests] = useState([]);
+  const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [showModal, setShowModal] = useState(false);
+  const [selectedRequest, setSelectedRequest] = useState(null);
+  const [selectedVehicle, setSelectedVehicle] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [driverContact, setDriverContact] = useState('');
+  const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
-    fetchRequests();
+    fetchData();
   }, []);
 
-  const fetchRequests = async () => {
+  const fetchData = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase
+
+      // Fetch requests
+      const { data: requestsData, error: requestsError } = await supabase
         .from('transport_requests')
         .select('*, user:users!transport_requests_user_id_fkey(full_name, email)')
         .eq('current_status', 'pending_vehicle')
         .order('submitted_at', { ascending: false });
-      if (error) throw error;
-      setRequests(data || []);
+
+      if (requestsError) throw requestsError;
+
+      // Fetch available vehicles
+      const { data: vehiclesData, error: vehiclesError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('is_available', true)
+        .order('vehicle_number', { ascending: true });
+
+      if (vehiclesError) throw vehiclesError;
+
+      setRequests(requestsData || []);
+      setVehicles(vehiclesData || []);
     } catch (err) {
       console.error('Error:', err);
-      toast.error('Failed to fetch requests');
+      toast.error('Failed to fetch data');
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleAssignClick = (request) => {
+    setSelectedRequest(request);
+    setSelectedVehicle('');
+    setDriverName('');
+    setDriverContact('');
+    setShowModal(true);
+  };
+
+  const handleAssignVehicle = async () => {
+    if (!selectedVehicle) {
+      toast.error('Please select a vehicle');
+      return;
+    }
+    if (!driverName.trim()) {
+      toast.error('Please enter driver name');
+      return;
+    }
+    if (!driverContact.trim()) {
+      toast.error('Please enter driver contact');
+      return;
+    }
+
+    setAssigning(true);
+    try {
+      // Update request with vehicle details
+      const { error: updateError } = await supabase
+        .from('transport_requests')
+        .update({
+          vehicle_id: selectedVehicle,
+          driver_name: driverName,
+          driver_contact: driverContact,
+          current_status: 'vehicle_assigned',
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedRequest.id);
+
+      if (updateError) throw updateError;
+
+      // Update vehicle to mark as unavailable
+      const { error: vehicleError } = await supabase
+        .from('vehicles')
+        .update({
+          is_available: false,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('id', selectedVehicle);
+
+      if (vehicleError) throw vehicleError;
+
+      toast.success('Vehicle assigned successfully!');
+      setShowModal(false);
+      fetchData(); // Refresh data
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error(`Failed to assign vehicle: ${err.message}`);
+    } finally {
+      setAssigning(false);
     }
   };
 
@@ -91,7 +172,7 @@ const VehicleAssignment = () => {
                     <td className="px-6 py-4 text-gray-600">{req.number_of_persons}</td>
                     <td className="px-6 py-4"><StatusBadge status={req.current_status} /></td>
                     <td className="px-6 py-4">
-                      <Button variant="ghost" size="sm" icon={Eye} onClick={() => navigate(`/request/${req.id}`)}>Assign</Button>
+                      <Button variant="primary" size="sm" onClick={() => handleAssignClick(req)}>Assign Vehicle</Button>
                     </td>
                   </tr>
                 ))}
@@ -100,6 +181,126 @@ const VehicleAssignment = () => {
           </div>
         )}
       </DashboardLayout>
+
+      {/* Assignment Modal */}
+      {showModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Assign Vehicle</h2>
+                <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mt-2">Request: {selectedRequest?.request_number}</p>
+            </div>
+
+            <div className="p-6 space-y-6">
+              {/* Request Details */}
+              <div className="bg-gray-50 rounded-lg p-4">
+                <h3 className="font-semibold text-gray-900 mb-2">Request Details</h3>
+                <div className="grid grid-cols-2 gap-3 text-sm">
+                  <div>
+                    <span className="text-gray-500">User:</span>
+                    <span className="ml-2 font-medium">{selectedRequest?.user?.full_name}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Date:</span>
+                    <span className="ml-2 font-medium">{formatDate(selectedRequest?.date_of_visit)}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Destination:</span>
+                    <span className="ml-2 font-medium">{selectedRequest?.place_of_visit}</span>
+                  </div>
+                  <div>
+                    <span className="text-gray-500">Persons:</span>
+                    <span className="ml-2 font-medium">{selectedRequest?.number_of_persons}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Vehicle Selection */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Select Vehicle <span className="text-red-500">*</span>
+                </label>
+                {vehicles.length === 0 ? (
+                  <p className="text-red-500 text-sm">No available vehicles</p>
+                ) : (
+                  <select
+                    value={selectedVehicle}
+                    onChange={(e) => setSelectedVehicle(e.target.value)}
+                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                  >
+                    <option value="">-- Select a vehicle --</option>
+                    {vehicles.map((vehicle) => (
+                      <option key={vehicle.id} value={vehicle.id}>
+                        {vehicle.vehicle_number} - {vehicle.vehicle_type} (Capacity: {vehicle.capacity})
+                      </option>
+                    ))}
+                  </select>
+                )}
+              </div>
+
+              {/* Driver Name */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Driver Name <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="text"
+                  value={driverName}
+                  onChange={(e) => setDriverName(e.target.value)}
+                  placeholder="Enter driver name"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+
+              {/* Driver Contact */}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Driver Contact <span className="text-red-500">*</span>
+                </label>
+                <input
+                  type="tel"
+                  value={driverContact}
+                  onChange={(e) => setDriverContact(e.target.value)}
+                  placeholder="Enter driver contact number"
+                  className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                />
+              </div>
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
+              <button
+                onClick={() => setShowModal(false)}
+                className="px-6 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
+                disabled={assigning}
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleAssignVehicle}
+                disabled={assigning || !selectedVehicle || !driverName || !driverContact}
+                className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
+              >
+                {assigning ? (
+                  <>
+                    <Loader size="sm" />
+                    <span>Assigning...</span>
+                  </>
+                ) : (
+                  <>
+                    <Check className="w-5 h-5" />
+                    <span>Assign Vehicle</span>
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

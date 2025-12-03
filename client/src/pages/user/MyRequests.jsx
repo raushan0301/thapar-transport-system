@@ -54,7 +54,7 @@ const MyRequests = () => {
             </div>
             <p className="text-gray-600">View and manage all your transport requests</p>
           </div>
-          <Button variant="primary" icon={Plus} onClick={() => navigate('/user/new-request')}>New Request</Button>
+          <Button variant="primary" icon={Plus} onClick={() => navigate('/new-request')}>New Request</Button>
         </div>
 
         {/* Filters */}

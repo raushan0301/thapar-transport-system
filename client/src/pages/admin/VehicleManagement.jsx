@@ -5,16 +5,20 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
-import { Truck, Plus, Search, Edit, Trash2 } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Trash2, Eye, X, User, Calendar, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const VehicleManagement = () => {
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('all'); // 'all', 'available', 'in_use'
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
+  const [showAssignmentModal, setShowAssignmentModal] = useState(false);
   const [selectedVehicle, setSelectedVehicle] = useState(null);
+  const [assignmentDetails, setAssignmentDetails] = useState(null);
+  const [assignmentLoading, setAssignmentLoading] = useState(false);
   const [formData, setFormData] = useState({
     vehicle_number: '',
     vehicle_type: '',
@@ -169,10 +173,40 @@ const VehicleManagement = () => {
     });
   };
 
-  const filteredVehicles = vehicles.filter(v =>
-    v.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    v.vehicle_type?.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  const fetchAssignmentDetails = async (vehicleId) => {
+    setAssignmentLoading(true);
+    try {
+      const { data, error } = await supabase
+        .from('transport_requests')
+        .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone)')
+        .eq('vehicle_id', vehicleId)
+        .eq('current_status', 'vehicle_assigned')
+        .single();
+
+      if (error) throw error;
+      setAssignmentDetails(data);
+    } catch (err) {
+      console.error('Error:', err);
+      toast.error('Failed to fetch assignment details');
+    } finally {
+      setAssignmentLoading(false);
+    }
+  };
+
+  const handleViewAssignment = async (vehicle) => {
+    setSelectedVehicle(vehicle);
+    setShowAssignmentModal(true);
+    await fetchAssignmentDetails(vehicle.id);
+  };
+
+  const filteredVehicles = vehicles.filter(v => {
+    const matchesSearch = v.vehicle_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      v.vehicle_type?.toLowerCase().includes(searchTerm.toLowerCase());
+
+    if (filterStatus === 'available') return matchesSearch && v.is_available;
+    if (filterStatus === 'in_use') return matchesSearch && !v.is_available;
+    return matchesSearch; // 'all'
+  });
 
   if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
 
@@ -191,9 +225,40 @@ const VehicleManagement = () => {
         </div>
 
         <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-200" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '100ms', opacity: 0, animationFillMode: 'forwards' }}>
-          <div className="relative">
+          <div className="relative mb-4">
             <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" strokeWidth={1.5} />
             <input type="text" placeholder="Search vehicles..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-purple-500" />
+          </div>
+
+          {/* Filter Tabs */}
+          <div className="flex space-x-2">
+            <button
+              onClick={() => setFilterStatus('all')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === 'all'
+                ? 'bg-purple-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              All ({vehicles.length})
+            </button>
+            <button
+              onClick={() => setFilterStatus('available')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === 'available'
+                ? 'bg-green-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              Available ({vehicles.filter(v => v.is_available).length})
+            </button>
+            <button
+              onClick={() => setFilterStatus('in_use')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${filterStatus === 'in_use'
+                ? 'bg-red-600 text-white'
+                : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                }`}
+            >
+              In Use ({vehicles.filter(v => !v.is_available).length})
+            </button>
           </div>
         </div>
 
@@ -243,6 +308,17 @@ const VehicleManagement = () => {
                     </span>
                   </div>
                 </div>
+
+                {/* View Assignment Button for In-Use Vehicles */}
+                {!vehicle.is_available && (
+                  <button
+                    onClick={() => handleViewAssignment(vehicle)}
+                    className="mt-4 w-full px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center justify-center space-x-2"
+                  >
+                    <Eye className="w-4 h-4" />
+                    <span>View Assignment</span>
+                  </button>
+                )}
               </div>
             ))}
           </div>
@@ -392,6 +468,126 @@ const VehicleManagement = () => {
           </div>
         </div>
       </Modal>
+
+      {/* Assignment Details Modal */}
+      {showAssignmentModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full max-h-[90vh] overflow-y-auto animate-slideUp">
+            <div className="p-6 border-b border-gray-200">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-bold text-gray-900">Vehicle Assignment Details</h2>
+                <button onClick={() => setShowAssignmentModal(false)} className="text-gray-400 hover:text-gray-600">
+                  <X className="w-6 h-6" />
+                </button>
+              </div>
+              <p className="text-gray-600 mt-2">Vehicle: {selectedVehicle?.vehicle_number}</p>
+            </div>
+
+            <div className="p-6">
+              {assignmentLoading ? (
+                <div className="flex justify-center items-center py-12">
+                  <Loader size="lg" />
+                </div>
+              ) : assignmentDetails ? (
+                <div className="space-y-6">
+                  {/* Request Information */}
+                  <div className="bg-gray-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Request Information</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Request Number:</span>
+                        <p className="font-medium text-blue-600">{assignmentDetails.request_number}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Date of Visit:</span>
+                        <p className="font-medium">{new Date(assignmentDetails.date_of_visit).toLocaleDateString()}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Time:</span>
+                        <p className="font-medium">{assignmentDetails.time_of_visit}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Persons:</span>
+                        <p className="font-medium">{assignmentDetails.number_of_persons}</p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">Destination:</span>
+                        <p className="font-medium flex items-center space-x-2">
+                          <MapPin className="w-4 h-4 text-gray-400" />
+                          <span>{assignmentDetails.place_of_visit}</span>
+                        </p>
+                      </div>
+                      <div className="col-span-2">
+                        <span className="text-gray-500">Purpose:</span>
+                        <p className="font-medium">{assignmentDetails.purpose}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* User Details */}
+                  <div className="bg-blue-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3 flex items-center space-x-2">
+                      <User className="w-5 h-5 text-blue-600" />
+                      <span>User Details</span>
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Name:</span>
+                        <p className="font-medium">{assignmentDetails.user?.full_name}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Email:</span>
+                        <p className="font-medium">{assignmentDetails.user?.email}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Phone:</span>
+                        <p className="font-medium">{assignmentDetails.user?.phone || 'N/A'}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Department:</span>
+                        <p className="font-medium">{assignmentDetails.department}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Designation:</span>
+                        <p className="font-medium">{assignmentDetails.designation || assignmentDetails.user?.designation || 'N/A'}</p>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Driver Details */}
+                  <div className="bg-green-50 rounded-lg p-4">
+                    <h3 className="font-semibold text-gray-900 mb-3">Driver Details</h3>
+                    <div className="grid grid-cols-2 gap-4 text-sm">
+                      <div>
+                        <span className="text-gray-500">Driver Name:</span>
+                        <p className="font-medium">{assignmentDetails.driver_name}</p>
+                      </div>
+                      <div>
+                        <span className="text-gray-500">Driver Contact:</span>
+                        <p className="font-medium">{assignmentDetails.driver_contact}</p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="text-center py-12">
+                  <p className="text-gray-500">No assignment details found</p>
+                </div>
+              )}
+            </div>
+
+            <div className="p-6 border-t border-gray-200 flex justify-end">
+              <button
+                onClick={() => setShowAssignmentModal(false)}
+                className="px-6 py-2 bg-gray-600 text-white rounded-lg hover:bg-gray-700 transition-colors"
+              >
+                Close
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
 
       <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
