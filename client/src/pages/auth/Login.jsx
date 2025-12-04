@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 import Input from '../../components/common/Input';
 import Button from '../../components/common/Button';
-import { LogIn, Truck, Shield, Zap } from 'lucide-react';
+import { LogIn, Mail, Lock, Truck, ArrowRight, Shield, Zap, CheckCircle, Eye, EyeOff } from 'lucide-react';
 
 const Login = () => {
   const navigate = useNavigate();
@@ -11,6 +11,7 @@ const Login = () => {
   const [formData, setFormData] = useState({ email: '', password: '' });
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [showPassword, setShowPassword] = useState(false);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -40,136 +41,265 @@ const Login = () => {
     if (!error && data) navigate('/dashboard');
   };
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-600 via-purple-600 to-pink-600 relative overflow-hidden">
-      {/* Animated Background Blobs */}
-      <div className="absolute top-0 left-0 w-96 h-96 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl animate-pulse"></div>
-      <div className="absolute bottom-0 right-0 w-96 h-96 bg-white/10 rounded-full mix-blend-overlay filter blur-3xl animate-pulse" style={{ animationDelay: '2s' }}></div>
+  const features = [
+    { icon: Shield, text: 'Secure & Encrypted' },
+    { icon: Zap, text: 'Fast & Reliable' },
+    { icon: CheckCircle, text: 'Easy to Use' }
+  ];
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen relative z-10">
-        {/* Left Side - Branding */}
-        <div className="hidden lg:flex flex-col items-center justify-center p-12 text-white">
-          <div className="max-w-lg" style={{ animation: 'slideRight 0.8s ease-out' }}>
-            <div className="mb-8">
-              <div className="inline-flex items-center justify-center w-20 h-20 bg-white/20 backdrop-blur-lg rounded-2xl mb-6 shadow-2xl">
-                <Truck className="w-10 h-10 text-white" strokeWidth={1.5} />
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-900 to-slate-900 relative overflow-hidden">
+      {/* Animated Background Elements */}
+      <div className="absolute inset-0 overflow-hidden">
+        <div className="absolute -top-40 -right-40 w-80 h-80 bg-blue-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob"></div>
+        <div className="absolute -bottom-40 -left-40 w-80 h-80 bg-purple-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-2000"></div>
+        <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-80 h-80 bg-pink-500 rounded-full mix-blend-multiply filter blur-3xl opacity-20 animate-blob animation-delay-4000"></div>
+      </div>
+
+      {/* Grid Pattern Overlay */}
+      <div className="absolute inset-0 bg-grid-pattern opacity-5"></div>
+
+      <div className="relative z-10 min-h-screen flex items-center justify-center p-4">
+        <div className="w-full max-w-6xl grid grid-cols-1 lg:grid-cols-2 gap-8 items-center">
+
+          {/* Left Side - Branding */}
+          <div className="hidden lg:block text-white space-y-8 animate-slideRight">
+            {/* Logo & Title */}
+            <div className="space-y-4">
+              <div className="flex items-center space-x-4">
+                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-300">
+                  <Truck className="w-8 h-8 text-white" strokeWidth={2} />
+                </div>
+                <div>
+                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                    Thapar Transport
+                  </h1>
+                  <p className="text-blue-200 text-sm">Management System</p>
+                </div>
               </div>
-              <h1 className="text-6xl font-bold mb-4">Thapar Transport</h1>
-              <p className="text-2xl opacity-90 mb-8">Streamlined Transport Management System</p>
             </div>
 
+            {/* Description */}
             <div className="space-y-4">
-              {[
-                { icon: Shield, text: 'Secure & Reliable' },
-                { icon: Zap, text: 'Fast & Efficient' },
-                { icon: Truck, text: 'Complete Fleet Management' }
-              ].map((feature, i) => (
-                <div key={i} className="flex items-center space-x-4 bg-white/10 backdrop-blur-sm rounded-xl p-4" style={{ animation: 'slideRight 0.8s ease-out', animationDelay: `${(i + 1) * 200}ms`, opacity: 0, animationFillMode: 'forwards' }}>
-                  <div className="w-12 h-12 bg-white/20 rounded-lg flex items-center justify-center">
-                    <feature.icon className="w-6 h-6 text-white" strokeWidth={1.5} />
+              <h2 className="text-3xl font-bold leading-tight text-white">
+                Welcome to the Future of
+                <span className="block bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">
+                  Transport Management
+                </span>
+              </h2>
+              <p className="text-blue-50 text-lg leading-relaxed">
+                Streamline your transport requests, manage vehicles efficiently, and track everything in real-time with our powerful platform.
+              </p>
+            </div>
+
+            {/* Features */}
+            <div className="space-y-3">
+              {features.map((feature, index) => (
+                <div
+                  key={index}
+                  className="flex items-center space-x-3 bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all duration-300 transform hover:translate-x-2"
+                  style={{ animationDelay: `${index * 100}ms` }}
+                >
+                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                    <feature.icon className="w-5 h-5 text-white" strokeWidth={2} />
                   </div>
-                  <p className="text-lg font-medium">{feature.text}</p>
+                  <span className="text-white font-semibold">{feature.text}</span>
                 </div>
               ))}
             </div>
-          </div>
-        </div>
 
-        {/* Right Side - Login Form */}
-        <div className="flex items-center justify-center p-8">
-          <div className="w-full max-w-md" style={{ animation: 'slideUp 0.8s ease-out' }}>
-            {/* Mobile Logo */}
-            <div className="lg:hidden text-center mb-8 text-white">
-              <div className="inline-flex items-center justify-center w-16 h-16 bg-white/20 backdrop-blur-lg rounded-2xl mb-4">
-                <Truck className="w-8 h-8 text-white" strokeWidth={1.5} />
+            {/* Stats */}
+            <div className="grid grid-cols-3 gap-4 pt-8 border-t border-white/10">
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">500+</div>
+                <div className="text-sm text-blue-100">Users</div>
               </div>
-              <h1 className="text-3xl font-bold">Thapar Transport</h1>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">1000+</div>
+                <div className="text-sm text-blue-100">Requests</div>
+              </div>
+              <div className="text-center">
+                <div className="text-3xl font-bold text-white">50+</div>
+                <div className="text-sm text-blue-100">Vehicles</div>
+              </div>
             </div>
+          </div>
 
-            {/* Login Card - Glassmorphism */}
-            <div className="bg-white/10 backdrop-blur-xl rounded-2xl p-8 border border-white/20 shadow-2xl">
-              <h2 className="text-3xl font-bold text-white mb-2">Welcome Back</h2>
-              <p className="text-white/80 mb-8">Login to access your dashboard</p>
+          {/* Right Side - Login Form */}
+          <div className="w-full max-w-md mx-auto animate-slideLeft">
+            <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
+              {/* Mobile Logo */}
+              <div className="lg:hidden flex items-center justify-center space-x-3 mb-8">
+                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                  <Truck className="w-6 h-6 text-white" strokeWidth={2} />
+                </div>
+                <div>
+                  <h1 className="text-2xl font-bold text-gray-900">Thapar Transport</h1>
+                  <p className="text-sm text-gray-500">Management System</p>
+                </div>
+              </div>
 
+              {/* Form Header */}
+              <div className="text-center mb-8">
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Welcome Back</h2>
+                <p className="text-gray-500">Sign in to continue to your dashboard</p>
+              </div>
+
+              {/* Login Form */}
               <form onSubmit={handleSubmit} className="space-y-6">
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Email Address</label>
-                  <input
-                    type="email"
-                    name="email"
-                    value={formData.email}
-                    onChange={handleChange}
-                    placeholder="your.email@thapar.edu"
-                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
-                    required
-                  />
-                  {errors.email && <p className="mt-2 text-sm text-red-200">{errors.email}</p>}
+                {/* Email Input */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-700">Email Address</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Mail className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type="email"
+                      name="email"
+                      value={formData.email}
+                      onChange={handleChange}
+                      placeholder="you@example.com"
+                      className={`w-full pl-12 pr-4 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.email ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                    />
+                  </div>
+                  {errors.email && <p className="text-sm text-red-600 mt-1">{errors.email}</p>}
                 </div>
 
-                <div>
-                  <label className="block text-sm font-medium text-white mb-2">Password</label>
-                  <input
-                    type="password"
-                    name="password"
-                    value={formData.password}
-                    onChange={handleChange}
-                    placeholder="Enter your password"
-                    className="w-full px-4 py-3 bg-white/20 backdrop-blur-sm border border-white/30 rounded-xl text-white placeholder-white/60 focus:outline-none focus:ring-2 focus:ring-white/50 transition-all duration-200"
-                    required
-                  />
-                  {errors.password && <p className="mt-2 text-sm text-red-200">{errors.password}</p>}
+                {/* Password Input */}
+                <div className="space-y-2">
+                  <label className="block text-sm font-bold text-gray-700">Password</label>
+                  <div className="relative">
+                    <div className="absolute inset-y-0 left-0 pl-4 flex items-center pointer-events-none">
+                      <Lock className="w-5 h-5 text-gray-400" />
+                    </div>
+                    <input
+                      type={showPassword ? "text" : "password"}
+                      name="password"
+                      value={formData.password}
+                      onChange={handleChange}
+                      placeholder="••••••••"
+                      className={`w-full pl-12 pr-12 py-3 border-2 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all ${errors.password ? 'border-red-300 bg-red-50' : 'border-gray-200 hover:border-gray-300'
+                        }`}
+                    />
+                    <button
+                      type="button"
+                      onClick={() => setShowPassword(!showPassword)}
+                      className="absolute inset-y-0 right-0 pr-4 flex items-center text-gray-400 hover:text-gray-600 transition-colors"
+                    >
+                      {showPassword ? <EyeOff className="w-5 h-5" /> : <Eye className="w-5 h-5" />}
+                    </button>
+                  </div>
+                  {errors.password && <p className="text-sm text-red-600 mt-1">{errors.password}</p>}
                 </div>
 
+                {/* Remember Me & Forgot Password */}
                 <div className="flex items-center justify-between">
-                  <label className="flex items-center cursor-pointer">
-                    <input type="checkbox" className="w-4 h-4 rounded border-white/30 bg-white/20 text-white focus:ring-white/50" />
-                    <span className="ml-2 text-sm text-white/90">Remember me</span>
+                  <label className="flex items-center space-x-2 cursor-pointer">
+                    <input type="checkbox" className="w-4 h-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500" />
+                    <span className="text-sm text-gray-700 font-medium">Remember me</span>
                   </label>
-                  <Link to="/forgot-password" className="text-sm text-white/90 hover:text-white transition-colors">
+                  <Link to="/forgot-password" className="text-sm font-bold text-blue-600 hover:text-blue-700 transition-colors">
                     Forgot password?
                   </Link>
                 </div>
 
+                {/* Submit Button */}
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-white text-blue-600 py-3 px-6 rounded-xl font-semibold hover:bg-white/90 transition-all duration-200 flex items-center justify-center space-x-2 shadow-lg hover:shadow-xl transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
+                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                 >
                   {loading ? (
-                    <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"></div>
+                    <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
                     <>
-                      <LogIn className="w-5 h-5" strokeWidth={2} />
-                      <span>Login</span>
+                      <LogIn className="w-5 h-5" />
+                      <span>Sign In</span>
+                      <ArrowRight className="w-5 h-5" />
                     </>
                   )}
                 </button>
               </form>
 
-              <p className="mt-8 text-center text-sm text-white/80">
-                Don't have an account?{' '}
-                <Link to="/register" className="text-white font-semibold hover:underline">
-                  Register here
+              {/* Divider */}
+              <div className="relative my-8">
+                <div className="absolute inset-0 flex items-center">
+                  <div className="w-full border-t border-gray-200"></div>
+                </div>
+                <div className="relative flex justify-center text-sm">
+                  <span className="px-4 bg-white text-gray-500">New to the platform?</span>
+                </div>
+              </div>
+
+              {/* Sign Up Link */}
+              <div className="text-center">
+                <Link
+                  to="/signup"
+                  className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
+                >
+                  <span>Create an account</span>
+                  <ArrowRight className="w-4 h-4" />
                 </Link>
-              </p>
+              </div>
             </div>
 
             {/* Footer */}
-            <p className="mt-6 text-center text-sm text-white/60">
-              © 2025 Thapar Institute. All rights reserved.
+            <p className="text-center text-sm text-white/60 mt-6">
+              © 2025 Thapar Transport System. All rights reserved.
             </p>
           </div>
         </div>
       </div>
 
       <style>{`
-        @keyframes slideUp {
-          from { opacity: 0; transform: translateY(30px); }
-          to { opacity: 1; transform: translateY(0); }
+        @keyframes blob {
+          0%, 100% { transform: translate(0, 0) scale(1); }
+          25% { transform: translate(20px, -50px) scale(1.1); }
+          50% { transform: translate(-20px, 20px) scale(0.9); }
+          75% { transform: translate(50px, 50px) scale(1.05); }
+        }
+        .animate-blob {
+          animation: blob 7s infinite;
+        }
+        .animation-delay-2000 {
+          animation-delay: 2s;
+        }
+        .animation-delay-4000 {
+          animation-delay: 4s;
+        }
+        .bg-grid-pattern {
+          background-image: 
+            linear-gradient(to right, rgba(255, 255, 255, 0.1) 1px, transparent 1px),
+            linear-gradient(to bottom, rgba(255, 255, 255, 0.1) 1px, transparent 1px);
+          background-size: 50px 50px;
         }
         @keyframes slideRight {
-          from { opacity: 0; transform: translateX(-30px); }
-          to { opacity: 1; transform: translateX(0); }
+          from {
+            opacity: 0;
+            transform: translateX(-50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        @keyframes slideLeft {
+          from {
+            opacity: 0;
+            transform: translateX(50px);
+          }
+          to {
+            opacity: 1;
+            transform: translateX(0);
+          }
+        }
+        .animate-slideRight {
+          animation: slideRight 0.8s ease-out;
+        }
+        .animate-slideLeft {
+          animation: slideLeft 0.8s ease-out;
         }
       `}</style>
     </div>

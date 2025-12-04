@@ -63,7 +63,7 @@ const AdminDashboard = () => {
       const { data: vehicles } = await supabase
         .from('vehicles')
         .select('id')
-        .eq('is_active', true);
+        .eq('is_available', true);
 
       const { data: users } = await supabase
         .from('users')
@@ -71,7 +71,7 @@ const AdminDashboard = () => {
 
       const totalRequests = requests?.length || 0;
       const pendingReview = requests?.filter(r => r.current_status === 'pending_admin').length || 0;
-      const completed = requests?.filter(r => r.current_status === 'closed').length || 0;
+      const completed = requests?.filter(r => r.current_status === 'completed').length || 0;
 
       const now = new Date();
       const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);

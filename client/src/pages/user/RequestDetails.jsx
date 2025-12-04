@@ -51,11 +51,12 @@ const RequestDetails = () => {
 
       setRequest(requestData);
 
-      // Fetch approval history
+      // Fetch approval history (only approved/rejected, not routing actions)
       const { data: approvalsData } = await supabase
         .from('approvals')
         .select('*, approver:users!approvals_approver_id_fkey(full_name, email)')
         .eq('request_id', id)
+        .in('action', ['approved', 'rejected'])
         .order('approved_at', { ascending: true });
 
       setApprovals(approvalsData || []);
