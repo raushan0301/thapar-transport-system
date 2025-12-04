@@ -33,6 +33,7 @@ const PendingApprovals = () => {
             setLoading(true);
 
             // Fetch requests routed to this authority
+            // Match by routed_to_authority field (e.g., 'DIRECTOR', 'DEPUTY_DIRECTOR', 'DEAN')
             const { data, error } = await supabase
                 .from('transport_requests')
                 .select(`
@@ -40,7 +41,7 @@ const PendingApprovals = () => {
           user:users!transport_requests_user_id_fkey(full_name, email, department)
         `)
                 .eq('current_status', 'pending_authority')
-                .eq('routed_authority_id', user.id)
+                .eq('routed_to_authority', profile.role.toUpperCase())
                 .order('submitted_at', { ascending: false });
 
             if (error) throw error;
@@ -60,11 +61,11 @@ const PendingApprovals = () => {
         try {
             setProcessing(true);
 
-            // Update request status to pending registrar
+            // Update request status to approved awaiting vehicle
             const { error: updateError } = await supabase
                 .from('transport_requests')
                 .update({
-                    current_status: 'pending_registrar',
+                    current_status: 'approved_awaiting_vehicle',
                     updated_at: new Date().toISOString()
                 })
                 .eq('id', selectedRequest.id);
@@ -84,6 +85,34 @@ const PendingApprovals = () => {
                 });
 
             if (approvalError) throw approvalError;
+
+            // Create notification for user
+            const { error: userNotifError } = await supabase
+                .from('notifications')
+                .insert({
+                    user_id: selectedRequest.user_id,
+                    title: 'Request Approved',
+                    message: `Your request ${selectedRequest.request_number} has been approved by ${profile.role} and is awaiting vehicle assignment`,
+                    type: 'approval',
+                    related_request_id: selectedRequest.id,
+                    is_read: false
+                });
+
+            if (userNotifError) console.error('User notification error:', userNotifError);
+
+            // Create notification for admin
+            const { error: adminNotifError } = await supabase
+                .from('notifications')
+                .insert({
+                    user_id: null, // All admins will see this
+                    title: 'Request Needs Vehicle Assignment',
+                    message: `Request ${selectedRequest.request_number} has been approved by ${profile.role} and needs vehicle assignment`,
+                    type: 'info',
+                    related_request_id: selectedRequest.id,
+                    is_read: false
+                });
+
+            if (adminNotifError) console.error('Admin notification error:', adminNotifError);
 
             toast.success('Request approved successfully');
             setShowApproveModal(false);

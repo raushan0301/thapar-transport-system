@@ -42,7 +42,17 @@ const HeadSelector = ({ value, onChange, error }) => {
 
   const handlePredefinedHeadChange = (e) => {
     const headId = e.target.value;
-    onChange({ head_id: headId, custom_head_email: '', head_type: 'predefined' });
+
+    // Find the selected head to get their email
+    const selectedHead = heads.find(h => h.user.id === headId);
+    const headEmail = selectedHead?.user.email || '';
+
+    // Set both head_id AND custom_head_email so queries can find it
+    onChange({
+      head_id: headId,
+      custom_head_email: headEmail,  // ✅ Also set email!
+      head_type: 'predefined'
+    });
   };
 
   const handleCustomEmailChange = (e) => {

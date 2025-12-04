@@ -30,14 +30,39 @@ const VehicleAssignment = () => {
     try {
       setLoading(true);
 
-      // Fetch requests
+      // Fetch requests awaiting vehicle assignment
       const { data: requestsData, error: requestsError } = await supabase
         .from('transport_requests')
         .select('*, user:users!transport_requests_user_id_fkey(full_name, email)')
-        .eq('current_status', 'pending_vehicle')
+        .eq('current_status', 'approved_awaiting_vehicle')
         .order('submitted_at', { ascending: false });
 
       if (requestsError) throw requestsError;
+
+      // Fetch approvals for these requests to determine who approved
+      if (requestsData && requestsData.length > 0) {
+        const requestIds = requestsData.map(r => r.id);
+        const { data: approvalsData } = await supabase
+          .from('approvals')
+          .select('request_id, approver_role, action, comment')
+          .in('request_id', requestIds)
+          .eq('action', 'approved');
+
+        // Add approval info to requests
+        requestsData.forEach(request => {
+          const approval = approvalsData?.find(a => a.request_id === request.id && a.action === 'approved');
+          if (approval) {
+            request.approved_by = approval.approver_role;
+            // Check if it was routed to authority from comment
+            if (approval.comment && approval.comment.includes('Routed to')) {
+              const match = approval.comment.match(/Routed to (\w+)/);
+              if (match) {
+                request.approved_by = match[1];
+              }
+            }
+          }
+        });
+      }
 
       // Fetch available vehicles
       const { data: vehiclesData, error: vehiclesError } = await supabase
@@ -158,7 +183,7 @@ const VehicleAssignment = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Destination</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Persons</th>
-                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Approved By</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Action</th>
                 </tr>
               </thead>
@@ -170,7 +195,11 @@ const VehicleAssignment = () => {
                     <td className="px-6 py-4 text-gray-600">{formatDate(req.date_of_visit)}</td>
                     <td className="px-6 py-4 text-gray-900">{req.place_of_visit}</td>
                     <td className="px-6 py-4 text-gray-600">{req.number_of_persons}</td>
-                    <td className="px-6 py-4"><StatusBadge status={req.current_status} /></td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                        {req.approved_by ? req.approved_by.toUpperCase() : 'N/A'}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       <Button variant="primary" size="sm" onClick={() => handleAssignClick(req)}>Assign Vehicle</Button>
                     </td>

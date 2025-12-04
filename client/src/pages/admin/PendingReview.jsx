@@ -23,7 +23,16 @@ const PendingReview = () => {
   const fetchPendingRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('transport_requests').select('*, user:users!transport_requests_user_id_fkey(full_name, email, department)').eq('current_status', 'pending_admin').order('submitted_at', { ascending: false });
+
+      // Fetch requests that are:
+      // 1. Status is 'pending_admin' (from any head) OR
+      // 2. Status is 'pending_head' AND assigned to this admin (admin acting as head)
+      const { data, error } = await supabase
+        .from('transport_requests')
+        .select('*, user:users!transport_requests_user_id_fkey(full_name, email, department)')
+        .or(`current_status.eq.pending_admin,and(current_status.eq.pending_head,custom_head_email.eq.${user.email})`)
+        .order('submitted_at', { ascending: false });
+
       if (error) throw error;
       setRequests(data || []);
     } catch (err) {

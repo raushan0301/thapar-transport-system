@@ -70,7 +70,13 @@ const AdminDashboard = () => {
         .select('id');
 
       const totalRequests = requests?.length || 0;
-      const pendingReview = requests?.filter(r => r.current_status === 'pending_admin').length || 0;
+
+      // Pending Review: ALL pending_admin requests OR pending_head assigned to this admin
+      const pendingReview = requests?.filter(r =>
+        r.current_status === 'pending_admin' ||
+        (r.current_status === 'pending_head' && r.custom_head_email === user.email)
+      ).length || 0;
+
       const completed = requests?.filter(r => r.current_status === 'completed').length || 0;
 
       const now = new Date();
@@ -88,7 +94,13 @@ const AdminDashboard = () => {
         thisMonth
       });
 
-      setRecentRequests(requests?.slice(0, 5) || []);
+      // Recent requests: ALL pending_admin OR pending_head assigned to this admin
+      const pendingRequests = requests?.filter(r =>
+        r.current_status === 'pending_admin' ||
+        (r.current_status === 'pending_head' && r.custom_head_email === user.email)
+      ) || [];
+
+      setRecentRequests(pendingRequests.slice(0, 5));
     } catch (err) {
       console.error('Error:', err);
     } finally {

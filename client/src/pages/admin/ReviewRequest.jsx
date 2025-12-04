@@ -110,7 +110,11 @@ const AdminReviewRequest = () => {
         }
 
         try {
-            // Create approval record
+            // Determine the status based on authority type
+            const isRegistrar = selectedAuthority === 'REGISTRAR';
+            const newStatus = isRegistrar ? 'pending_registrar' : 'pending_authority';
+
+            // Create approval record (use routed_to_authority for all)
             const { error: approvalError } = await supabase
                 .from('approvals')
                 .insert([{
@@ -125,13 +129,19 @@ const AdminReviewRequest = () => {
             if (approvalError) throw approvalError;
 
             // Update request
+            const updateData = {
+                current_status: newStatus,
+                updated_at: new Date().toISOString(),
+            };
+
+            // Only set routed_to_authority for non-registrar authorities
+            if (!isRegistrar) {
+                updateData.routed_to_authority = selectedAuthority;
+            }
+
             const { error: updateError } = await supabase
                 .from('transport_requests')
-                .update({
-                    current_status: 'pending_authority',
-                    routed_to_authority: selectedAuthority,
-                    updated_at: new Date().toISOString(),
-                })
+                .update(updateData)
                 .eq('id', id);
 
             if (updateError) throw updateError;

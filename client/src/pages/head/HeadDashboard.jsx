@@ -12,7 +12,7 @@ import { FileText, Clock, CheckCircle2, XCircle, ArrowRight, Activity, Users } f
 const HeadDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, pendingAuthority: 0 });
   const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -46,21 +46,29 @@ const HeadDashboard = () => {
           });
         }
 
-        let approved = 0, rejected = 0, pending = 0;
+
+        let approved = 0, rejected = 0, pending = 0, pendingAuthority = 0;
 
         allRequests.forEach(request => {
           const myAction = approvalMap[request.id];
+
           if (request.current_status === 'pending_head') {
+            // Waiting for head's approval
             pending++;
-          } else if (myAction === 'approved') {
-            approved++;
-          } else if (myAction === 'rejected' || request.current_status === 'rejected') {
+          } else if (request.current_status === 'pending_authority') {
+            // Request is with authority (head may or may not have approved)
+            pendingAuthority++;
+          } else if (request.current_status === 'rejected' || myAction === 'rejected') {
+            // Rejected by head or later
             rejected++;
+          } else if (myAction === 'approved') {
+            // Head approved and completed (not pending authority)
+            approved++;
           }
         });
 
         const total = allRequests.length;
-        setStats({ total, pending, approved, rejected });
+        setStats({ total, pending, approved, rejected, pendingAuthority });
 
         const pendingRequests = allRequests.filter(r => r.current_status === 'pending_head');
         setRecentRequests(pendingRequests.slice(0, 5));
@@ -88,7 +96,8 @@ const HeadDashboard = () => {
   const statsData = [
     { title: 'Total Requests', value: stats.total, icon: FileText, color: 'blue' },
     { title: 'Pending Approval', value: stats.pending, icon: Clock, color: 'amber' },
-    { title: 'Approved', value: stats.approved, icon: CheckCircle2, color: 'green' },
+    { title: 'Approved by Me', value: stats.approved, icon: CheckCircle2, color: 'green' },
+    { title: 'Pending in Authority', value: stats.pendingAuthority, icon: Users, color: 'purple' },
     { title: 'Rejected', value: stats.rejected, icon: XCircle, color: 'red' },
   ];
 
@@ -182,11 +191,11 @@ const HeadDashboard = () => {
                       <ArrowRight className="w-5 h-5 text-gray-400 group-hover/btn:text-blue-600 group-hover/btn:translate-x-1 transition-all" />
                     </div>
                   </button>
-                  <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent hover:border-gray-200 group/btn" onClick={() => navigate('/head/approved')}>
+                  <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent hover:border-gray-200 group/btn" onClick={() => navigate('/head/history')}>
                     <div className="flex items-center justify-between">
                       <div>
-                        <p className="font-semibold text-gray-900">Approved Requests</p>
-                        <p className="text-sm text-gray-600">{stats.approved} approved</p>
+                        <p className="font-semibold text-gray-900">Approval History</p>
+                        <p className="text-sm text-gray-600">View all decisions</p>
                       </div>
                       <ArrowRight className="w-5 h-5 text-gray-400 group-hover/btn:text-blue-600 group-hover/btn:translate-x-1 transition-all" />
                     </div>
