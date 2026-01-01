@@ -1,161 +1,64 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { Link } from 'react-router-dom';
 import {
-    Truck, ArrowRight, CheckCircle, Shield, Zap, BarChart,
-    Users, Clock, Car, FileText, TrendingUp, Smartphone,
-    Menu, X, ChevronDown
+    CheckCircle, Shield, Zap, Users, Menu, X,
+    FileText, Clock, Car, BarChart, Smartphone
 } from 'lucide-react';
 
 const LandingPage = () => {
-    const [isScrolled, setIsScrolled] = useState(false);
     const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
-    useEffect(() => {
-        const handleScroll = () => {
-            setIsScrolled(window.scrollY > 50);
-        };
-        window.addEventListener('scroll', handleScroll);
-        return () => window.removeEventListener('scroll', handleScroll);
-    }, []);
-
-    const scrollToSection = (id) => {
-        const element = document.getElementById(id);
-        if (element) {
-            element.scrollIntoView({ behavior: 'smooth' });
-            setMobileMenuOpen(false);
-        }
-    };
-
     const features = [
-        {
-            icon: FileText,
-            title: 'Easy Request Submission',
-            description: 'Submit transport requests in seconds with our intuitive interface'
-        },
-        {
-            icon: CheckCircle,
-            title: 'Multi-Level Approval',
-            description: 'Automated routing to appropriate authorities with transparent workflow'
-        },
-        {
-            icon: Car,
-            title: 'Smart Vehicle Assignment',
-            description: 'Efficient vehicle allocation with real-time availability tracking'
-        },
-        {
-            icon: Clock,
-            title: 'Real-Time Tracking',
-            description: 'Monitor request status instantly and get notifications at every step'
-        },
-        {
-            icon: Shield,
-            title: 'Secure & Reliable',
-            description: 'Role-based access control with data encryption and security'
-        },
-        {
-            icon: Smartphone,
-            title: 'Responsive Design',
-            description: 'Works seamlessly on desktop, tablet, and mobile devices'
-        },
-        {
-            icon: BarChart,
-            title: 'Analytics & Reports',
-            description: 'Comprehensive usage statistics and exportable data for analysis'
-        },
-        {
-            icon: Zap,
-            title: 'Fast & Efficient',
-            description: 'Quick processing times with streamlined workflows'
-        }
+        { icon: FileText, title: 'Easy Request Submission', description: 'Submit transport requests in seconds with our intuitive interface' },
+        { icon: CheckCircle, title: 'Multi-Level Approval', description: 'Automated routing to appropriate authorities with transparent workflow' },
+        { icon: Car, title: 'Smart Vehicle Assignment', description: 'Efficient vehicle allocation with real-time availability tracking' },
+        { icon: Clock, title: 'Real-Time Tracking', description: 'Monitor request status instantly and get notifications at every step' },
+        { icon: Shield, title: 'Secure & Reliable', description: 'Role-based access control with data encryption and security' },
+        { icon: Smartphone, title: 'Responsive Design', description: 'Works seamlessly on desktop, tablet, and mobile devices' },
+        { icon: BarChart, title: 'Analytics & Reports', description: 'Comprehensive usage statistics and exportable data for analysis' },
+        { icon: Zap, title: 'Fast & Efficient', description: 'Quick processing times with streamlined workflows' },
     ];
 
     const steps = [
-        {
-            number: '01',
-            title: 'Submit Request',
-            description: 'Fill out a simple form with your travel details and requirements',
-            icon: FileText
-        },
-        {
-            number: '02',
-            title: 'Approval Process',
-            description: 'Automatic routing through Head → Admin → Authority → Registrar',
-            icon: CheckCircle
-        },
-        {
-            number: '03',
-            title: 'Vehicle Assigned',
-            description: 'Admin assigns the most appropriate vehicle for your request',
-            icon: Car
-        },
-        {
-            number: '04',
-            title: 'Travel Complete',
-            description: 'Complete your journey and admin closes the request',
-            icon: TrendingUp
-        }
+        { number: '01', title: 'Submit Request', description: 'Fill out a simple form with your travel details' },
+        { number: '02', title: 'Approval Process', description: 'Automatic routing through Head → Admin → Authority' },
+        { number: '03', title: 'Vehicle Assigned', description: 'Admin assigns the appropriate vehicle' },
+        { number: '04', title: 'Travel Complete', description: 'Complete your journey successfully' },
     ];
 
     const roles = [
-        {
-            title: 'Students',
-            description: 'Submit transport requests for events, trips, and activities',
-            icon: Users
-        },
-        {
-            title: 'Faculty',
-            description: 'Request transport for official duties and academic purposes',
-            icon: Users
-        },
-        {
-            title: 'Staff',
-            description: 'Manage the entire transport system and vehicle fleet',
-            icon: Users
-        }
-    ];
-
-    const stats = [
-        { number: '500+', label: 'Active Users' },
-        { number: '1,000+', label: 'Requests Processed' },
-        { number: '50+', label: 'Vehicles Managed' },
-        { number: '99%', label: 'System Uptime' }
+        { title: 'Faculty', description: 'Request transport for official duties and academic purposes', icon: Users },
+        { title: 'Staff', description: 'Manage the entire transport system and vehicle fleet', icon: Users },
     ];
 
     return (
         <div className="min-h-screen bg-white">
             {/* Navigation */}
-            <nav className={`fixed top-0 left-0 right-0 z-50 transition-all duration-300 ${isScrolled ? 'bg-white shadow-lg' : 'bg-white/95 backdrop-blur-sm'
-                }`}>
+            <nav className="bg-white border-b border-gray-200 sticky top-0 z-50">
                 <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
                     <div className="flex justify-between items-center h-16">
                         {/* Logo */}
-                        <div className="flex items-center space-x-3">
-                            <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                <Truck className="w-6 h-6 text-white" strokeWidth={2} />
-                            </div>
-                            <div>
-                                <h1 className="text-xl font-bold text-gray-900">Thapar Transport</h1>
-                                <p className="text-xs text-gray-500">Management System</p>
-                            </div>
-                        </div>
+                        <Link to="/" className="flex items-center">
+                            <img src="/images/ttms-logo.png" alt="TTMS Logo" style={{ height: '45px' }} />
+                        </Link>
 
                         {/* Desktop Navigation */}
                         <div className="hidden md:flex items-center space-x-8">
-                            <button onClick={() => scrollToSection('features')} className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                            <a href="#features" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                                 Features
-                            </button>
-                            <button onClick={() => scrollToSection('how-it-works')} className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                            </a>
+                            <a href="#how-it-works" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                                 How It Works
-                            </button>
-                            <button onClick={() => scrollToSection('contact')} className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
+                            </a>
+                            <a href="#contact" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                                 Contact
-                            </button>
+                            </a>
                             <Link to="/login" className="text-gray-700 hover:text-blue-600 font-medium transition-colors">
                                 Login
                             </Link>
                             <Link
                                 to="/register"
-                                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105"
+                                className="bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold hover:bg-blue-700 transition-all"
                             >
                                 Register
                             </Link>
@@ -175,21 +78,21 @@ const LandingPage = () => {
                 {mobileMenuOpen && (
                     <div className="md:hidden bg-white border-t">
                         <div className="px-4 py-4 space-y-3">
-                            <button onClick={() => scrollToSection('features')} className="block w-full text-left text-gray-700 hover:text-blue-600 font-medium py-2">
+                            <a href="#features" className="block text-gray-700 hover:text-blue-600 font-medium py-2">
                                 Features
-                            </button>
-                            <button onClick={() => scrollToSection('how-it-works')} className="block w-full text-left text-gray-700 hover:text-blue-600 font-medium py-2">
+                            </a>
+                            <a href="#how-it-works" className="block text-gray-700 hover:text-blue-600 font-medium py-2">
                                 How It Works
-                            </button>
-                            <button onClick={() => scrollToSection('contact')} className="block w-full text-left text-gray-700 hover:text-blue-600 font-medium py-2">
+                            </a>
+                            <a href="#contact" className="block text-gray-700 hover:text-blue-600 font-medium py-2">
                                 Contact
-                            </button>
-                            <Link to="/login" className="block w-full text-left text-gray-700 hover:text-blue-600 font-medium py-2">
+                            </a>
+                            <Link to="/login" className="block text-gray-700 hover:text-blue-600 font-medium py-2">
                                 Login
                             </Link>
                             <Link
                                 to="/register"
-                                className="block w-full bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold text-center hover:bg-blue-700 transition-colors"
+                                className="block bg-blue-600 text-white px-6 py-2 rounded-lg font-semibold text-center hover:bg-blue-700"
                             >
                                 Register
                             </Link>
@@ -199,55 +102,35 @@ const LandingPage = () => {
             </nav>
 
             {/* Hero Section */}
-            <section className="pt-32 pb-20 px-4 sm:px-6 lg:px-8 bg-gradient-to-br from-blue-50 via-white to-purple-50">
-                <div className="max-w-7xl mx-auto">
-                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-12 items-center">
-                        {/* Left Content */}
-                        <div className="text-center lg:text-left">
-                            <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
-                                Streamline Your
-                                <span className="block text-blue-600">
-                                    Transport Management
-                                </span>
-                            </h1>
-                            <p className="text-xl text-gray-600 mb-8 leading-relaxed">
-                                Efficient, secure, and easy-to-use transport request management system for Thapar Institute.
-                                Manage requests, track vehicles, and streamline approvals all in one place.
-                            </p>
-                            <div className="flex flex-col sm:flex-row gap-4 justify-center lg:justify-start">
-                                <Link
-                                    to="/register"
-                                    className="inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg"
-                                >
-                                    <span>Get Started</span>
-                                    <ArrowRight className="w-5 h-5" />
-                                </Link>
-                                <button
-                                    onClick={() => scrollToSection('features')}
-                                    className="inline-flex items-center justify-center space-x-2 bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-all"
-                                >
-                                    <span>Learn More</span>
-                                    <ChevronDown className="w-5 h-5" />
-                                </button>
-                            </div>
-                        </div>
-
-                        {/* Right Image */}
-                        <div className="relative">
-                            <div className="relative z-10 bg-white rounded-2xl shadow-2xl p-8 border border-gray-100">
-                                <div className="aspect-square bg-gradient-to-br from-blue-100 to-purple-100 rounded-xl flex items-center justify-center">
-                                    <Truck className="w-32 h-32 text-blue-600" strokeWidth={1.5} />
-                                </div>
-                            </div>
-                            <div className="absolute -top-4 -right-4 w-72 h-72 bg-blue-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob"></div>
-                            <div className="absolute -bottom-4 -left-4 w-72 h-72 bg-purple-200 rounded-full mix-blend-multiply filter blur-3xl opacity-30 animate-blob animation-delay-2000"></div>
-                        </div>
+            <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+                <div className="max-w-4xl mx-auto text-center">
+                    <h1 className="text-5xl md:text-6xl font-bold text-gray-900 mb-6 leading-tight">
+                        Streamline Your
+                        <span className="block text-blue-600 mt-2">Transport Management</span>
+                    </h1>
+                    <p className="text-xl text-gray-600 mb-8 leading-relaxed">
+                        Efficient, secure, and easy-to-use transport request management system for Thapar Institute.
+                        Manage requests, track vehicles, and streamline approvals all in one place.
+                    </p>
+                    <div className="flex flex-col sm:flex-row gap-4 justify-center">
+                        <Link
+                            to="/register"
+                            className="inline-flex items-center justify-center bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg"
+                        >
+                            Get Started
+                        </Link>
+                        <a
+                            href="#features"
+                            className="inline-flex items-center justify-center bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-all"
+                        >
+                            Learn More
+                        </a>
                     </div>
                 </div>
             </section>
 
             {/* Features Section */}
-            <section id="features" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
+            <section id="features" className="py-20 px-4 sm:px-6 lg:px-8">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-4xl font-bold text-gray-900 mb-4">Why Choose Our System?</h2>
@@ -258,7 +141,7 @@ const LandingPage = () => {
                         {features.map((feature, index) => (
                             <div
                                 key={index}
-                                className="bg-white p-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 transform hover:-translate-y-2 border border-gray-100"
+                                className="bg-white p-6 rounded-xl border-2 border-gray-200 hover:border-blue-600 hover:shadow-lg transition-all duration-300"
                             >
                                 <feature.icon className="w-12 h-12 text-blue-600 mb-4" strokeWidth={1.5} />
                                 <h3 className="text-xl font-bold text-gray-900 mb-2">{feature.title}</h3>
@@ -270,7 +153,7 @@ const LandingPage = () => {
             </section>
 
             {/* How It Works Section */}
-            <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-white">
+            <section id="how-it-works" className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
                 <div className="max-w-7xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-4xl font-bold text-gray-900 mb-4">How It Works</h2>
@@ -279,20 +162,12 @@ const LandingPage = () => {
 
                     <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8">
                         {steps.map((step, index) => (
-                            <div key={index} className="relative">
-                                <div className="text-center">
-                                    <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full text-white text-2xl font-bold mb-4">
-                                        {step.number}
-                                    </div>
-                                    <div className="mb-4">
-                                        <step.icon className="w-12 h-12 text-blue-600 mx-auto" strokeWidth={1.5} />
-                                    </div>
-                                    <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
-                                    <p className="text-gray-600">{step.description}</p>
+                            <div key={index} className="text-center">
+                                <div className="inline-flex items-center justify-center w-16 h-16 bg-blue-600 rounded-full text-white text-2xl font-bold mb-4">
+                                    {step.number}
                                 </div>
-                                {index < steps.length - 1 && (
-                                    <div className="hidden lg:block absolute top-8 left-full w-full h-0.5 bg-blue-600 transform -translate-x-1/2"></div>
-                                )}
+                                <h3 className="text-xl font-bold text-gray-900 mb-2">{step.title}</h3>
+                                <p className="text-gray-600">{step.description}</p>
                             </div>
                         ))}
                     </div>
@@ -300,16 +175,16 @@ const LandingPage = () => {
             </section>
 
             {/* User Roles Section */}
-            <section className="py-20 px-4 sm:px-6 lg:px-8 bg-gray-50">
-                <div className="max-w-7xl mx-auto">
+            <section className="py-20 px-4 sm:px-6 lg:px-8">
+                <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-16">
                         <h2 className="text-4xl font-bold text-gray-900 mb-4">Who Can Use This System?</h2>
                         <p className="text-xl text-gray-600">Designed for everyone in the Thapar community</p>
                     </div>
 
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-8 max-w-4xl mx-auto">
                         {roles.map((role, index) => (
-                            <div key={index} className="bg-white p-8 rounded-xl shadow-lg text-center border border-gray-100">
+                            <div key={index} className="bg-white p-8 rounded-xl border-2 border-gray-200 hover:border-blue-600 hover:shadow-lg transition-all text-center">
                                 <role.icon className="w-16 h-16 text-blue-600 mx-auto mb-4" strokeWidth={1.5} />
                                 <h3 className="text-2xl font-bold text-gray-900 mb-2">{role.title}</h3>
                                 <p className="text-gray-600">{role.description}</p>
@@ -319,20 +194,29 @@ const LandingPage = () => {
                 </div>
             </section>
 
-            {/* Statistics Section */}
-            <section className="py-20 px-4 sm:px-6 lg:px-8 bg-blue-600">
-                <div className="max-w-7xl mx-auto">
+            {/* Stats Section */}
+            <section className="py-16 px-4 sm:px-6 lg:px-8 bg-blue-600">
+                <div className="max-w-6xl mx-auto">
                     <div className="text-center mb-12">
                         <h2 className="text-4xl font-bold text-white mb-4">Trusted by Thapar Community</h2>
                     </div>
-
-                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
-                        {stats.map((stat, index) => (
-                            <div key={index} className="text-center">
-                                <div className="text-5xl font-bold text-white mb-2">{stat.number}</div>
-                                <div className="text-blue-100 text-lg">{stat.label}</div>
-                            </div>
-                        ))}
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-8 text-center">
+                        <div>
+                            <div className="text-5xl font-bold text-white mb-2">500+</div>
+                            <div className="text-blue-100 text-lg">Active Users</div>
+                        </div>
+                        <div>
+                            <div className="text-5xl font-bold text-white mb-2">1,000+</div>
+                            <div className="text-blue-100 text-lg">Requests Processed</div>
+                        </div>
+                        <div>
+                            <div className="text-5xl font-bold text-white mb-2">50+</div>
+                            <div className="text-blue-100 text-lg">Vehicles Managed</div>
+                        </div>
+                        <div>
+                            <div className="text-5xl font-bold text-white mb-2">99%</div>
+                            <div className="text-blue-100 text-lg">System Uptime</div>
+                        </div>
                     </div>
                 </div>
             </section>
@@ -347,16 +231,15 @@ const LandingPage = () => {
                     <div className="flex flex-col sm:flex-row gap-4 justify-center">
                         <Link
                             to="/login"
-                            className="inline-flex items-center justify-center space-x-2 bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all transform hover:scale-105 shadow-lg"
+                            className="inline-flex items-center justify-center bg-blue-600 text-white px-8 py-4 rounded-lg font-semibold hover:bg-blue-700 transition-all shadow-lg"
                         >
-                            <span>Login to Your Account</span>
-                            <ArrowRight className="w-5 h-5" />
+                            Login to Your Account
                         </Link>
                         <Link
                             to="/register"
-                            className="inline-flex items-center justify-center space-x-2 bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-all"
+                            className="inline-flex items-center justify-center bg-white text-blue-600 px-8 py-4 rounded-lg font-semibold border-2 border-blue-600 hover:bg-blue-50 transition-all"
                         >
-                            <span>Create New Account</span>
+                            Create New Account
                         </Link>
                     </div>
                     <p className="text-gray-500 mt-6">
@@ -371,14 +254,7 @@ const LandingPage = () => {
                     <div className="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
                         {/* Company Info */}
                         <div className="col-span-1 md:col-span-2">
-                            <div className="flex items-center space-x-3 mb-4">
-                                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                                    <Truck className="w-6 h-6 text-white" strokeWidth={2} />
-                                </div>
-                                <div>
-                                    <h3 className="text-xl font-bold">Thapar Transport System</h3>
-                                </div>
-                            </div>
+                            <img src="/images/ttms-logo.png" alt="TTMS Logo" style={{ height: '45px' }} className="mb-4 brightness-0 invert" />
                             <p className="text-gray-400 mb-4">
                                 Efficient transport management solution for Thapar Institute of Engineering & Technology.
                             </p>
@@ -388,8 +264,8 @@ const LandingPage = () => {
                         <div>
                             <h4 className="text-lg font-bold mb-4">Quick Links</h4>
                             <ul className="space-y-2">
-                                <li><button onClick={() => scrollToSection('features')} className="text-gray-400 hover:text-white transition-colors">Features</button></li>
-                                <li><button onClick={() => scrollToSection('how-it-works')} className="text-gray-400 hover:text-white transition-colors">How It Works</button></li>
+                                <li><a href="#features" className="text-gray-400 hover:text-white transition-colors">Features</a></li>
+                                <li><a href="#how-it-works" className="text-gray-400 hover:text-white transition-colors">How It Works</a></li>
                                 <li><Link to="/login" className="text-gray-400 hover:text-white transition-colors">Login</Link></li>
                                 <li><Link to="/register" className="text-gray-400 hover:text-white transition-colors">Register</Link></li>
                             </ul>
@@ -411,21 +287,6 @@ const LandingPage = () => {
                     </div>
                 </div>
             </footer>
-
-            <style>{`
-        @keyframes blob {
-          0%, 100% { transform: translate(0, 0) scale(1); }
-          25% { transform: translate(20px, -50px) scale(1.1); }
-          50% { transform: translate(-20px, 20px) scale(0.9); }
-          75% { transform: translate(50px, 50px) scale(1.05); }
-        }
-        .animate-blob {
-          animation: blob 7s infinite;
-        }
-        .animation-delay-2000 {
-          animation-delay: 2s;
-        }
-      `}</style>
         </div>
     );
 };

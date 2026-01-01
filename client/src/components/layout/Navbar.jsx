@@ -32,15 +32,7 @@ const Navbar = ({ onMenuClick }) => {
             </button>
 
             <Link to="/" className="flex items-center ml-2">
-              <div className="flex items-center">
-                <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
-                  <span className="text-white font-bold text-xl">T</span>
-                </div>
-                <div className="ml-3 hidden sm:block">
-                  <h1 className="text-xl font-bold text-gray-800">Thapar Transport</h1>
-                  <p className="text-xs text-gray-500">Management System</p>
-                </div>
-              </div>
+              <img src="/images/ttms-logo.png" alt="TTMS Logo" className="h-10" />
             </Link>
           </div>
 
