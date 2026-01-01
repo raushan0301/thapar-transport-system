@@ -60,6 +60,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Travel Completion', path: '/admin/travel-completion', icon: XCircle },
         { name: 'Vehicle Management', path: '/admin/vehicles', icon: Car },
         { name: 'Head Management', path: '/admin/heads', icon: Users },
+        { name: 'User Management', path: '/admin/users', icon: Shield },
         { name: 'Rate Settings', path: '/admin/rates', icon: Settings },
         { name: 'Export Data', path: '/admin/export', icon: FileSpreadsheet },
         { name: 'Audit Logs', path: '/admin/audit', icon: Shield },

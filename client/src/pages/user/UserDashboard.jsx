@@ -37,15 +37,22 @@ const UserDashboard = () => {
         if (error) throw error;
 
         const total = requests?.length || 0;
+        
+        // Pending: Only requests that are actually waiting for approval
         const pending = requests?.filter(r =>
-          r.current_status.includes('pending') ||
-          r.current_status === 'approved_awaiting_vehicle' ||
-          r.current_status === 'vehicle_assigned'
+          r.current_status.includes('pending')
         ).length || 0;
+        
+        // Approved: All requests that have been approved (including those with vehicles, in progress, or completed)
         const approved = requests?.filter(r =>
-          r.current_status === 'closed' ||
-          r.current_status === 'travel_completed'
+          r.current_status === 'approved_awaiting_vehicle' ||
+          r.current_status === 'vehicle_assigned' ||
+          r.current_status === 'in_progress' ||
+          r.current_status === 'completed' ||
+          r.current_status === 'travel_completed' ||
+          r.current_status === 'closed'
         ).length || 0;
+        
         const rejected = requests?.filter(r => r.current_status === 'rejected').length || 0;
 
         setStats({ total, pending, approved, rejected });

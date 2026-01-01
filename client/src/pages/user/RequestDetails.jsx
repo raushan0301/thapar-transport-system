@@ -90,6 +90,12 @@ const RequestDetails = () => {
     }
   };
 
+  const handleResubmit = () => {
+    // Navigate to edit page for rejected request
+    // The edit page will handle resetting the status to pending_head
+    navigate(`/edit-request/${request.id}?resubmit=true`);
+  };
+
   if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
   if (!request) return <DashboardLayout><div className="text-center py-12"><p className="text-gray-500">Request not found</p></div></DashboardLayout>;
 
@@ -98,6 +104,9 @@ const RequestDetails = () => {
 
   // Check if request can be edited (only by owner, not yet approved)
   const canEdit = isOwner && (request.current_status === 'pending_head' || request.current_status === 'draft');
+
+  // Check if request can be resubmitted (only by owner, if rejected)
+  const canResubmit = isOwner && request.current_status === 'rejected';
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
@@ -127,6 +136,18 @@ const RequestDetails = () => {
                   onClick={() => navigate(`/edit-request/${request.id}`)}
                 >
                   Edit Request
+                </Button>
+              </div>
+            )}
+            {canResubmit && (
+              <div className="flex space-x-3">
+                <Button
+                  variant="primary"
+                  icon={Edit}
+                  onClick={handleResubmit}
+                  className="bg-green-600 hover:bg-green-700"
+                >
+                  Resubmit Request
                 </Button>
               </div>
             )}

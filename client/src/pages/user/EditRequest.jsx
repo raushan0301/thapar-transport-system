@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { useParams, useNavigate } from 'react-router-dom';
+import { useParams, useNavigate, useSearchParams } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
@@ -13,6 +13,8 @@ const EditRequest = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
+    const [searchParams] = useSearchParams();
+    const isResubmit = searchParams.get('resubmit') === 'true';
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
     const [formData, setFormData] = useState({
@@ -42,8 +44,13 @@ const EditRequest = () => {
             if (error) throw error;
 
             // Check if request can be edited
-            if (data.current_status !== 'pending_head' && data.current_status !== 'draft') {
-                toast.error('This request cannot be edited as it has been approved');
+            // Allow editing if: pending_head, draft, OR rejected (in resubmit mode)
+            const canEdit = data.current_status === 'pending_head' ||
+                data.current_status === 'draft' ||
+                (data.current_status === 'rejected' && isResubmit);
+
+            if (!canEdit) {
+                toast.error('This request cannot be edited');
                 navigate(`/request/${id}`);
                 return;
             }
@@ -83,17 +90,26 @@ const EditRequest = () => {
             console.log('Updating request:', id);
             console.log('User ID:', user.id);
             console.log('Form data:', formData);
+            console.log('Is resubmit:', isResubmit);
+
+            // Prepare update data
+            const updateData = {
+                purpose: formData.purpose,
+                place_of_visit: formData.place_of_visit,
+                date_of_visit: formData.date_of_visit,
+                time_of_visit: formData.time_of_visit || null,
+                number_of_persons: formData.number_of_persons ? parseInt(formData.number_of_persons) : null,
+                updated_at: new Date().toISOString(),
+            };
+
+            // If resubmitting a rejected request, reset status to pending_head
+            if (isResubmit) {
+                updateData.current_status = 'pending_head';
+            }
 
             const { data, error } = await supabase
                 .from('transport_requests')
-                .update({
-                    purpose: formData.purpose,
-                    place_of_visit: formData.place_of_visit,
-                    date_of_visit: formData.date_of_visit,
-                    time_of_visit: formData.time_of_visit || null,
-                    number_of_persons: formData.number_of_persons ? parseInt(formData.number_of_persons) : null,
-                    updated_at: new Date().toISOString(),
-                })
+                .update(updateData)
                 .eq('id', id)
                 .eq('user_id', user.id); // Ensure user owns this request
 
@@ -110,7 +126,11 @@ const EditRequest = () => {
                 throw error;
             }
 
-            toast.success('Request updated successfully!');
+            if (isResubmit) {
+                toast.success('Request resubmitted successfully! It will now go through the approval process again.');
+            } else {
+                toast.success('Request updated successfully!');
+            }
             navigate(`/request/${id}`);
         } catch (err) {
             console.error('Error updating request:', err);
@@ -131,9 +151,15 @@ const EditRequest = () => {
                         <Button variant="ghost" size="sm" icon={ArrowLeft} onClick={() => navigate(`/request/${id}`)} className="mb-4">Back to Request</Button>
                         <div className="flex items-center space-x-3 mb-2">
                             <FileText className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
-                            <h1 className="text-4xl font-bold text-gray-900">Edit Request</h1>
+                            <h1 className="text-4xl font-bold text-gray-900">
+                                {isResubmit ? 'Resubmit Request' : 'Edit Request'}
+                            </h1>
                         </div>
-                        <p className="text-gray-600">Update your transport request details</p>
+                        <p className="text-gray-600">
+                            {isResubmit
+                                ? 'Modify your rejected request and resubmit for approval'
+                                : 'Update your transport request details'}
+                        </p>
                     </div>
 
                     {/* Form */}
@@ -232,17 +258,20 @@ const EditRequest = () => {
                                     variant="primary"
                                     icon={Save}
                                     loading={saving}
+                                    className={isResubmit ? 'bg-green-600 hover:bg-green-700' : ''}
                                 >
-                                    {saving ? 'Saving...' : 'Save Changes'}
+                                    {saving ? (isResubmit ? 'Resubmitting...' : 'Saving...') : (isResubmit ? 'Resubmit for Approval' : 'Save Changes')}
                                 </Button>
                             </div>
                         </div>
                     </form>
 
                     {/* Info Box */}
-                    <div className="bg-blue-50 border border-blue-200 rounded-xl p-4" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '200ms', opacity: 0, animationFillMode: 'forwards' }}>
-                        <p className="text-sm text-blue-800">
-                            <strong>Note:</strong> You can only edit requests that haven't been approved yet. Once a request is approved by your head, it cannot be edited.
+                    <div className={`${isResubmit ? 'bg-green-50 border-green-200' : 'bg-blue-50 border-blue-200'} border rounded-xl p-4`} style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '200ms', opacity: 0, animationFillMode: 'forwards' }}>
+                        <p className={`text-sm ${isResubmit ? 'text-green-800' : 'text-blue-800'}`}>
+                            <strong>Note:</strong> {isResubmit
+                                ? 'This request was previously rejected. You can modify the details and resubmit it. Once resubmitted, it will go through the approval process again starting from your head.'
+                                : 'You can only edit requests that haven\'t been approved yet. Once a request is approved by your head, it cannot be edited.'}
                         </p>
                     </div>
                 </div>

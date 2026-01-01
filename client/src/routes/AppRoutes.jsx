@@ -9,6 +9,7 @@ import { ROLES } from '../utils/constants';
 import Login from '../pages/auth/Login';
 import Register from '../pages/auth/Register';
 import ForgotPassword from '../pages/auth/ForgotPassword';
+import LandingPage from '../pages/LandingPage';
 
 // Shared Pages
 import NotFound from '../pages/shared/NotFound';
@@ -36,6 +37,7 @@ import VehicleAssignment from '../pages/admin/VehicleAssignment';
 import TravelCompletion from '../pages/admin/TravelCompletion';
 import VehicleManagement from '../pages/admin/VehicleManagement';
 import HeadManagement from '../pages/admin/HeadManagement';
+import UserManagement from '../pages/admin/UserManagement';
 import RateSettings from '../pages/admin/RateSettings';
 import ExportData from '../pages/admin/ExportData';
 import AuditLogs from '../pages/admin/AuditLogs';
@@ -88,6 +90,12 @@ const AppRoutes = () => {
 
   return (
     <Routes>
+      {/* Landing Page */}
+      <Route
+        path="/"
+        element={user ? <Navigate to="/dashboard" replace /> : <LandingPage />}
+      />
+
       {/* Public Routes */}
       <Route
         path="/login"
@@ -248,6 +256,16 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
               <HeadManagement />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/users"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+              <UserManagement />
             </RoleRoute>
           </PrivateRoute>
         }

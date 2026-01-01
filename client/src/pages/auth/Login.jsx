@@ -67,11 +67,11 @@ const Login = () => {
             {/* Logo & Title */}
             <div className="space-y-4">
               <div className="flex items-center space-x-4">
-                <div className="w-16 h-16 bg-gradient-to-br from-blue-500 to-purple-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-300">
+                <div className="w-16 h-16 bg-blue-600 rounded-2xl flex items-center justify-center shadow-2xl transform hover:scale-110 transition-transform duration-300">
                   <Truck className="w-8 h-8 text-white" strokeWidth={2} />
                 </div>
                 <div>
-                  <h1 className="text-4xl font-bold bg-gradient-to-r from-white to-blue-200 bg-clip-text text-transparent">
+                  <h1 className="text-4xl font-bold text-white">
                     Thapar Transport
                   </h1>
                   <p className="text-blue-200 text-sm">Management System</p>
@@ -83,7 +83,7 @@ const Login = () => {
             <div className="space-y-4">
               <h2 className="text-3xl font-bold leading-tight text-white">
                 Welcome to the Future of
-                <span className="block bg-gradient-to-r from-blue-300 to-purple-300 bg-clip-text text-transparent">
+                <span className="block text-blue-300">
                   Transport Management
                 </span>
               </h2>
@@ -100,7 +100,7 @@ const Login = () => {
                   className="flex items-center space-x-3 bg-white/5 backdrop-blur-sm rounded-xl p-4 border border-white/10 hover:bg-white/10 transition-all duration-300 transform hover:translate-x-2"
                   style={{ animationDelay: `${index * 100}ms` }}
                 >
-                  <div className="w-10 h-10 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
+                  <div className="w-10 h-10 bg-blue-600 rounded-lg flex items-center justify-center">
                     <feature.icon className="w-5 h-5 text-white" strokeWidth={2} />
                   </div>
                   <span className="text-white font-semibold">{feature.text}</span>
@@ -130,7 +130,7 @@ const Login = () => {
             <div className="bg-white/95 backdrop-blur-xl rounded-3xl shadow-2xl p-8 border border-white/20">
               {/* Mobile Logo */}
               <div className="lg:hidden flex items-center justify-center space-x-3 mb-8">
-                <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-purple-600 rounded-xl flex items-center justify-center">
+                <div className="w-12 h-12 bg-blue-600 rounded-xl flex items-center justify-center">
                   <Truck className="w-6 h-6 text-white" strokeWidth={2} />
                 </div>
                 <div>
@@ -209,7 +209,7 @@ const Login = () => {
                 <button
                   type="submit"
                   disabled={loading}
-                  className="w-full bg-gradient-to-r from-blue-600 to-purple-600 text-white py-3 rounded-xl font-semibold hover:from-blue-700 hover:to-purple-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
+                  className="w-full bg-blue-600 text-white py-3 rounded-xl font-semibold hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] transition-all duration-200 shadow-lg hover:shadow-xl flex items-center justify-center space-x-2"
                 >
                   {loading ? (
                     <div className="w-6 h-6 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
@@ -236,7 +236,7 @@ const Login = () => {
               {/* Sign Up Link */}
               <div className="text-center">
                 <Link
-                  to="/signup"
+                  to="/register"
                   className="inline-flex items-center space-x-2 text-blue-600 hover:text-blue-700 font-medium transition-colors"
                 >
                   <span>Create an account</span>
