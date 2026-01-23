@@ -18,7 +18,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const loadingProfile = useRef(false); // Use ref to track loading state
 
-  
+
   useEffect(() => {
     let mounted = true;
 
