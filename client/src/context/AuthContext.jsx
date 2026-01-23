@@ -18,10 +18,10 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(true);
   const loadingProfile = useRef(false); // Use ref to track loading state
 
+  
   useEffect(() => {
     let mounted = true;
 
-    
     async function init() {
       try {
         // 1. Load session manually first
