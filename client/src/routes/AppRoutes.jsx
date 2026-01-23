@@ -54,6 +54,9 @@ import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
 import RegistrarApprovalHistory from '../pages/registrar/ApprovalHistory';
 import Loader from '../components/common/Loader';
 
+// Debug Pages
+import DebugHeadApproval from '../pages/debug/DebugHeadApproval';
+
 // Dashboard Router - Shows correct dashboard based on user role
 const DashboardRouter = () => {
   const { profile } = useAuth();
@@ -194,6 +197,19 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.HEAD]}>
               <HeadReviewRequest />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+
+
+      {/* Debug Routes */}
+      <Route
+        path="/debug/head-approval"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.HEAD, ROLES.ADMIN]}>
+              <DebugHeadApproval />
             </RoleRoute>
           </PrivateRoute>
         }

@@ -31,10 +31,11 @@ const VehicleAssignment = () => {
       setLoading(true);
 
       // Fetch requests awaiting vehicle assignment
+      // Note: Both 'pending_vehicle' and 'approved_awaiting_vehicle' indicate awaiting vehicle
       const { data: requestsData, error: requestsError } = await supabase
         .from('transport_requests')
         .select('*, user:users!transport_requests_user_id_fkey(full_name, email)')
-        .eq('current_status', 'approved_awaiting_vehicle')
+        .in('current_status', ['pending_vehicle', 'approved_awaiting_vehicle'])
         .order('submitted_at', { ascending: false });
 
       if (requestsError) throw requestsError;

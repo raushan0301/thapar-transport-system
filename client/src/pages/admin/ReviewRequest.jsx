@@ -61,13 +61,16 @@ const AdminReviewRequest = () => {
     };
 
     const handleApproveAndAssign = async () => {
-        if (!window.confirm('Approve this request and proceed to vehicle assignment?')) {
-            return;
-        }
+        // NOTE: window.confirm() was being auto-cancelled by browser
+        console.log('🔵 Admin approve button clicked');
 
         try {
+            console.log('📝 Creating admin approval...');
+            console.log('Request ID:', id);
+            console.log('Approver ID:', user.id);
+
             // Create approval record
-            const { error: approvalError } = await supabase
+            const { data: approvalData, error: approvalError } = await supabase
                 .from('approvals')
                 .insert([{
                     request_id: id,
@@ -76,9 +79,17 @@ const AdminReviewRequest = () => {
                     action: 'approved',
                     comment: null,
                     approved_at: new Date().toISOString(),
-                }]);
+                }])
+                .select();
 
-            if (approvalError) throw approvalError;
+            if (approvalError) {
+                console.error('❌ Approval failed:', approvalError);
+                console.error('Error details:', JSON.stringify(approvalError, null, 2));
+                throw approvalError;
+            }
+
+            console.log('✅ Approval created:', approvalData);
+            console.log('📝 Updating request status...');
 
             // Update request status
             const { error: updateError } = await supabase
@@ -89,13 +100,19 @@ const AdminReviewRequest = () => {
                 })
                 .eq('id', id);
 
-            if (updateError) throw updateError;
+            if (updateError) {
+                console.error('❌ Status update failed:', updateError);
+                throw updateError;
+            }
+
+            console.log('✅ Request approved successfully');
 
             toast.success('Request approved! Redirecting to vehicle assignment...');
             navigate('/admin/vehicle-assignment');
         } catch (err) {
-            console.error('Error:', err);
-            toast.error(`Failed to approve: ${err.message}`);
+            console.error('❌ ADMIN APPROVAL FAILED:', err);
+            console.error('Error details:', JSON.stringify(err, null, 2));
+            toast.error(`Failed to approve: ${err.message || 'Unknown error'}`, { duration: 6000 });
         }
     };
 

@@ -21,6 +21,7 @@ export const AuthProvider = ({ children }) => {
   useEffect(() => {
     let mounted = true;
 
+    
     async function init() {
       try {
         // 1. Load session manually first

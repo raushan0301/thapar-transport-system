@@ -51,18 +51,13 @@ const HeadReviewRequest = () => {
     };
 
     const handleApprove = async () => {
-        // NOTE: window.confirm() was being auto-cancelled by browser
-        // TODO: Implement a custom confirmation modal for better UX
-        // For now, approval works without confirmation
-        console.log('🔵 Approve button clicked');
+        if (!window.confirm('Are you sure you want to approve this request?')) {
+            return;
+        }
 
         try {
-            console.log('📝 Attempting to insert approval...');
-            console.log('Request ID:', id);
-            console.log('Approver ID:', user.id);
-
             // Create approval record
-            const { data: approvalData, error: approvalError } = await supabase
+            const { error: approvalError } = await supabase
                 .from('approvals')
                 .insert([{
                     request_id: id,
@@ -71,16 +66,9 @@ const HeadReviewRequest = () => {
                     action: 'approved',
                     comment: null,
                     approved_at: new Date().toISOString(),
-                }])
-                .select();
+                }]);
 
-            if (approvalError) {
-                console.error('❌ Approval insert failed:', approvalError);
-                console.error('Error details:', JSON.stringify(approvalError, null, 2));
-                throw approvalError;
-            }
-
-            console.log('✅ Approval created successfully:', approvalData);
+            if (approvalError) throw approvalError;
 
             // Update request status
             const { error: updateError } = await supabase
@@ -91,29 +79,13 @@ const HeadReviewRequest = () => {
                 })
                 .eq('id', id);
 
-            if (updateError) {
-                console.error('❌ Status update failed:', updateError);
-                throw updateError;
-            }
-
-            console.log('✅ Request status updated to pending_admin');
+            if (updateError) throw updateError;
 
             toast.success('Request approved successfully!');
             navigate('/head/pending');
         } catch (err) {
-            console.error('❌ APPROVAL FAILED:', err);
-            console.error('Error message:', err.message);
-            console.error('Error code:', err.code);
-            console.error('Error hint:', err.hint);
-            console.error('Full error:', JSON.stringify(err, null, 2));
-
-            toast.error(`Failed to approve: ${err.message || 'Unknown error'}`, {
-                duration: 6000
-            });
-
-            if (err.hint) {
-                toast.error(`Hint: ${err.hint}`, { duration: 6000 });
-            }
+            console.error('Error:', err);
+            toast.error(`Failed to approve: ${err.message}`);
         }
     };
 
