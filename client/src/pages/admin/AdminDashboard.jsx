@@ -352,6 +352,13 @@ const AdminDashboard = () => {
                       icon: Truck,
                       gradient: 'from-purple-500 to-pink-600'
                     },
+                    {
+                      title: 'Manage Drivers',
+                      desc: 'Add, edit or remove drivers',
+                      path: '/admin/drivers',
+                      icon: Users,
+                      gradient: 'from-teal-500 to-cyan-600'
+                    },
                   ].map((action, index) => (
                     <button
                       key={index}

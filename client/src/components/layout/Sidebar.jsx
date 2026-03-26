@@ -11,7 +11,8 @@ import {
   Settings,
   BarChart,
   FileSpreadsheet,
-  Shield
+  Shield,
+  UserCheck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/constants';
@@ -59,6 +60,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Vehicle Assignment', path: '/admin/vehicle-assignment', icon: Car },
         { name: 'Travel Completion', path: '/admin/travel-completion', icon: XCircle },
         { name: 'Vehicle Management', path: '/admin/vehicles', icon: Car },
+        { name: 'Driver Management', path: '/admin/drivers', icon: UserCheck },
         { name: 'Head Management', path: '/admin/heads', icon: Users },
         { name: 'User Management', path: '/admin/users', icon: Shield },
         { name: 'Rate Settings', path: '/admin/rates', icon: Settings },

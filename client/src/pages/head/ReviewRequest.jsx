@@ -51,9 +51,8 @@ const HeadReviewRequest = () => {
     };
 
     const handleApprove = async () => {
-        // NOTE: window.confirm() was being auto-cancelled by browser
-        // TODO: Implement a custom confirmation modal for better UX
-        // For now, approval works without confirmation
+        const notes = window.prompt('Please provide any tracking notes or trip purpose details (optional):');
+        
         console.log('🔵 Approve button clicked');
 
         try {
@@ -69,7 +68,7 @@ const HeadReviewRequest = () => {
                     approver_id: user.id,
                     approver_role: 'head',
                     action: 'approved',
-                    comment: null,
+                    comment: notes || null,
                     approved_at: new Date().toISOString(),
                 }])
                 .select();

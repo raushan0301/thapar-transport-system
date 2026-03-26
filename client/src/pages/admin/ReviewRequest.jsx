@@ -6,7 +6,7 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check, X, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminReviewRequest = () => {
@@ -111,6 +111,78 @@ const AdminReviewRequest = () => {
         }
     };
 
+    const handleApproveDirect = async () => {
+        const confirm = window.confirm('Are you sure you want to approve this directly without Registrar review?');
+        if (!confirm) return;
+
+        try {
+            const { error: approvalError } = await supabase
+                .from('approvals')
+                .insert([{
+                    request_id: id,
+                    approver_id: user.id,
+                    approver_role: 'admin',
+                    action: 'approved',
+                    comment: 'Direct Admin Approval',
+                    approved_at: new Date().toISOString(),
+                }]);
+
+            if (approvalError) throw approvalError;
+
+            const { error: updateError } = await supabase
+                .from('transport_requests')
+                .update({
+                    current_status: 'approved_awaiting_vehicle',
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', id);
+
+            if (updateError) throw updateError;
+
+            toast.success('Request approved directly!');
+            navigate('/admin/pending');
+        } catch (err) {
+            console.error('Error:', err);
+            toast.error(`Failed to approve: ${err.message}`);
+        }
+    };
+
+    const handleReject = async () => {
+        const reason = window.prompt('Please provide a reason for rejection:');
+        if (!reason) return;
+
+        try {
+            const { error: approvalError } = await supabase
+                .from('approvals')
+                .insert([{
+                    request_id: id,
+                    approver_id: user.id,
+                    approver_role: 'admin',
+                    action: 'rejected',
+                    comment: reason,
+                    approved_at: new Date().toISOString(),
+                }]);
+
+            if (approvalError) throw approvalError;
+
+            const { error: updateError } = await supabase
+                .from('transport_requests')
+                .update({
+                    current_status: 'rejected',
+                    updated_at: new Date().toISOString(),
+                })
+                .eq('id', id);
+
+            if (updateError) throw updateError;
+
+            toast.success('Request rejected');
+            navigate('/admin/pending');
+        } catch (err) {
+            console.error('Error:', err);
+            toast.error(`Failed to reject: ${err.message}`);
+        }
+    };
+
     if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
     if (!request) return <DashboardLayout><div className="text-center py-12"><p className="text-gray-500">Request not found</p></div></DashboardLayout>;
 
@@ -133,12 +205,26 @@ const AdminReviewRequest = () => {
                 </div>
 
                 {/* Action Buttons */}
-                <div className="mb-6 flex space-x-4 animate-slideDown" style={{ animationDelay: '100ms' }}>
+                <div className="mb-6 flex flex-wrap gap-4 animate-slideDown" style={{ animationDelay: '100ms' }}>
                     <button
-                        onClick={handleApproveAndRoute}
-                        className="flex items-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                        onClick={handleReject}
+                        className="flex items-center space-x-2 px-6 py-3 bg-red-600 hover:bg-red-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    >
+                        <X className="w-5 h-5" strokeWidth={2} />
+                        <span>Reject</span>
+                    </button>
+                    <button
+                        onClick={handleApproveDirect}
+                        className="flex items-center space-x-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                     >
                         <Check className="w-5 h-5" strokeWidth={2} />
+                        <span>Approve Directly</span>
+                    </button>
+                    <button
+                        onClick={handleApproveAndRoute}
+                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
+                    >
+                        <Send className="w-5 h-5" strokeWidth={2} />
                         <span>Approve & Route to Registrar</span>
                     </button>
                 </div>
@@ -220,7 +306,7 @@ const AdminReviewRequest = () => {
                 {/* Info Box */}
                 <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 animate-slideUp" style={{ animationDelay: '400ms' }}>
                     <p className="text-sm text-blue-800">
-                        <strong>Note:</strong> Approving this request will route it directly to the Registrar for final approval. After Registrar approval, you can assign a vehicle.
+                        <strong>Note:</strong> You can choose to approve directly (skipping Registrar) or route it to the Registrar for final approval.
                     </p>
                 </div>
             </DashboardLayout>

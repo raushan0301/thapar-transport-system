@@ -41,15 +41,13 @@ import UserManagement from '../pages/admin/UserManagement';
 import RateSettings from '../pages/admin/RateSettings';
 import ExportData from '../pages/admin/ExportData';
 import AuditLogs from '../pages/admin/AuditLogs';
+import DriverManagement from '../pages/admin/DriverManagement';
 
 // Registrar Pages
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
 import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
 import RegistrarApprovalHistory from '../pages/registrar/ApprovalHistory';
 import Loader from '../components/common/Loader';
-
-// Debug Pages
-import DebugHeadApproval from '../pages/debug/DebugHeadApproval';
 
 // Dashboard Router - Shows correct dashboard based on user role
 const DashboardRouter = () => {
@@ -192,19 +190,6 @@ const AppRoutes = () => {
         }
       />
 
-
-      {/* Debug Routes */}
-      <Route
-        path="/debug/head-approval"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.HEAD, ROLES.ADMIN]}>
-              <DebugHeadApproval />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
-
       {/* Admin Routes */}
       <Route
         path="/admin/pending"
@@ -302,6 +287,16 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
               <AuditLogs />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/admin/drivers"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
+              <DriverManagement />
             </RoleRoute>
           </PrivateRoute>
         }
