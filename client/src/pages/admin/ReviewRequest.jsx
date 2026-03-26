@@ -6,7 +6,7 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check, ArrowUpRight } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const AdminReviewRequest = () => {
@@ -15,10 +15,6 @@ const AdminReviewRequest = () => {
     const { user } = useAuth();
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [showAuthorityModal, setShowAuthorityModal] = useState(false);
-    const [selectedAuthority, setSelectedAuthority] = useState('');
-
-    const AUTHORITIES = ['REGISTRAR', 'DIRECTOR', 'DEPUTY_DIRECTOR', 'DEAN'];
 
     useEffect(() => {
         if (id && user?.id) fetchRequest();
@@ -60,8 +56,7 @@ const AdminReviewRequest = () => {
         }
     };
 
-    const handleApproveAndAssign = async () => {
-        // NOTE: window.confirm() was being auto-cancelled by browser
+    const handleApproveAndRoute = async () => {
         console.log('🔵 Admin approve button clicked');
 
         try {
@@ -91,11 +86,11 @@ const AdminReviewRequest = () => {
             console.log('✅ Approval created:', approvalData);
             console.log('📝 Updating request status...');
 
-            // Update request status
+            // Update request status - Route directly to REGISTRAR (no Authority step)
             const { error: updateError } = await supabase
                 .from('transport_requests')
                 .update({
-                    current_status: 'pending_vehicle',
+                    current_status: 'pending_registrar',
                     updated_at: new Date().toISOString(),
                 })
                 .eq('id', id);
@@ -105,69 +100,14 @@ const AdminReviewRequest = () => {
                 throw updateError;
             }
 
-            console.log('✅ Request approved successfully');
+            console.log('✅ Request routed to Registrar');
 
-            toast.success('Request approved! Redirecting to vehicle assignment...');
-            navigate('/admin/vehicle-assignment');
+            toast.success('Request approved and routed to Registrar!');
+            navigate('/admin/pending');
         } catch (err) {
             console.error('❌ ADMIN APPROVAL FAILED:', err);
             console.error('Error details:', JSON.stringify(err, null, 2));
             toast.error(`Failed to approve: ${err.message || 'Unknown error'}`, { duration: 6000 });
-        }
-    };
-
-    const handleRouteToAuthority = () => {
-        setShowAuthorityModal(true);
-    };
-
-    const confirmRouteToAuthority = async () => {
-        if (!selectedAuthority) {
-            toast.error('Please select an authority');
-            return;
-        }
-
-        try {
-            // Determine the status based on authority type
-            const isRegistrar = selectedAuthority === 'REGISTRAR';
-            const newStatus = isRegistrar ? 'pending_registrar' : 'pending_authority';
-
-            // Create approval record (use routed_to_authority for all)
-            const { error: approvalError } = await supabase
-                .from('approvals')
-                .insert([{
-                    request_id: id,
-                    approver_id: user.id,
-                    approver_role: 'admin',
-                    action: 'routed_to_authority',
-                    comment: `Routed to ${selectedAuthority}`,
-                    approved_at: new Date().toISOString(),
-                }]);
-
-            if (approvalError) throw approvalError;
-
-            // Update request
-            const updateData = {
-                current_status: newStatus,
-                updated_at: new Date().toISOString(),
-            };
-
-            // Only set routed_to_authority for non-registrar authorities
-            if (!isRegistrar) {
-                updateData.routed_to_authority = selectedAuthority;
-            }
-
-            const { error: updateError } = await supabase
-                .from('transport_requests')
-                .update(updateData)
-                .eq('id', id);
-
-            if (updateError) throw updateError;
-
-            toast.success(`Request routed to ${selectedAuthority}`);
-            navigate('/admin/pending');
-        } catch (err) {
-            console.error('Error:', err);
-            toast.error(`Failed to route: ${err.message}`);
         }
     };
 
@@ -195,18 +135,11 @@ const AdminReviewRequest = () => {
                 {/* Action Buttons */}
                 <div className="mb-6 flex space-x-4 animate-slideDown" style={{ animationDelay: '100ms' }}>
                     <button
-                        onClick={handleRouteToAuthority}
-                        className="flex items-center space-x-2 px-6 py-3 bg-purple-600 hover:bg-purple-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
-                    >
-                        <ArrowUpRight className="w-5 h-5" strokeWidth={2} />
-                        <span>Route to Higher Authority</span>
-                    </button>
-                    <button
-                        onClick={handleApproveAndAssign}
+                        onClick={handleApproveAndRoute}
                         className="flex items-center space-x-2 px-6 py-3 bg-green-600 hover:bg-green-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5"
                     >
                         <Check className="w-5 h-5" strokeWidth={2} />
-                        <span>Approve & Assign Vehicle</span>
+                        <span>Approve & Route to Registrar</span>
                     </button>
                 </div>
 
@@ -287,55 +220,10 @@ const AdminReviewRequest = () => {
                 {/* Info Box */}
                 <div className="mt-6 bg-blue-50 border border-blue-200 rounded-xl p-4 animate-slideUp" style={{ animationDelay: '400ms' }}>
                     <p className="text-sm text-blue-800">
-                        <strong>Note:</strong> You can either approve and assign a vehicle directly, or route this request to a higher authority for special approval.
+                        <strong>Note:</strong> Approving this request will route it directly to the Registrar for final approval. After Registrar approval, you can assign a vehicle.
                     </p>
                 </div>
             </DashboardLayout>
-
-            {/* Authority Selection Modal */}
-            {showAuthorityModal && (
-                <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-                    <div className="bg-white rounded-xl shadow-2xl p-8 max-w-md w-full mx-4 animate-slideUp">
-                        <h3 className="text-2xl font-bold text-gray-900 mb-4">Select Higher Authority</h3>
-                        <p className="text-gray-600 mb-6">Choose which authority should review this request:</p>
-
-                        <div className="space-y-3 mb-6">
-                            {AUTHORITIES.map((authority) => (
-                                <label key={authority} className="flex items-center space-x-3 p-4 border-2 border-gray-200 rounded-lg cursor-pointer hover:border-purple-500 hover:bg-purple-50 transition-all">
-                                    <input
-                                        type="radio"
-                                        name="authority"
-                                        value={authority}
-                                        checked={selectedAuthority === authority}
-                                        onChange={(e) => setSelectedAuthority(e.target.value)}
-                                        className="w-5 h-5 text-purple-600"
-                                    />
-                                    <span className="font-medium text-gray-900">{authority.replace('_', ' ')}</span>
-                                </label>
-                            ))}
-                        </div>
-
-                        <div className="flex space-x-3">
-                            <button
-                                onClick={() => {
-                                    setShowAuthorityModal(false);
-                                    setSelectedAuthority('');
-                                }}
-                                className="flex-1 px-4 py-2 border border-gray-300 text-gray-700 rounded-lg hover:bg-gray-50 transition-colors"
-                            >
-                                Cancel
-                            </button>
-                            <button
-                                onClick={confirmRouteToAuthority}
-                                disabled={!selectedAuthority}
-                                className="flex-1 px-4 py-2 bg-purple-600 text-white rounded-lg hover:bg-purple-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors"
-                            >
-                                Confirm
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            )}
 
             <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

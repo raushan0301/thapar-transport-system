@@ -12,7 +12,7 @@ import { FileText, Clock, CheckCircle2, XCircle, ArrowRight, Activity, Users } f
 const HeadDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
-  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0, pendingAuthority: 0 });
+  const [stats, setStats] = useState({ total: 0, pending: 0, approved: 0, rejected: 0 });
   const [recentRequests, setRecentRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
@@ -47,7 +47,7 @@ const HeadDashboard = () => {
         }
 
 
-        let approved = 0, rejected = 0, pending = 0, pendingAuthority = 0;
+        let approved = 0, rejected = 0, pending = 0;
 
         allRequests.forEach(request => {
           const myAction = approvalMap[request.id];
@@ -55,20 +55,17 @@ const HeadDashboard = () => {
           if (request.current_status === 'pending_head') {
             // Waiting for head's approval
             pending++;
-          } else if (request.current_status === 'pending_authority') {
-            // Request is with authority (head may or may not have approved)
-            pendingAuthority++;
           } else if (request.current_status === 'rejected' || myAction === 'rejected') {
             // Rejected by head or later
             rejected++;
           } else if (myAction === 'approved') {
-            // Head approved and completed (not pending authority)
+            // Head approved
             approved++;
           }
         });
 
         const total = allRequests.length;
-        setStats({ total, pending, approved, rejected, pendingAuthority });
+        setStats({ total, pending, approved, rejected });
 
         const pendingRequests = allRequests.filter(r => r.current_status === 'pending_head');
         setRecentRequests(pendingRequests.slice(0, 5));
@@ -97,7 +94,6 @@ const HeadDashboard = () => {
     { title: 'Total Requests', value: stats.total, icon: FileText, color: 'blue' },
     { title: 'Pending Approval', value: stats.pending, icon: Clock, color: 'amber' },
     { title: 'Approved by Me', value: stats.approved, icon: CheckCircle2, color: 'green' },
-    { title: 'Pending in Authority', value: stats.pendingAuthority, icon: Users, color: 'purple' },
     { title: 'Rejected', value: stats.rejected, icon: XCircle, color: 'red' },
   ];
 

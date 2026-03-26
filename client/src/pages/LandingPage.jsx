@@ -21,7 +21,7 @@ const LandingPage = () => {
 
     const steps = [
         { number: '01', title: 'Submit Request', description: 'Fill out a simple form with your travel details' },
-        { number: '02', title: 'Approval Process', description: 'Automatic routing through Head → Admin → Authority' },
+        { number: '02', title: 'Approval Process', description: 'Automatic routing through Head → Admin → Registrar' },
         { number: '03', title: 'Vehicle Assigned', description: 'Admin assigns the appropriate vehicle' },
         { number: '04', title: 'Travel Complete', description: 'Complete your journey successfully' },
     ];

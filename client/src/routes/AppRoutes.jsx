@@ -42,12 +42,6 @@ import RateSettings from '../pages/admin/RateSettings';
 import ExportData from '../pages/admin/ExportData';
 import AuditLogs from '../pages/admin/AuditLogs';
 
-// Authority Pages
-import AuthorityDashboard from '../pages/authority/AuthorityDashboard';
-import AuthorityPendingApprovals from '../pages/authority/PendingApprovals';
-import AuthorityApprovalHistory from '../pages/authority/ApprovalHistory';
-import AuthorityReviewRequest from '../pages/authority/ReviewRequest';
-
 // Registrar Pages
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
 import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
@@ -76,10 +70,6 @@ const DashboardRouter = () => {
       return <HeadDashboard />;
     case ROLES.ADMIN:
       return <AdminDashboard />;
-    case ROLES.DIRECTOR:
-    case ROLES.DEPUTY_DIRECTOR:
-    case ROLES.DEAN:
-      return <AuthorityDashboard />;
     case ROLES.REGISTRAR:
       return <RegistrarDashboard />;
     case ROLES.USER:
@@ -135,7 +125,7 @@ const AppRoutes = () => {
         path="/new-request"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
+            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.REGISTRAR]}>
               <NewRequest />
             </RoleRoute>
           </PrivateRoute>
@@ -145,7 +135,7 @@ const AppRoutes = () => {
         path="/my-requests"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
+            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.REGISTRAR]}>
               <MyRequests />
             </RoleRoute>
           </PrivateRoute>
@@ -163,7 +153,7 @@ const AppRoutes = () => {
         path="/edit-request/:id"
         element={
           <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
+            <RoleRoute allowedRoles={[ROLES.USER, ROLES.HEAD, ROLES.ADMIN, ROLES.REGISTRAR]}>
               <EditRequest />
             </RoleRoute>
           </PrivateRoute>
@@ -312,38 +302,6 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
               <AuditLogs />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
-
-      {/* Authority Routes */}
-      <Route
-        path="/authority/pending"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN]}>
-              <AuthorityPendingApprovals />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/authority/history"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN]}>
-              <AuthorityApprovalHistory />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/authority/review/:id"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR]}>
-              <AuthorityReviewRequest />
             </RoleRoute>
           </PrivateRoute>
         }

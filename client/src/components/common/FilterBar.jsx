@@ -41,9 +41,6 @@ const FilterBar = ({ filters, onFilterChange, onClearFilters }) => {
                             <option value="all">All Roles</option>
                             <option value="head">Head</option>
                             <option value="admin">Admin</option>
-                            <option value="director">Director</option>
-                            <option value="dean">Dean</option>
-                            <option value="deputy_director">Deputy Director</option>
                             <option value="registrar">Registrar</option>
                         </select>
                     </div>
@@ -100,10 +97,10 @@ const FilterBar = ({ filters, onFilterChange, onClearFilters }) => {
                             <option value="all">All Status</option>
                             <option value="pending_head">Pending Head</option>
                             <option value="pending_admin">Pending Admin</option>
-                            <option value="pending_authority">Pending Authority</option>
-                            <option value="pending_vehicle">Pending Vehicle</option>
+                            <option value="pending_registrar">Pending Registrar</option>
+                            <option value="approved_awaiting_vehicle">Awaiting Vehicle</option>
                             <option value="vehicle_assigned">Vehicle Assigned</option>
-                            <option value="completed">Completed</option>
+                            <option value="travel_completed">Travel Completed</option>
                             <option value="rejected">Rejected</option>
                         </select>
                     </div>

@@ -83,12 +83,6 @@ export const StatusBadge = ({ status }) => {
       dot: true,
       pulse: true
     },
-    pending_authority: {
-      variant: 'purple',
-      label: 'Pending Authority',
-      dot: true,
-      pulse: true
-    },
     pending_registrar: {
       variant: 'indigo',
       label: 'Pending Registrar',

@@ -146,7 +146,6 @@ export const getStatusLabel = (status) => {
     const labels = {
         pending_head: 'Pending Head Approval',
         pending_admin: 'Pending Admin Review',
-        pending_authority: 'Pending Authority Approval',
         pending_registrar: 'Pending Registrar Approval',
         approved_awaiting_vehicle: 'Approved - Awaiting Vehicle',
         vehicle_assigned: 'Vehicle Assigned',

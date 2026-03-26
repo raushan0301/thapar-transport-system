@@ -24,9 +24,6 @@ module.exports = {
         USER: 'user',
         HEAD: 'head',
         ADMIN: 'admin',
-        DIRECTOR: 'director',
-        DEPUTY_DIRECTOR: 'deputy_director',
-        DEAN: 'dean',
         REGISTRAR: 'registrar'
     },
 
@@ -34,7 +31,6 @@ module.exports = {
     REQUEST_STATUS: {
         PENDING_HEAD: 'pending_head',
         PENDING_ADMIN: 'pending_admin',
-        PENDING_AUTHORITY: 'pending_authority',
         PENDING_REGISTRAR: 'pending_registrar',
         APPROVED_AWAITING_VEHICLE: 'approved_awaiting_vehicle',
         VEHICLE_ASSIGNED: 'vehicle_assigned',

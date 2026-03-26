@@ -35,7 +35,6 @@ const ApprovalHistory = () => {
       if (filter === 'approved') {
         query = query.in('current_status', [
           'pending_admin',
-          'pending_authority',
           'pending_registrar',
           'approved_awaiting_vehicle',
           'vehicle_assigned',
@@ -62,7 +61,6 @@ const ApprovalHistory = () => {
   const getStatusBadge = (status) => {
     const statusConfig = {
       pending_admin: { variant: 'info', label: 'With Admin' },
-      pending_authority: { variant: 'warning', label: 'With Authority' },
       pending_registrar: { variant: 'warning', label: 'With Registrar' },
       approved_awaiting_vehicle: { variant: 'success', label: 'Approved' },
       vehicle_assigned: { variant: 'success', label: 'Vehicle Assigned' },

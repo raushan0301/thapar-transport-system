@@ -37,15 +37,6 @@ const isAdmin = checkRole(ROLES.ADMIN);
 const isHead = checkRole(ROLES.HEAD);
 
 /**
- * Check if user is authority (director, deputy director, dean)
- */
-const isAuthority = checkRole([
-    ROLES.DIRECTOR,
-    ROLES.DEPUTY_DIRECTOR,
-    ROLES.DEAN
-]);
-
-/**
  * Check if user is registrar
  */
 const isRegistrar = checkRole(ROLES.REGISTRAR);
@@ -56,14 +47,11 @@ const isRegistrar = checkRole(ROLES.REGISTRAR);
 const isAdminOrHead = checkRole([ROLES.ADMIN, ROLES.HEAD]);
 
 /**
- * Check if user can approve requests (head, authority, registrar)
+ * Check if user can approve requests (head, admin, registrar)
  */
 const canApprove = checkRole([
     ROLES.HEAD,
     ROLES.ADMIN,
-    ROLES.DIRECTOR,
-    ROLES.DEPUTY_DIRECTOR,
-    ROLES.DEAN,
     ROLES.REGISTRAR
 ]);
 
@@ -71,7 +59,6 @@ module.exports = {
     checkRole,
     isAdmin,
     isHead,
-    isAuthority,
     isRegistrar,
     isAdminOrHead,
     canApprove

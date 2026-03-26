@@ -67,16 +67,6 @@ const Sidebar = ({ isOpen, onClose }) => {
       ];
     }
 
-    if ([ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN].includes(role)) {
-      return [
-        ...commonItems,
-        { name: 'New Request', path: '/new-request', icon: FileText },
-        { name: 'My Requests', path: '/my-requests', icon: Clock },
-        { name: 'Pending Approvals', path: '/authority/pending', icon: CheckCircle },
-        { name: 'Approval History', path: '/authority/history', icon: XCircle },
-      ];
-    }
-
     if (role === ROLES.REGISTRAR) {
       return [
         ...commonItems,

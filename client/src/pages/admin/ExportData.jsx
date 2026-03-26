@@ -80,13 +80,13 @@ const ExportData = () => {
       // Apply status filter based on type
       switch (type) {
         case 'Approved Requests':
-          query = query.in('current_status', ['pending_vehicle', 'vehicle_assigned', 'completed']);
+          query = query.in('current_status', ['approved_awaiting_vehicle', 'vehicle_assigned', 'travel_completed']);
           break;
         case 'Pending Requests':
-          query = query.in('current_status', ['pending_head', 'pending_admin', 'pending_authority']);
+          query = query.in('current_status', ['pending_head', 'pending_admin', 'pending_registrar']);
           break;
         case 'Vehicle Usage':
-          query = query.in('current_status', ['vehicle_assigned', 'completed']);
+          query = query.in('current_status', ['vehicle_assigned', 'travel_completed']);
           break;
         // 'All Requests' - no filter
       }

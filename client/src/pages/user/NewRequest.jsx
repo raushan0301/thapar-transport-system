@@ -61,13 +61,13 @@ const NewRequest = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
 
-    // Check if user is authority (Director, Deputy Director, Dean, Registrar, Admin, Head)
-    const isAuthority = [ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR, ROLES.ADMIN, ROLES.HEAD].includes(profile?.role);
+      // Check if user is a privilege role (Head, Admin, Registrar skip head approval)
+    const isPrivilegedRole = [ROLES.HEAD, ROLES.ADMIN, ROLES.REGISTRAR].includes(profile?.role);
 
     const validationErrors = validateTransportRequest(formData);
 
-    // Remove head validation error for authorities (they don't need head approval)
-    if (isAuthority && validationErrors.head) {
+    // Remove head validation error for privileged roles (they don't need head approval)
+    if (isPrivilegedRole && validationErrors.head) {
       delete validationErrors.head;
     }
 
@@ -89,10 +89,10 @@ const NewRequest = () => {
         place_of_visit: formData.place_of_visit,
         purpose: formData.purpose,
         number_of_persons: parseInt(formData.number_of_persons),
-        head_id: isAuthority ? null : (formData.head_id || null),
-        custom_head_email: isAuthority ? null : (formData.custom_head_email || null),
-        head_type: isAuthority ? null : formData.head_type,
-        current_status: isAuthority ? 'pending_admin' : 'pending_head',
+        head_id: isPrivilegedRole ? null : (formData.head_id || null),
+        custom_head_email: isPrivilegedRole ? null : (formData.custom_head_email || null),
+        head_type: isPrivilegedRole ? null : formData.head_type,
+        current_status: isPrivilegedRole ? 'pending_admin' : 'pending_head',
         is_editable: true,
       };
 
@@ -149,7 +149,7 @@ const NewRequest = () => {
 
 
               {/* Head Selection - Only for regular users */}
-              {![ROLES.DIRECTOR, ROLES.DEPUTY_DIRECTOR, ROLES.DEAN, ROLES.REGISTRAR, ROLES.ADMIN, ROLES.HEAD].includes(profile?.role) && (
+              {![ROLES.HEAD, ROLES.ADMIN, ROLES.REGISTRAR].includes(profile?.role) && (
                 <div>
                   <div className="flex items-center space-x-2 mb-6">
                     <Users className="w-5 h-5 text-purple-600" strokeWidth={1.5} />

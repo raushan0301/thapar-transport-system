@@ -58,7 +58,6 @@ export const getStatusColor = (status) => {
   const colors = {
     pending_head: 'bg-yellow-100 text-yellow-800',
     pending_admin: 'bg-blue-100 text-blue-800',
-    pending_authority: 'bg-purple-100 text-purple-800',
     pending_registrar: 'bg-indigo-100 text-indigo-800',
     approved_awaiting_vehicle: 'bg-green-100 text-green-800',
     vehicle_assigned: 'bg-teal-100 text-teal-800',

@@ -3,9 +3,6 @@ export const ROLES = {
   USER: 'user',
   HEAD: 'head',
   ADMIN: 'admin',
-  DIRECTOR: 'director',
-  DEPUTY_DIRECTOR: 'deputy_director',
-  DEAN: 'dean',
   REGISTRAR: 'registrar',
 };
 
@@ -13,7 +10,6 @@ export const ROLES = {
 export const REQUEST_STATUS = {
   PENDING_HEAD: 'pending_head',
   PENDING_ADMIN: 'pending_admin',
-  PENDING_AUTHORITY: 'pending_authority',
   PENDING_REGISTRAR: 'pending_registrar',
   APPROVED_AWAITING_VEHICLE: 'approved_awaiting_vehicle',
   VEHICLE_ASSIGNED: 'vehicle_assigned',
@@ -26,7 +22,6 @@ export const REQUEST_STATUS = {
 export const STATUS_LABELS = {
   pending_head: 'Pending Head Approval',
   pending_admin: 'Pending Admin Review',
-  pending_authority: 'Pending Authority Approval',
   pending_registrar: 'Pending Registrar Approval',
   approved_awaiting_vehicle: 'Approved - Awaiting Vehicle',
   vehicle_assigned: 'Vehicle Assigned',
@@ -47,14 +42,6 @@ export const VEHICLE_TYPE_LABELS = {
   diesel_car: 'Diesel Car',
   petrol_car: 'Petrol Car',
   bus: 'Bus',
-};
-
-// Authority Types
-export const AUTHORITY_TYPES = {
-  NONE: 'none',
-  DIRECTOR: 'director',
-  DEPUTY_DIRECTOR: 'deputy_director',
-  DEAN: 'dean',
 };
 
 // Notification Types
