@@ -87,6 +87,14 @@ export const createRequest = async (requestData) => {
         });
       }
     }
+    
+    // Notify all admins about the new request
+    await notifyAdmins({
+      title: 'New Transport Request Submission',
+      message: `A new transport request (${data.request_number}) has been submitted and is awaiting Head approval.`,
+      type: 'new_request',
+      related_request_id: data.id,
+    });
 
     return { data, error: null };
   } catch (error) {
@@ -146,6 +154,64 @@ export const createNotification = async (notificationData) => {
     if (error) throw error;
   } catch (error) {
     console.error('Error creating notification:', error);
+  }
+};
+
+// Notify all admins helper
+export const notifyAdmins = async (notificationBase) => {
+  try {
+    // 1. Get all admin user IDs
+    const { data: adminUsers, error: adminError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'admin');
+
+    if (adminError) throw adminError;
+
+    if (adminUsers && adminUsers.length > 0) {
+      // 2. Create a notification for each admin
+      const notifications = adminUsers.map((admin) => ({
+        ...notificationBase,
+        user_id: admin.id,
+      }));
+
+      const { error: notifyError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (notifyError) throw notifyError;
+    }
+  } catch (error) {
+    console.error('Error notifying admins:', error);
+  }
+};
+
+// Notify all registrars helper
+export const notifyRegistrars = async (notificationBase) => {
+  try {
+    // 1. Get all registrar user IDs
+    const { data: registrarUsers, error: regError } = await supabase
+      .from('users')
+      .select('id')
+      .eq('role', 'registrar');
+
+    if (regError) throw regError;
+
+    if (registrarUsers && registrarUsers.length > 0) {
+      // 2. Create a notification for each registrar
+      const notifications = registrarUsers.map((reg) => ({
+        ...notificationBase,
+        user_id: reg.id,
+      }));
+
+      const { error: notifyError } = await supabase
+        .from('notifications')
+        .insert(notifications);
+
+      if (notifyError) throw notifyError;
+    }
+  } catch (error) {
+    console.error('Error notifying registrars:', error);
   }
 };
 

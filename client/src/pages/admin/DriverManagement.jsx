@@ -25,6 +25,7 @@ const DriverManagement = () => {
   const [editingDriver, setEditingDriver] = useState(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirm, setDeleteConfirm] = useState(null);
+  const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
 
   const emptyForm = {
     full_name: '',
@@ -80,8 +81,27 @@ const DriverManagement = () => {
     setShowModal(true);
   };
 
-  const openEdit = (driver) => {
+  const openEdit = async (driver) => {
     setEditingDriver(driver);
+    setHasActiveAssignment(false);
+
+    // If driver is not available, check if on a trip
+    if (!driver.is_available) {
+        try {
+            const { count, error } = await supabase
+                .from('transport_requests')
+                .select('*', { count: 'exact', head: true })
+                .eq('driver_id', driver.id)
+                .eq('current_status', 'vehicle_assigned');
+            
+            if (!error && count > 0) {
+                setHasActiveAssignment(true);
+            }
+        } catch (err) {
+            console.error('Error checking assignment:', err);
+        }
+    }
+
     setForm({
       full_name: driver.full_name || '',
       phone: driver.phone || '',
@@ -131,6 +151,14 @@ const DriverManagement = () => {
   };
 
   const handleDelete = async (id) => {
+    // Find the driver to check status
+    const driver = drivers.find(d => d.id === id);
+    if (driver && !driver.is_available) {
+        toast.error('Cannot delete a driver who is currently on duty');
+        setDeleteConfirm(null);
+        return;
+    }
+
     try {
       const { error } = await supabase.from('drivers').delete().eq('id', id);
       if (error) throw error;
@@ -138,7 +166,8 @@ const DriverManagement = () => {
       setDeleteConfirm(null);
       fetchDrivers();
     } catch (err) {
-      toast.error('Failed to delete driver');
+      console.error('Error deleting driver:', err);
+      toast.error('Failed to delete driver. They may be referenced in trip requests.');
     }
   };
 
@@ -391,10 +420,13 @@ const DriverManagement = () => {
                       checked={form.is_available}
                       onChange={e => setForm(p => ({ ...p, is_available: e.target.checked }))}
                       className="sr-only peer"
+                      disabled={hasActiveAssignment}
                     />
-                    <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all" />
+                    <div className="w-10 h-5 bg-gray-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-5 peer-checked:bg-teal-600 after:content-[''] after:absolute after:top-0.5 after:left-[2px] after:bg-white after:rounded-full after:h-4 after:w-4 after:transition-all peer-disabled:opacity-50" />
                   </label>
-                  <span className="text-sm text-gray-700">Available for duty</span>
+                  <span className="text-sm text-gray-700">
+                    Available for duty {hasActiveAssignment && <span className="text-red-500 ml-1 text-xs italic">(Locked: Currently on duty)</span>}
+                  </span>
                 </div>
 
                 {/* Notes */}

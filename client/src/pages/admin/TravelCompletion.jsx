@@ -161,11 +161,25 @@ const TravelCompletion = () => {
           is_available: true,
           updated_at: new Date().toISOString()
         })
-        .eq('id', selectedRequest.vehicle.id);
+        .eq('id', selectedRequest.vehicle_id);
 
       if (vehicleError) throw vehicleError;
 
-      toast.success('Trip completed successfully! Vehicle is now available.');
+      // Mark driver as available if registered
+      if (selectedRequest.driver_id) {
+          const { error: driverError } = await supabase
+            .from('drivers')
+            .update({
+              is_available: true,
+              assigned_vehicle_id: null,
+              updated_at: new Date().toISOString()
+            })
+            .eq('id', selectedRequest.driver_id);
+            
+          if (driverError) throw driverError;
+      }
+
+      toast.success('Trip completed successfully! Vehicle and Driver are now available.');
       setShowModal(false);
       fetchRequests(); // Refresh list
     } catch (err) {

@@ -21,6 +21,8 @@ const VehicleAssignment = () => {
   const [selectedVehicle, setSelectedVehicle] = useState('');
   const [drivers, setDrivers] = useState([]);
   const [selectedDriver, setSelectedDriver] = useState('');
+  const [driverName, setDriverName] = useState('');
+  const [driverPhone, setDriverPhone] = useState('');
   const [assigning, setAssigning] = useState(false);
 
   useEffect(() => {
@@ -73,8 +75,8 @@ const VehicleAssignment = () => {
         .eq('is_available', true)
         .order('full_name', { ascending: true });
 
-      if (driversError && driversError.code !== '42P01') {
-        // Ignore 42P01 (relation does not exist) if drivers table isn't created yet
+      if (driversError && driversError.code !== '42P01' && driversError.code !== 'PGRST205') {
+        // Ignore table missing errors
         throw driversError;
       }
 
@@ -85,7 +87,9 @@ const VehicleAssignment = () => {
         .eq('is_available', true)
         .order('vehicle_number', { ascending: true });
 
-      if (vehiclesError) throw vehiclesError;
+      if (vehiclesError && vehiclesError.code !== '42P01' && vehiclesError.code !== 'PGRST205') {
+        throw vehiclesError;
+      }
 
       setRequests(requestsData || []);
       setVehicles(vehiclesData || []);
@@ -111,33 +115,39 @@ const VehicleAssignment = () => {
       return;
     }
     
-    // User might select a driver, or we might need to fallback to custom text if drivers table isn't used
-    let selectedDriverObj = null;
-    if (selectedDriver) {
-      selectedDriverObj = drivers.find(d => d.id === selectedDriver);
-    }
-
     setAssigning(true);
     try {
+      // Get driver details
+      let finalDriverId = null;
+      let finalDriverName = '';
+      let finalDriverPhone = '';
+
+      if (selectedDriver) {
+        const d = drivers.find(d => d.id === selectedDriver);
+        if (d) {
+            finalDriverId = d.id;
+            finalDriverName = d.full_name;
+            finalDriverPhone = d.phone;
+        }
+      } else {
+        finalDriverName = driverName;
+        finalDriverPhone = driverPhone;
+      }
+
+      if (!finalDriverName) {
+          toast.error('Please select or enter a driver');
+          return;
+      }
+
       // Update request with vehicle and driver details
       const updatePayload = {
         vehicle_id: selectedVehicle,
+        driver_id: finalDriverId,
+        driver_name: finalDriverName,
+        driver_contact: finalDriverPhone,
         current_status: 'vehicle_assigned',
         updated_at: new Date().toISOString(),
       };
-
-      if (selectedDriverObj) {
-        updatePayload.driver_id = selectedDriverObj.id;
-        updatePayload.driver_name = selectedDriverObj.full_name;
-        updatePayload.driver_contact = selectedDriverObj.phone;
-      } else {
-        // Fallback or validation if require driver
-        if (drivers.length > 0) {
-            toast.error('Please select a driver');
-            setAssigning(false);
-            return;
-        }
-      }
 
       const { error: updateError } = await supabase
         .from('transport_requests')
@@ -157,8 +167,8 @@ const VehicleAssignment = () => {
 
       if (vehicleError) throw vehicleError;
       
-      // Update driver to mark as unavailable
-      if (selectedDriverObj) {
+      // Update driver to mark as unavailable in DB if it's a registered driver
+      if (finalDriverId) {
           const { error: driverError } = await supabase
             .from('drivers')
             .update({
@@ -166,7 +176,7 @@ const VehicleAssignment = () => {
               assigned_vehicle_id: selectedVehicle,
               updated_at: new Date().toISOString()
             })
-            .eq('id', selectedDriverObj.id);
+            .eq('id', finalDriverId);
             
           if (driverError) throw driverError;
       }
@@ -321,25 +331,71 @@ const VehicleAssignment = () => {
               </div>
 
               {/* Driver Selection */}
-              {drivers.length > 0 && (
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">
-                    Select Driver <span className="text-red-500">*</span>
-                  </label>
-                  <select
-                    value={selectedDriver}
-                    onChange={(e) => setSelectedDriver(e.target.value)}
-                    className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-                  >
-                    <option value="">-- Select a driver --</option>
-                    {drivers.map((driver) => (
-                      <option key={driver.id} value={driver.id}>
-                        {driver.full_name} ({driver.phone})
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              )}
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-2">
+                  Driver Assignment <span className="text-red-500">*</span>
+                </label>
+                
+                {drivers.length > 0 ? (
+                  <div className="space-y-4">
+                    <select
+                      value={selectedDriver}
+                      onChange={(e) => {
+                        setSelectedDriver(e.target.value);
+                        if (e.target.value === 'manual') {
+                            setDriverName('');
+                            setDriverPhone('');
+                        }
+                      }}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    >
+                      <option value="">-- Select a registered driver --</option>
+                      {drivers.map((driver) => (
+                        <option key={driver.id} value={driver.id}>
+                          {driver.full_name} ({driver.phone})
+                        </option>
+                      ))}
+                      <option value="manual">+ Enter manual driver details</option>
+                    </select>
+
+                    {(selectedDriver === 'manual' || !selectedDriver) && (
+                      <div className="grid grid-cols-2 gap-4 animate-slideDown">
+                        <input
+                          type="text"
+                          placeholder="Driver Name"
+                          value={driverName}
+                          onChange={(e) => setDriverName(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                        <input
+                          type="text"
+                          placeholder="Phone Number"
+                          value={driverPhone}
+                          onChange={(e) => setDriverPhone(e.target.value)}
+                          className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                        />
+                      </div>
+                    )}
+                  </div>
+                ) : (
+                  <div className="grid grid-cols-2 gap-4">
+                    <input
+                      type="text"
+                      placeholder="Driver Name"
+                      value={driverName}
+                      onChange={(e) => setDriverName(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <input
+                      type="text"
+                      placeholder="Phone Number"
+                      value={driverPhone}
+                      onChange={(e) => setDriverPhone(e.target.value)}
+                      className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                  </div>
+                )}
+              </div>
             </div>
 
             <div className="p-6 border-t border-gray-200 flex justify-end space-x-3">
@@ -352,7 +408,7 @@ const VehicleAssignment = () => {
               </button>
               <button
                 onClick={handleAssignVehicle}
-                disabled={assigning || !selectedVehicle || (drivers.length > 0 && !selectedDriver)}
+                disabled={assigning || !selectedVehicle || (!selectedDriver && !driverName) || (selectedDriver === 'manual' && !driverName)}
                 className="px-6 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 disabled:bg-gray-300 disabled:cursor-not-allowed transition-colors flex items-center space-x-2"
               >
                 {assigning ? (

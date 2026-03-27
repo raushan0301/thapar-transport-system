@@ -111,11 +111,24 @@ const UserDashboard = () => {
               }}
             >
               <div className="relative preserve-3d transition-all duration-500 hover:rotate-y-6 hover:rotate-x-3">
-                <div className={`absolute inset-0 bg-${stat.color}-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500`}></div>
+                <div className={`absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500 ${
+                  stat.color === 'blue' ? 'bg-blue-500' :
+                  stat.color === 'amber' ? 'bg-amber-500' :
+                  stat.color === 'green' ? 'bg-green-500' :
+                  'bg-red-500'
+                }`}></div>
 
                 <div className="relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-gray-200 transform hover:-translate-y-2">
                   <div className="mb-4">
-                    <stat.icon className={`w-12 h-12 text-${stat.color}-600 transform transition-transform duration-500 group-hover:scale-110`} strokeWidth={1.5} />
+                    <stat.icon 
+                      className={`w-12 h-12 transform transition-transform duration-500 group-hover:scale-110 ${
+                        stat.color === 'blue' ? 'text-blue-600' :
+                        stat.color === 'amber' ? 'text-amber-600' :
+                        stat.color === 'green' ? 'text-green-600' :
+                        'text-red-600'
+                      }`} 
+                      strokeWidth={1.5} 
+                    />
                   </div>
 
                   <div className="mb-2">
@@ -128,7 +141,12 @@ const UserDashboard = () => {
                     {stat.title}
                   </p>
 
-                  <div className={`mt-4 h-0.5 bg-${stat.color}-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
+                  <div className={`mt-4 h-0.5 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left ${
+                    stat.color === 'blue' ? 'bg-blue-600' :
+                    stat.color === 'amber' ? 'bg-amber-600' :
+                    stat.color === 'green' ? 'bg-green-600' :
+                    'bg-red-600'
+                  }`}></div>
                 </div>
               </div>
             </div>
@@ -159,7 +177,7 @@ const UserDashboard = () => {
                     <Button
                       variant="ghost"
                       size="sm"
-                      onClick={() => navigate('/user/requests')}
+                      onClick={() => navigate('/my-requests')}
                       className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
                     >
                       View All <ArrowRight className="w-4 h-4 ml-1" />

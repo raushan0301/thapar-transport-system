@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
@@ -8,11 +9,13 @@ import Modal from '../../components/common/Modal';
 import Textarea from '../../components/common/Textarea';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
+import { createNotification, notifyAdmins } from '../../services/requestService';
 import { formatDate, formatTime } from '../../utils/helpers';
 import { Clock, CheckCircle, XCircle } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const PendingApprovals = () => {
+  const navigate = useNavigate();
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -85,32 +88,21 @@ const PendingApprovals = () => {
       if (approvalError) throw approvalError;
 
       // Create notification for user
-      const { error: userNotifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: selectedRequest.user_id,
-          title: 'Request Approved',
-          message: `Your request ${selectedRequest.request_number} has been approved and is awaiting vehicle assignment`,
-          type: 'approval',
-          related_request_id: selectedRequest.id,
-          is_read: false
-        });
+      await createNotification({
+        user_id: selectedRequest.user_id,
+        title: 'Request Approved',
+        message: `Your request ${selectedRequest.request_number} has been approved and is awaiting vehicle assignment`,
+        type: 'approval',
+        related_request_id: selectedRequest.id,
+      });
 
-      if (userNotifError) console.error('User notification error:', userNotifError);
-
-      // Create notification for admin
-      const { error: adminNotifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: null, // All admins will see this
-          title: 'Request Needs Vehicle Assignment',
-          message: `Request ${selectedRequest.request_number} has been approved by Registrar and needs vehicle assignment`,
-          type: 'info',
-          related_request_id: selectedRequest.id,
-          is_read: false
-        });
-
-      if (adminNotifError) console.error('Admin notification error:', adminNotifError);
+      // Notify all admins about the new request
+      await notifyAdmins({
+        title: 'Vehicle Assignment Pending',
+        message: `Request ${selectedRequest.request_number} has been approved by Registrar and needs vehicle assignment`,
+        type: 'info',
+        related_request_id: selectedRequest.id,
+      });
 
       toast.success('Request approved successfully');
       setShowApproveModal(false);
@@ -161,18 +153,13 @@ const PendingApprovals = () => {
       if (approvalError) throw approvalError;
 
       // Create notification for user
-      const { error: notifError } = await supabase
-        .from('notifications')
-        .insert({
-          user_id: selectedRequest.user_id,
-          title: 'Request Rejected',
-          message: `Your request ${selectedRequest.request_number} has been rejected by Registrar`,
-          type: 'rejection',
-          related_request_id: selectedRequest.id,
-          is_read: false
-        });
-
-      if (notifError) console.error('Notification error:', notifError);
+      await createNotification({
+        user_id: selectedRequest.user_id,
+        title: 'Request Rejected',
+        message: `Your request ${selectedRequest.request_number} has been rejected by Registrar`,
+        type: 'rejection',
+        related_request_id: selectedRequest.id,
+      });
 
       toast.success('Request rejected');
       setShowRejectModal(false);
@@ -268,7 +255,14 @@ const PendingApprovals = () => {
                     <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                       {request.number_of_persons}
                     </td>
-                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2">
+                    <td className="px-6 py-4 whitespace-nowrap text-sm space-x-2 flex items-center">
+                      <Button
+                        variant="primary"
+                        size="sm"
+                        onClick={() => navigate(`/registrar/review/${request.id}`)}
+                      >
+                        Review
+                      </Button>
                       <Button
                         variant="success"
                         size="sm"

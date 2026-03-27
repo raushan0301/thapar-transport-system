@@ -34,7 +34,7 @@ const RateSettings = () => {
         .limit(1)
         .single();
 
-      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+      if (error && error.code !== 'PGRST116' && error.code !== '42P01' && error.code !== 'PGRST205') { 
         throw error;
       }
 

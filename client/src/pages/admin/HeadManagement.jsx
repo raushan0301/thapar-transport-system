@@ -50,7 +50,7 @@ const HeadManagement = () => {
 
     setFormLoading(true);
     try {
-      // Create auth user
+      // Create auth user via Supabase (requires email confirmation)
       const { data: authData, error: authError } = await supabase.auth.signUp({
         email: formData.email,
         password: formData.password,
@@ -81,7 +81,7 @@ const HeadManagement = () => {
         if (insertError) throw insertError;
       }
 
-      toast.success('Head added successfully!');
+      toast.success('Head added! A confirmation email has been sent.');
       setShowAddModal(false);
       setFormData({ full_name: '', email: '', department: '', phone: '', password: '' });
       fetchHeads();
@@ -129,14 +129,20 @@ const HeadManagement = () => {
     }
 
     try {
-      const { error } = await supabase.from('users').delete().eq('id', headId);
-      if (error) throw error;
+      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      const response = await fetch(`${apiBase}/users/${headId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-      toast.success('Head deleted successfully!');
+      const result = await response.json();
+      if (!response.ok) throw new Error(result.message || 'Failed to delete head');
+
+      toast.success('Head deleted successfully (login access revoked)!');
       fetchHeads();
     } catch (err) {
       console.error('Error deleting head:', err);
-      toast.error('Failed to delete head');
+      toast.error(err.message || 'Failed to delete head');
     }
   };
 

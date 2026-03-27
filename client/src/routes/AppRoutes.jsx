@@ -47,6 +47,7 @@ import DriverManagement from '../pages/admin/DriverManagement';
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
 import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
 import RegistrarApprovalHistory from '../pages/registrar/ApprovalHistory';
+import RegistrarReviewRequest from '../pages/registrar/ReviewRequest';
 import Loader from '../components/common/Loader';
 
 // Dashboard Router - Shows correct dashboard based on user role
@@ -319,6 +320,16 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.REGISTRAR]}>
               <RegistrarApprovalHistory />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/registrar/review/:id"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.REGISTRAR]}>
+              <RegistrarReviewRequest />
             </RoleRoute>
           </PrivateRoute>
         }

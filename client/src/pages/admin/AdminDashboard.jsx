@@ -118,6 +118,18 @@ const AdminDashboard = () => {
     );
   }
 
+  const getColorClasses = (color) => {
+    switch (color) {
+      case 'blue': return { text: 'text-blue-600', bg: 'bg-blue-600', glow: 'bg-blue-500' };
+      case 'amber': return { text: 'text-amber-600', bg: 'bg-amber-600', glow: 'bg-amber-500' };
+      case 'green': return { text: 'text-green-600', bg: 'bg-green-600', glow: 'bg-green-500' };
+      case 'purple': return { text: 'text-purple-600', bg: 'bg-purple-600', glow: 'bg-purple-500' };
+      case 'indigo': return { text: 'text-indigo-600', bg: 'bg-indigo-600', glow: 'bg-indigo-500' };
+      case 'cyan': return { text: 'text-cyan-600', bg: 'bg-cyan-600', glow: 'bg-cyan-500' };
+      default: return { text: 'text-gray-600', bg: 'bg-gray-600', glow: 'bg-gray-500' };
+    }
+  };
+
   const statsData = [
     {
       title: 'Total Requests',
@@ -125,7 +137,8 @@ const AdminDashboard = () => {
       icon: FileText,
       color: 'blue',
       bgGradient: 'from-blue-500 to-blue-600',
-      shadowColor: 'shadow-blue-500/50'
+      shadowColor: 'shadow-blue-500/50',
+      classes: getColorClasses('blue')
     },
     {
       title: 'Pending Review',
@@ -133,7 +146,8 @@ const AdminDashboard = () => {
       icon: Clock,
       color: 'amber',
       bgGradient: 'from-amber-500 to-orange-600',
-      shadowColor: 'shadow-amber-500/50'
+      shadowColor: 'shadow-amber-500/50',
+      classes: getColorClasses('amber')
     },
     {
       title: 'Completed',
@@ -141,7 +155,8 @@ const AdminDashboard = () => {
       icon: CheckCircle2,
       color: 'green',
       bgGradient: 'from-green-500 to-emerald-600',
-      shadowColor: 'shadow-green-500/50'
+      shadowColor: 'shadow-green-500/50',
+      classes: getColorClasses('green')
     },
     {
       title: 'Active Vehicles',
@@ -149,7 +164,8 @@ const AdminDashboard = () => {
       icon: Truck,
       color: 'purple',
       bgGradient: 'from-purple-500 to-purple-600',
-      shadowColor: 'shadow-purple-500/50'
+      shadowColor: 'shadow-purple-500/50',
+      classes: getColorClasses('purple')
     },
     {
       title: 'Total Users',
@@ -157,7 +173,8 @@ const AdminDashboard = () => {
       icon: Users,
       color: 'indigo',
       bgGradient: 'from-indigo-500 to-indigo-600',
-      shadowColor: 'shadow-indigo-500/50'
+      shadowColor: 'shadow-indigo-500/50',
+      classes: getColorClasses('indigo')
     },
     {
       title: 'This Month',
@@ -165,7 +182,8 @@ const AdminDashboard = () => {
       icon: Calendar,
       color: 'cyan',
       bgGradient: 'from-cyan-500 to-blue-600',
-      shadowColor: 'shadow-cyan-500/50'
+      shadowColor: 'shadow-cyan-500/50',
+      classes: getColorClasses('cyan')
     },
   ];
 
@@ -197,13 +215,13 @@ const AdminDashboard = () => {
               {/* 3D Card */}
               <div className="relative preserve-3d transition-all duration-500 hover:rotate-y-6 hover:rotate-x-3">
                 {/* Card Shadow - Animated */}
-                <div className={`absolute inset-0 bg-gradient-to-br ${stat.bgGradient} rounded-2xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500 ${stat.shadowColor}`}></div>
+                <div className={`absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500 ${stat.shadowColor} ${stat.classes.glow}`}></div>
 
                 {/* Main Card */}
                 <div className="relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-gray-200 transform hover:-translate-y-2">
                   {/* Icon - No Background */}
                   <div className="mb-4">
-                    <stat.icon className={`w-12 h-12 text-${stat.color}-600 transform transition-transform duration-500 group-hover:scale-110`} strokeWidth={1.5} />
+                    <stat.icon className={`w-12 h-12 ${stat.classes.text} transform transition-transform duration-500 group-hover:scale-110`} strokeWidth={1.5} />
                   </div>
 
                   {/* Value - Animated Counter */}
@@ -219,7 +237,7 @@ const AdminDashboard = () => {
                   </p>
 
                   {/* Bottom Accent Line */}
-                  <div className={`mt-4 h-0.5 bg-${stat.color}-600 rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
+                  <div className={`mt-4 h-0.5 ${stat.classes.bg} rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
                 </div>
               </div>
             </div>

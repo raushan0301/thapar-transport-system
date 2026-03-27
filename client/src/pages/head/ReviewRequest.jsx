@@ -7,14 +7,14 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { createNotification } from '../../services/requestService';
+import { createNotification, notifyAdmins } from '../../services/requestService';
 import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const HeadReviewRequest = () => {
     const { id } = useParams();
     const navigate = useNavigate();
-    const { user } = useAuth();
+    const { user, profile } = useAuth();
     const [request, setRequest] = useState(null);
     const [loading, setLoading] = useState(true);
     const [actionLoading, setActionLoading] = useState(false);
@@ -110,6 +110,16 @@ const HeadReviewRequest = () => {
                 type: modalType === 'approve' ? 'approval' : 'rejection',
                 related_request_id: request.id
             });
+
+            // If approved, also notify All Admins
+            if (modalType === 'approve') {
+                await notifyAdmins({
+                    title: 'New Request for Review',
+                    message: `Transport request ${request.request_number} has been approved by ${profile?.department || 'Department'} Head and is ready for your review.`,
+                    type: 'new_request',
+                    related_request_id: request.id
+                });
+            }
 
             toast.success(modalType === 'approve' ? 'Request approved successfully!' : 'Request rejected successfully');
             setShowModal(false);

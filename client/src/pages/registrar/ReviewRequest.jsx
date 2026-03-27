@@ -7,11 +7,11 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { createNotification, notifyRegistrars } from '../../services/requestService';
-import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check, X, Send } from 'lucide-react';
+import { createNotification, notifyAdmins } from '../../services/requestService';
+import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-const AdminReviewRequest = () => {
+const RegistrarReviewRequest = () => {
     const { id } = useParams();
     const navigate = useNavigate();
     const { user } = useAuth();
@@ -21,7 +21,7 @@ const AdminReviewRequest = () => {
     
     // Modal states
     const [showModal, setShowModal] = useState(false);
-    const [modalType, setModalType] = useState(null); // 'approve_route', 'approve_direct', 'reject'
+    const [modalType, setModalType] = useState(null); // 'approve', 'reject'
     const [comment, setComment] = useState('');
 
     useEffect(() => {
@@ -32,33 +32,25 @@ const AdminReviewRequest = () => {
     const fetchRequest = async () => {
         try {
             setLoading(true);
-            console.log('Admin Review - User:', user);
-            console.log('Admin Review - Request ID:', id);
-
             const { data, error } = await supabase
                 .from('transport_requests')
                 .select('*, user:users!transport_requests_user_id_fkey(full_name, email, department, designation, phone)')
                 .eq('id', id)
                 .single();
 
-            console.log('Admin Review - Request Data:', data);
-            console.log('Admin Review - Error:', error);
-
             if (error) throw error;
 
-            // Check if status is pending_admin (more lenient - don't check role here as it might redirect admins)
-            if (data.current_status !== 'pending_admin') {
-                console.log('Admin Review - Wrong status:', data.current_status);
-                toast.error(`This request is not pending admin review (Status: ${data.current_status})`);
-                navigate('/admin/pending');
+            if (data.current_status !== 'pending_registrar') {
+                toast.error(`This request is not pending registrar review (Status: ${data.current_status})`);
+                navigate('/registrar/pending');
                 return;
             }
 
             setRequest(data);
         } catch (err) {
-            console.error('Admin Review - Error:', err);
+            console.error('Error:', err);
             toast.error(`Failed to load request: ${err.message}`);
-            navigate('/admin/pending');
+            navigate('/registrar/pending');
         } finally {
             setLoading(false);
         }
@@ -82,24 +74,16 @@ const AdminReviewRequest = () => {
             let actionType = 'approved';
             let notificationTitle;
             let notificationMessage;
-            let actionText;
 
-            if (modalType === 'approve_route') {
-                nextStatus = 'pending_registrar';
-                notificationTitle = 'Request Approved by Admin';
-                notificationMessage = `Your transport request has been approved by the Admin and sent to the Registrar.`;
-                actionText = 'approved and routed to Registrar';
-            } else if (modalType === 'approve_direct') {
+            if (modalType === 'approve') {
                 nextStatus = 'approved_awaiting_vehicle';
-                notificationTitle = 'Direct Approval by Admin';
-                notificationMessage = `Your transport request has been directly approved by the Admin.`;
-                actionText = 'approved directly';
+                notificationTitle = 'Request Approved by Registrar';
+                notificationMessage = `Your transport request has been approved by the Registrar and is awaiting vehicle assignment.`;
             } else {
                 nextStatus = 'rejected';
                 actionType = 'rejected';
-                notificationTitle = 'Request Rejected by Admin';
-                notificationMessage = `Your transport request has been rejected by the Admin. Reason: ${comment}`;
-                actionText = 'rejected';
+                notificationTitle = 'Request Rejected by Registrar';
+                notificationMessage = `Your transport request has been rejected by the Registrar. Reason: ${comment}`;
             }
 
             // Create approval record
@@ -108,9 +92,9 @@ const AdminReviewRequest = () => {
                 .insert([{
                     request_id: id,
                     approver_id: user.id,
-                    approver_role: 'admin',
+                    approver_role: 'registrar',
                     action: actionType,
-                    comment: comment.trim() || (modalType === 'approve_direct' ? 'Direct Admin Approval' : null),
+                    comment: comment.trim() || null,
                     approved_at: new Date().toISOString(),
                 }]);
 
@@ -136,21 +120,21 @@ const AdminReviewRequest = () => {
                 related_request_id: id
             });
 
-            // If routing to registrar, notify all registrars
-            if (modalType === 'approve_route') {
-                await notifyRegistrars({
-                    title: 'New Request for Final Approval',
-                    message: `Transport request ${request.request_number} has been routed to you for final approval.`,
-                    type: 'new_request',
+            // If approved, notify Admins for vehicle assignment
+            if (modalType === 'approve') {
+                await notifyAdmins({
+                    title: 'Vehicle Assignment Pending',
+                    message: `Request ${request.request_number} has been approved by the Registrar. Please assign a vehicle.`,
+                    type: 'info',
                     related_request_id: id
                 });
             }
 
-            toast.success(`Request ${actionText}!`);
+            toast.success(`Request ${actionType} successfully!`);
             setShowModal(false);
-            navigate('/admin/pending');
+            navigate('/registrar/pending');
         } catch (err) {
-            console.error(`❌ ${modalType.toUpperCase()} FAILED:`, err);
+            console.error(`❌ REGISTRAR ${modalType.toUpperCase()} FAILED:`, err);
             toast.error(`Failed to process action: ${err.message || 'Unknown error'}`);
         } finally {
             setActionLoading(false);
@@ -165,13 +149,13 @@ const AdminReviewRequest = () => {
             <DashboardLayout>
                 {/* Header */}
                 <div className="mb-8 animate-slideDown">
-                    <button onClick={() => navigate('/admin/pending')} className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4">
+                    <button onClick={() => navigate('/registrar/pending')} className="flex items-center space-x-2 text-gray-600 hover:text-gray-900 mb-4">
                         <ArrowLeft className="w-5 h-5" />
-                        <span>Back to Pending Review</span>
+                        <span>Back to Pending Approvals</span>
                     </button>
                     <div className="flex items-center justify-between">
                         <div>
-                            <h1 className="text-4xl font-bold text-gray-900 mb-2">Process Transport Request</h1>
+                            <h1 className="text-4xl font-bold text-gray-900 mb-2">Final Review</h1>
                             <p className="text-gray-600">Request Number: <span className="font-semibold text-blue-600">{request.request_number}</span></p>
                         </div>
                         <StatusBadge status={request.current_status} />
@@ -189,20 +173,12 @@ const AdminReviewRequest = () => {
                         <span>Reject</span>
                     </button>
                     <button
-                        onClick={() => handleActionClick('approve_route')}
-                        disabled={actionLoading}
-                        className="flex items-center space-x-2 px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                        <Send className="w-5 h-5" strokeWidth={2} />
-                        <span>Approve & Route to Registrar</span>
-                    </button>
-                    <button
-                        onClick={() => handleActionClick('approve_direct')}
+                        onClick={() => handleActionClick('approve')}
                         disabled={actionLoading}
                         className="flex items-center space-x-2 px-6 py-3 bg-green-500 hover:bg-green-600 text-white font-semibold rounded-lg transition-all duration-200 shadow-md hover:shadow-lg transform hover:-translate-y-0.5 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
                         <Check className="w-5 h-5" strokeWidth={2} />
-                        <span>Approve Directly</span>
+                        <span>Approve Request</span>
                     </button>
                 </div>
 
@@ -285,11 +261,11 @@ const AdminReviewRequest = () => {
             {showModal && (
                 <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
                     <div className="bg-white rounded-2xl shadow-2xl max-w-lg w-full overflow-hidden animate-slideUp" style={{ animation: 'slideUp 0.3s ease-out' }}>
-                        <div className={`p-6 text-white ${modalType === 'reject' ? 'bg-red-600' : modalType === 'approve_route' ? 'bg-blue-600' : 'bg-green-600'} flex items-center justify-between`}>
+                        <div className={`p-6 text-white ${modalType === 'reject' ? 'bg-red-600' : 'bg-green-600'} flex items-center justify-between`}>
                             <div className="flex items-center space-x-2">
-                                {modalType === 'reject' ? <X className="w-6 h-6" /> : modalType === 'approve_route' ? <Send className="w-6 h-6" /> : <Check className="w-6 h-6" />}
+                                {modalType === 'reject' ? <X className="w-6 h-6" /> : <Check className="w-6 h-6" />}
                                 <h3 className="text-xl font-bold">
-                                    {modalType === 'reject' ? 'Reject Request' : modalType === 'approve_route' ? 'Approve & Route' : 'Approve Directly'}
+                                    {modalType === 'reject' ? 'Reject Request' : 'Approve Request'}
                                 </h3>
                             </div>
                             <button onClick={() => setShowModal(false)} className="text-white/80 hover:text-white transition-colors">
@@ -302,7 +278,7 @@ const AdminReviewRequest = () => {
                             </label>
                             <textarea 
                                 className="w-full h-32 border border-gray-300 rounded-xl p-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all resize-none"
-                                placeholder={modalType === 'reject' ? 'Please explain why this request is being rejected...' : 'Enter any instructions or notes...'}
+                                placeholder={modalType === 'reject' ? 'Please explain why this request is being rejected...' : 'Enter any final instructions...'}
                                 value={comment}
                                 onChange={(e) => setComment(e.target.value)}
                                 autoFocus
@@ -316,7 +292,7 @@ const AdminReviewRequest = () => {
                                     Cancel
                                 </Button>
                                 <Button 
-                                    variant={modalType === 'reject' ? 'danger' : modalType === 'approve_route' ? 'primary' : 'success'} 
+                                    variant={modalType === 'reject' ? 'danger' : 'success'} 
                                     onClick={submitAction}
                                     loading={actionLoading}
                                 >
@@ -336,4 +312,4 @@ const AdminReviewRequest = () => {
     );
 };
 
-export default AdminReviewRequest;
+export default RegistrarReviewRequest;

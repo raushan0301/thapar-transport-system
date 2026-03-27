@@ -100,7 +100,7 @@ const RegistrarDashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {recentRequests.map((req, i) => (
-                      <div key={req.id} className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-amber-200 hover:shadow-md transform hover:-translate-x-1" onClick={() => navigate(`/request/${req.id}`)} style={{ animation: 'slideRight 0.4s ease-out forwards', animationDelay: `${i * 100}ms`, opacity: 0 }}>
+                      <div key={req.id} className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-amber-200 hover:shadow-md transform hover:-translate-x-1" onClick={() => navigate(`/registrar/review/${req.id}`)} style={{ animation: 'slideRight 0.4s ease-out forwards', animationDelay: `${i * 100}ms` }}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <p className="font-semibold text-gray-900 group-hover/item:text-amber-600 transition-colors">{req.request_number}</p>
@@ -132,7 +132,7 @@ const RegistrarDashboard = () => {
                       <ArrowRight className="w-5 h-5 text-gray-400 group-hover/btn:text-blue-600 group-hover/btn:translate-x-1 transition-all" />
                     </div>
                   </button>
-                  <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent hover:border-gray-200 group/btn" onClick={() => navigate('/registrar/approved')}>
+                  <button className="w-full text-left px-4 py-3 bg-gray-50 hover:bg-gray-100 rounded-lg transition-all duration-200 border border-transparent hover:border-gray-200 group/btn" onClick={() => navigate('/registrar/history')}>
                     <div className="flex items-center justify-between">
                       <div><p className="font-semibold text-gray-900">Approved Requests</p><p className="text-sm text-gray-600">{stats.approved} approved</p></div>
                       <ArrowRight className="w-5 h-5 text-gray-400 group-hover/btn:text-blue-600 group-hover/btn:translate-x-1 transition-all" />

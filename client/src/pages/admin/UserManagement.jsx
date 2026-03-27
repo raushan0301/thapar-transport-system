@@ -37,9 +37,6 @@ const UserManagement = () => {
         { value: 'user', label: 'User', icon: Users, color: 'blue' },
         { value: 'head', label: 'Head', icon: Briefcase, color: 'purple' },
         { value: 'admin', label: 'Admin', icon: Shield, color: 'red' },
-        { value: 'director', label: 'Director', icon: Building, color: 'indigo' },
-        { value: 'deputy_director', label: 'Deputy Director', icon: Building, color: 'violet' },
-        { value: 'dean', label: 'Dean', icon: Building, color: 'pink' },
         { value: 'registrar', label: 'Registrar', icon: Shield, color: 'green' },
     ];
 
@@ -169,7 +166,7 @@ const UserManagement = () => {
                 if (error) throw error;
                 toast.success('User updated successfully!');
             } else {
-                // Create new user
+                // Create new user via Supabase (requires email confirmation)
                 const { data: authData, error: authError } = await supabase.auth.signUp({
                     email: formData.email,
                     password: formData.password,
@@ -204,7 +201,7 @@ const UserManagement = () => {
                     // Don't throw, as auth user is already created
                 }
 
-                toast.success('User created successfully!');
+                toast.success('User created! A confirmation email has been sent.');
             }
 
             handleCloseModal();
