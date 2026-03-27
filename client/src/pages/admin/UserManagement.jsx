@@ -232,24 +232,22 @@ const UserManagement = () => {
         try {
             console.log('Attempting to delete user:', userToDelete.id, userToDelete.name);
 
-            const { data, error } = await supabase
-                .from('users')
-                .delete()
-                .eq('id', userToDelete.id);
+            // Call backend to delete from BOTH Supabase Auth AND users table
+            // This prevents the deleted user from logging back in
+            const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+            const response = await fetch(`${apiBase}/users/${userToDelete.id}`, {
+                method: 'DELETE',
+                headers: { 'Content-Type': 'application/json' }
+            });
 
-            console.log('Delete result:', { data, error });
+            const result = await response.json();
 
-            if (error) {
-                console.error('Delete error details:', {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
-                throw error;
+            if (!response.ok) {
+                throw new Error(result.message || 'Failed to delete user');
             }
 
-            toast.success('User deleted successfully');
+            console.log('Delete result:', result);
+            toast.success('User fully deleted (login access revoked)');
             fetchUsers();
         } catch (err) {
             console.error('Full error:', err);

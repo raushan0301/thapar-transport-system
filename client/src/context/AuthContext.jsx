@@ -95,27 +95,13 @@ export const AuthProvider = ({ children }) => {
         console.error('❌ Profile fetch error:', error.message, error.code);
 
         if (error.code === 'PGRST116') {
-          const { data: newProfile, error: createError } = await supabase
-            .from('users')
-            .insert([
-              {
-                id: userId,
-                email: userEmail,
-                full_name: userEmail.split('@')[0],
-                role: 'user',
-              },
-            ])
-            .select()
-            .single();
-
-          if (createError) {
-            console.error('❌ Create profile error:', createError);
-            toast.error('Failed to create profile');
-            loadingProfile.current = false;
-            return;
-          }
-
-          setProfile(newProfile);
+          // No profile found — this user was deleted by an admin.
+          // Sign them out immediately to revoke access.
+          console.warn('🚫 No profile found for auth user — account may have been deleted. Signing out.');
+          toast.error('Your account has been deleted. Please contact an administrator.');
+          await supabase.auth.signOut();
+          setUser(null);
+          setProfile(null);
           loadingProfile.current = false;
           return;
         }
