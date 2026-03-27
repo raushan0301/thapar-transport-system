@@ -6,6 +6,7 @@ import { StatusBadge } from '../../components/common/Badge';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
+import { createNotification } from '../../services/requestService';
 import { Truck, Search, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -76,6 +77,15 @@ const VehicleAssignment = () => {
         // Ignore 42P01 (relation does not exist) if drivers table isn't created yet
         throw driversError;
       }
+
+      // Fetch available vehicles
+      const { data: vehiclesData, error: vehiclesError } = await supabase
+        .from('vehicles')
+        .select('*')
+        .eq('is_available', true)
+        .order('vehicle_number', { ascending: true });
+
+      if (vehiclesError) throw vehiclesError;
 
       setRequests(requestsData || []);
       setVehicles(vehiclesData || []);
@@ -160,6 +170,15 @@ const VehicleAssignment = () => {
             
           if (driverError) throw driverError;
       }
+
+      // Notify the requester
+      await createNotification({
+          user_id: selectedRequest.user_id,
+          title: 'Vehicle Assigned',
+          message: `A vehicle (${vehicles.find(v => v.id === selectedVehicle)?.vehicle_number}) has been assigned to your request.`,
+          type: 'info',
+          related_request_id: selectedRequest.id
+      });
 
       toast.success('Vehicle assigned successfully!');
       setShowModal(false);

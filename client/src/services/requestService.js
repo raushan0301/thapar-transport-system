@@ -69,6 +69,23 @@ export const createRequest = async (requestData) => {
         type: 'new_request',
         related_request_id: data.id,
       });
+    } else if (requestData.custom_head_email) {
+      // Try to find if the custom head exists as a user to send notification
+      const { data: userData } = await supabase
+        .from('users')
+        .select('id')
+        .eq('email', requestData.custom_head_email)
+        .single();
+      
+      if (userData) {
+        await createNotification({
+          user_id: userData.id,
+          title: 'New Transport Request',
+          message: `You have a new transport request pending approval`,
+          type: 'new_request',
+          related_request_id: data.id,
+        });
+      }
     }
 
     return { data, error: null };
@@ -120,7 +137,7 @@ export const getPredefinedHeads = async () => {
 };
 
 // Create notification helper
-const createNotification = async (notificationData) => {
+export const createNotification = async (notificationData) => {
   try {
     const { error } = await supabase
       .from('notifications')

@@ -6,6 +6,7 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
+import { createNotification } from '../../services/requestService';
 import { ArrowLeft, User, MapPin, Calendar, Users, FileText, Clock, Check, X, Send } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -102,6 +103,15 @@ const AdminReviewRequest = () => {
 
             console.log('✅ Request routed to Registrar');
 
+            // Notify the requester
+            await createNotification({
+                user_id: request.user_id,
+                title: 'Request Approved by Admin',
+                message: `Your transport request has been approved by the Admin and sent to the Registrar.`,
+                type: 'approval',
+                related_request_id: id
+            });
+
             toast.success('Request approved and routed to Registrar!');
             navigate('/admin/pending');
         } catch (err) {
@@ -139,6 +149,15 @@ const AdminReviewRequest = () => {
 
             if (updateError) throw updateError;
 
+            // Notify the requester
+            await createNotification({
+                user_id: request.user_id,
+                title: 'Direct Approval by Admin',
+                message: `Your transport request has been directly approved by the Admin.`,
+                type: 'approval',
+                related_request_id: id
+            });
+
             toast.success('Request approved directly!');
             navigate('/admin/pending');
         } catch (err) {
@@ -174,6 +193,15 @@ const AdminReviewRequest = () => {
                 .eq('id', id);
 
             if (updateError) throw updateError;
+
+            // Notify the requester
+            await createNotification({
+                user_id: request.user_id,
+                title: 'Request Rejected by Admin',
+                message: `Your transport request has been rejected by the Admin. Reason: ${reason}`,
+                type: 'rejection',
+                related_request_id: id
+            });
 
             toast.success('Request rejected');
             navigate('/admin/pending');

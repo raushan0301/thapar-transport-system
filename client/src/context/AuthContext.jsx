@@ -161,6 +161,20 @@ export const AuthProvider = ({ children }) => {
 
       if (error) throw error;
 
+      // Verify profile exists before saying welcome.
+      // This catches accounts that were deleted from the users table but still exist in Auth.
+      const { data: profileRecord, error: profileError } = await supabase
+        .from('users')
+        .select('id')
+        .eq('id', data.user.id)
+        .single();
+
+      if (profileError || !profileRecord) {
+        console.warn('🚫 Login successful but profile missing — account is likely deleted.');
+        await supabase.auth.signOut();
+        throw new Error('Your account has been deleted. Please contact an administrator.');
+      }
+
       toast.success('Welcome back!');
       return { data, error: null };
     } catch (error) {

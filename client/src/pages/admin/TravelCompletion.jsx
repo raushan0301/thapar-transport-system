@@ -5,6 +5,7 @@ import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
+import { createNotification } from '../../services/requestService';
 import { CheckCircle2, Search, X, Calculator, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -143,6 +144,15 @@ const TravelCompletion = () => {
         .eq('id', selectedRequest.id);
 
       if (updateError) throw updateError;
+
+      // Notify the requester
+      await createNotification({
+          user_id: selectedRequest.user_id,
+          title: 'Travel Completed',
+          message: `Your transport trip (${selectedRequest.request_number}) has been marked as completed. Distance: ${distance} km.`,
+          type: 'info',
+          related_request_id: selectedRequest.id
+      });
 
       // Mark vehicle as available
       const { error: vehicleError } = await supabase

@@ -150,7 +150,7 @@ const HeadDashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {recentRequests.map((request, index) => (
-                      <div key={request.id} className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-amber-200 hover:shadow-md transform hover:-translate-x-1" onClick={() => navigate(`/request/${request.id}`)} style={{ animation: 'slideRight 0.4s ease-out forwards', animationDelay: `${index * 100}ms`, opacity: 0 }}>
+                      <div key={request.id} className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-amber-200 hover:shadow-md transform hover:-translate-x-1" onClick={() => navigate(`/head/review/${request.id}`)} style={{ animation: 'slideRight 0.4s ease-out forwards', animationDelay: `${index * 100}ms`, opacity: 0 }}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1">
                             <p className="font-semibold text-gray-900 group-hover/item:text-amber-600 transition-colors">{request.request_number}</p>
