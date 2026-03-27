@@ -4,14 +4,14 @@ const { supabaseAdmin } = require('../config/database');
 
 // POST /api/v1/users — create a new user with pre-confirmed email
 router.post('/', async (req, res) => {
-    const { 
-        email, 
-        password, 
-        full_name, 
-        role, 
-        department, 
-        designation, 
-        phone 
+    const {
+        email,
+        password,
+        full_name,
+        role,
+        department,
+        designation,
+        phone
     } = req.body;
 
     if (!email || !password || !full_name || !role) {
@@ -28,12 +28,12 @@ router.post('/', async (req, res) => {
             email,
             password,
             email_confirm: true,
-            user_metadata: { 
-                full_name, 
-                role, 
-                department, 
-                designation, 
-                phone 
+            user_metadata: {
+                full_name,
+                role,
+                department,
+                designation,
+                phone
             }
         });
 
@@ -57,14 +57,14 @@ router.post('/', async (req, res) => {
             }]);
 
         if (dbError) {
-             console.error('DB insert error:', dbError);
-             // We return success anyway because auth user IS created, but we log the error
+            console.error('DB insert error:', dbError);
+            // We return success anyway because auth user IS created, but we log the error
         }
 
-        return res.status(201).json({ 
-            success: true, 
+        return res.status(201).json({
+            success: true,
             message: 'User created successfully (Email automatically confirmed)',
-            user: authData.user 
+            user: authData.user
         });
     } catch (err) {
         console.error('Create user error:', err);
