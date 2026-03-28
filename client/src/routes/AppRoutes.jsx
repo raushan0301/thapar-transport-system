@@ -43,6 +43,10 @@ import ExportData from '../pages/admin/ExportData';
 import AuditLogs from '../pages/admin/AuditLogs';
 import DriverManagement from '../pages/admin/DriverManagement';
 
+// Driver Pages
+import DriverDashboard from '../pages/driver/DriverDashboard';
+import DriverProfile from '../pages/driver/DriverProfile';
+
 // Registrar Pages
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
 import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
@@ -71,6 +75,8 @@ const DashboardRouter = () => {
       return <AdminDashboard />;
     case ROLES.REGISTRAR:
       return <RegistrarDashboard />;
+    case ROLES.DRIVER:
+      return <DriverDashboard />;
     case ROLES.USER:
     default:
       return <UserDashboard />;
@@ -303,7 +309,28 @@ const AppRoutes = () => {
         }
       />
 
-      {/* Registrar Routes */}
+      {/* Driver Routes */}
+      <Route
+        path="/driver/trip"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.DRIVER]}>
+              <DriverDashboard />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+      <Route
+        path="/driver/profile"
+        element={
+          <PrivateRoute>
+            <RoleRoute allowedRoles={[ROLES.DRIVER]}>
+              <DriverProfile />
+            </RoleRoute>
+          </PrivateRoute>
+        }
+      />
+
       <Route
         path="/registrar/pending"
         element={

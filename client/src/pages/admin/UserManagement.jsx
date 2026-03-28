@@ -7,8 +7,16 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import {
-  Users, UserPlus, Edit, Trash2, Search, Filter, Mail,
-  Phone, Building, Shield, ArrowUpCircle, ArrowDownCircle, Briefcase
+  Users,
+  Search,
+  Filter,
+  Edit,
+  Mail,
+  Phone,
+  ArrowUpCircle,
+  ArrowDownCircle,
+  Briefcase,
+  Shield
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -17,6 +25,7 @@ const ROLES = [
   { value: 'head', label: 'Head', color: 'purple', icon: Briefcase },
   { value: 'admin', label: 'Admin', color: 'red', icon: Shield },
   { value: 'registrar', label: 'Registrar', color: 'green', icon: Shield },
+  { value: 'driver', label: 'Driver', color: 'teal', icon: Briefcase },
 ];
 
 const getRoleColor = (role) => ROLES.find(r => r.value === role)?.color || 'gray';
@@ -84,7 +93,6 @@ const UserManagement = () => {
 
   // ── Promote / change role ──────────────────────────────────────────────────
   const promotableUsers = users.filter(u =>
-    u.role === 'user' &&
     u.id !== currentUser?.id &&
     (u.full_name?.toLowerCase().includes(userSearch.toLowerCase()) ||
      u.email?.toLowerCase().includes(userSearch.toLowerCase()))
@@ -99,7 +107,30 @@ const UserManagement = () => {
         .update({ role: targetRole, updated_at: new Date().toISOString() })
         .eq('id', userToPromote.id);
       if (error) throw error;
-      toast.success(`${userToPromote.full_name} promoted to ${getRoleLabel(targetRole)}!`);
+
+      // If promoting to driver, also create/update the drivers table record
+      if (targetRole === 'driver') {
+        const { data: existingDriver } = await supabase
+          .from('drivers')
+          .select('id')
+          .ilike('full_name', userToPromote.full_name || '')
+          .maybeSingle();
+
+        if (!existingDriver) {
+          // Create a basic driver record so the dashboard works immediately
+          await supabase.from('drivers').insert([{
+            full_name: userToPromote.full_name,
+            phone: userToPromote.phone || '',
+            license_number: 'PENDING',
+            is_available: true,
+            notes: `Auto-created when user ${userToPromote.email} was promoted to driver role.`,
+          }]);
+        }
+        toast.success(`${userToPromote.full_name} promoted to Driver! A driver record was also created — update license details in Driver Management.`);
+      } else {
+        toast.success(`${userToPromote.full_name} promoted to ${getRoleLabel(targetRole)}!`);
+      }
+
       setShowPromoteModal(false);
       setUserToPromote(null);
       setUserSearch('');
@@ -153,29 +184,6 @@ const UserManagement = () => {
       toast.error(err.message || 'Failed to update user');
     } finally {
       setSaving(false);
-    }
-  };
-
-  // ── Delete ─────────────────────────────────────────────────────────────────
-  const handleDelete = async () => {
-    if (!userToDelete) return;
-    setDeleting(true);
-    try {
-      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
-      const response = await fetch(`${apiBase}/users/${userToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to delete');
-      toast.success('User deleted (login access revoked)');
-      setShowDeleteModal(false);
-      setUserToDelete(null);
-      fetchUsers();
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete user');
-    } finally {
-      setDeleting(false);
     }
   };
 
@@ -307,12 +315,6 @@ const UserManagement = () => {
                                 <ArrowDownCircle className="w-4 h-4" />
                               </button>
                             )}
-                            {!isSelf && (
-                              <button onClick={() => { setUserToDelete(u); setShowDeleteModal(true); }}
-                                className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors" title="Delete">
-                                <Trash2 className="w-4 h-4" />
-                              </button>
-                            )}
                           </div>
                         </td>
                       </tr>
@@ -333,11 +335,24 @@ const UserManagement = () => {
 
           {/* Target Role Selection */}
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Promote to Role</label>
-            <div className="flex space-x-2">
-              {[{ value: 'registrar', label: 'Registrar', color: 'green' }, { value: 'admin', label: 'Admin', color: 'red' }, { value: 'head', label: 'Head', color: 'purple' }].map(r => (
-                <button key={r.value} onClick={() => setTargetRole(r.value)}
-                  className={`flex-1 py-2 px-3 rounded-lg border-2 text-sm font-medium transition-all ${targetRole === r.value ? `border-${r.color}-500 bg-${r.color}-50 text-${r.color}-700` : 'border-gray-200 text-gray-500 hover:border-gray-300'}`}>
+            <label className="block text-sm font-medium text-gray-700 mb-2 font-mono uppercase tracking-tight">Promote to Role</label>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+              {[
+                { value: 'registrar', label: 'Registrar' },
+                { value: 'admin', label: 'Admin' },
+                { value: 'head', label: 'Head' },
+                { value: 'driver', label: 'Driver' },
+              ].map(r => (
+                <button 
+                  key={r.value} 
+                  type="button"
+                  onClick={() => setTargetRole(r.value)}
+                  className={`py-2.5 px-3 rounded-xl border-2 text-xs font-bold uppercase tracking-wider transition-all duration-200 ${
+                    targetRole === r.value 
+                      ? 'border-indigo-600 bg-indigo-50 text-indigo-700 ring-4 ring-indigo-50' 
+                      : 'border-gray-100 bg-gray-50 text-gray-400 hover:border-gray-200 hover:bg-white hover:text-gray-600'
+                  }`}
+                >
                   {r.label}
                 </button>
               ))}
@@ -429,24 +444,7 @@ const UserManagement = () => {
         </div>
       </Modal>
 
-      {/* ===== Delete Modal ===== */}
-      <Modal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setUserToDelete(null); }} title="Delete User Account">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 text-red-600 p-3 bg-red-50 rounded-lg">
-            <Trash2 className="w-6 h-6 flex-shrink-0" />
-            <p className="font-semibold text-sm">This permanently removes the account. Cannot be undone.</p>
-          </div>
-          <p className="text-gray-700">
-            Delete <strong>{userToDelete?.name || userToDelete?.full_name}</strong>? Their login access will be fully revoked.
-          </p>
-          <div className="flex justify-end space-x-3 pt-2">
-            <Button variant="secondary" onClick={() => { setShowDeleteModal(false); setUserToDelete(null); }}>Cancel</Button>
-            <Button onClick={handleDelete} loading={deleting} className="bg-red-600 hover:bg-red-700 text-white border-0">
-              {deleting ? 'Deleting...' : 'Delete Account'}
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Deletion disabled */}
 
       <style>{`
         @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }

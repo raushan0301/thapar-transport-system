@@ -372,7 +372,7 @@ const AdminDashboard = () => {
                     },
                     {
                       title: 'Manage Drivers',
-                      desc: 'Add, edit or remove drivers',
+                      desc: 'Add or update drivers',
                       path: '/admin/drivers',
                       icon: Users,
                       gradient: 'from-teal-500 to-cyan-600'

@@ -8,9 +8,11 @@ import { formatDate } from '../../utils/helpers';
 import { createNotification } from '../../services/requestService';
 import { CheckCircle2, Search, X, Calculator, DollarSign } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const TravelCompletion = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
@@ -144,6 +146,20 @@ const TravelCompletion = () => {
         .eq('id', selectedRequest.id);
 
       if (updateError) throw updateError;
+
+      // Create approval record for travel completion
+      const { error: approvalError } = await supabase
+        .from('approvals')
+        .insert([{
+          request_id: selectedRequest.id,
+          approver_id: user.id,
+          approver_role: 'admin',
+          action: 'travel_completed',
+          comment: `Distance: ${distance} km, Total Amount: ₹${amount}`,
+          approved_at: new Date().toISOString(),
+        }]);
+
+      if (approvalError) console.error('Error recording completion:', approvalError);
 
       // Notify the requester
       await createNotification({

@@ -24,7 +24,8 @@ module.exports = {
         USER: 'user',
         HEAD: 'head',
         ADMIN: 'admin',
-        REGISTRAR: 'registrar'
+        REGISTRAR: 'registrar',
+        DRIVER: 'driver'
     },
 
     // Request Status

@@ -10,7 +10,7 @@ import { useAuth } from '../../context/AuthContext';
 import { createRequest } from '../../services/requestService';
 import { validateTransportRequest } from '../../utils/validators';
 import { handleSupabaseError, showSuccess } from '../../utils/errorHandler';
-import { FileText, Send, Calendar, MapPin, Users, Info } from 'lucide-react';
+import { FileText, Send, Calendar, MapPin, Users, Info, User, Phone, Clock } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { ROLES } from '../../utils/constants';
 
@@ -31,6 +31,9 @@ const NewRequest = () => {
     head_id: '',
     custom_head_email: '',
     head_type: 'predefined',
+    special_requirements: '',
+    guest_name: '',
+    guest_contact: '',
   });
 
   useEffect(() => {
@@ -87,7 +90,9 @@ const NewRequest = () => {
         date_of_visit: formData.date_of_visit,
         time_of_visit: formData.time_of_visit,
         place_of_visit: formData.place_of_visit,
-        purpose: formData.purpose,
+        purpose: formData.purpose + 
+          (formData.guest_name || formData.guest_contact ? `\n\n[Guest Details]:\nName: ${formData.guest_name}\nContact: ${formData.guest_contact}` : '') +
+          (formData.special_requirements ? `\n\n[Special Requirements]:\n${formData.special_requirements}` : ''),
         number_of_persons: parseInt(formData.number_of_persons),
         head_id: isPrivilegedRole ? null : (formData.head_id || null),
         custom_head_email: isPrivilegedRole ? null : (formData.custom_head_email || null),
@@ -134,16 +139,36 @@ const NewRequest = () => {
                   <Info className="w-5 h-5 text-blue-600" strokeWidth={1.5} />
                   <h2 className="text-xl font-semibold text-gray-900">Request Details</h2>
                 </div>
+                {/* Main Details */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                   <Input label="Department" name="department" value={formData.department} onChange={handleChange} placeholder="Your department" error={errors.department} required />
                   <Input label="Designation" name="designation" value={formData.designation} onChange={handleChange} placeholder="Your designation" error={errors.designation} required />
                   <Input label="Date of Visit" type="date" name="date_of_visit" value={formData.date_of_visit} onChange={handleChange} error={errors.date_of_visit} min={new Date().toISOString().split('T')[0]} required leftIcon={Calendar} />
-                  <Input label="Time of Visit" type="time" name="time_of_visit" value={formData.time_of_visit} onChange={handleChange} error={errors.time_of_visit} required />
+                  <Input label="Time of Visit" type="time" name="time_of_visit" value={formData.time_of_visit} onChange={handleChange} error={errors.time_of_visit} required leftIcon={Clock} />
                   <Input label="Place of Visit" name="place_of_visit" value={formData.place_of_visit} onChange={handleChange} placeholder="Destination" error={errors.place_of_visit} required leftIcon={MapPin} />
                   <Input label="Number of Persons" type="number" name="number_of_persons" value={formData.number_of_persons} onChange={handleChange} min="1" error={errors.number_of_persons} required leftIcon={Users} />
                 </div>
+
+                {/* Purpose */}
                 <div className="mt-6">
-                  <Textarea label="Purpose of Visit" name="purpose" value={formData.purpose} onChange={handleChange} placeholder="Describe the purpose of your visit" rows={4} error={errors.purpose} required />
+                  <Textarea label="Purpose of Visit" name="purpose" value={formData.purpose} onChange={handleChange} placeholder="Describe the purpose of your visit" rows={3} error={errors.purpose} required />
+                </div>
+
+                {/* Guest Details Section */}
+                <div className="mt-8 pt-6 border-t border-gray-100">
+                  <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2">
+                    <User className="w-4 h-4 text-blue-600" />
+                    GUEST DETAILS (OPTIONAL)
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <Input label="Guest Name" name="guest_name" value={formData.guest_name} onChange={handleChange} placeholder="e.g., Prof. John Doe" leftIcon={User} />
+                    <Input label="Guest Contact No." name="guest_contact" value={formData.guest_contact} onChange={handleChange} placeholder="e.g., +91 98765 43210" leftIcon={Phone} />
+                  </div>
+                </div>
+
+                {/* Additional Needs */}
+                <div className="mt-6">
+                  <Textarea label="Special Requirements (Optional)" name="special_requirements" value={formData.special_requirements} onChange={handleChange} placeholder="Any specific needs? (e.g. extra luggage, specific seating, accessibility)" rows={2} />
                 </div>
               </div>
 

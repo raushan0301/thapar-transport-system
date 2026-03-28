@@ -23,6 +23,8 @@ router.post('/', async (req, res) => {
     }
 
     try {
+        let authUser;
+
         // Step 1: Create user in Supabase Auth (Pre-confirmed)
         const { data: authData, error: authError } = await supabaseAdmin.auth.admin.createUser({
             email,
@@ -38,15 +40,53 @@ router.post('/', async (req, res) => {
         });
 
         if (authError) {
-            console.error('Auth create error:', authError);
-            return res.status(500).json({ success: false, message: authError.message });
+            // If user already exists in Auth, we try to recover their ID and UPDATE their password/metadata
+            if (authError.message.includes('already been registered') || authError.status === 422) {
+                console.log('🔄 User already exists in Auth. Updating credentials and looking up ID...');
+                
+                // Fetch user by email to get their ID
+                const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
+                if (listError) throw listError;
+                
+                const existingUser = listData.users.find(u => u.email === email);
+                if (!existingUser) {
+                  throw new Error('User reported as existing but not found in list.');
+                }
+                
+                // Update their password and metadata so the current attempt is authoritative
+                const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
+                  existingUser.id,
+                  { 
+                    password: password, 
+                    email_confirm: true,
+                    user_metadata: {
+                      full_name,
+                      role,
+                      department,
+                      designation,
+                      phone
+                    }
+                  }
+                );
+                
+                if (updateError) throw updateError;
+                
+                authUser = updateData.user;
+                console.log('✅ Updated existing Auth user credentials:', authUser.id);
+            } else {
+                console.error('❌ Auth create error:', authError);
+                return res.status(500).json({ success: false, message: authError.message });
+            }
+        } else {
+            authUser = authData.user;
+            console.log('✨ Created new Auth user:', authUser.id);
         }
 
         // Step 2: Ensure user is also in the public.users table
         const { error: dbError } = await supabaseAdmin
             .from('users')
             .upsert([{
-                id: authData.user.id,
+                id: authUser.id,
                 email,
                 full_name,
                 role,
@@ -57,18 +97,18 @@ router.post('/', async (req, res) => {
             }]);
 
         if (dbError) {
-            console.error('DB insert error:', dbError);
-            // We return success anyway because auth user IS created, but we log the error
+            console.error('❌ DB sync error:', dbError);
+            return res.status(500).json({ success: false, message: 'Auth account found/created, but failed to sync user record to database: ' + dbError.message });
         }
 
         return res.status(201).json({
             success: true,
-            message: 'User created successfully (Email automatically confirmed)',
-            user: authData.user
+            message: 'User synchronized successfully',
+            user: authUser
         });
     } catch (err) {
-        console.error('Create user error:', err);
-        return res.status(500).json({ success: false, message: err.message || 'Failed to create user' });
+        console.error('🚨 Synchronization error:', err);
+        return res.status(500).json({ success: false, message: err.message || 'Synchronization failed' });
     }
 });
 

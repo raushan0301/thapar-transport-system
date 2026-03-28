@@ -24,7 +24,11 @@ const MyRequests = () => {
   const fetchRequests = async () => {
     try {
       setLoading(true);
-      const { data, error } = await supabase.from('transport_requests').select('*').eq('user_id', user.id).order('submitted_at', { ascending: false });
+      const { data, error } = await supabase
+        .from('transport_requests')
+        .select('*')
+        .eq('user_id', user.id)
+        .order('submitted_at', { ascending: false });
       if (error) throw error;
       setRequests(data || []);
     } catch (err) {

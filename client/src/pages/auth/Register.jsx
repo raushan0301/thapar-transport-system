@@ -5,7 +5,7 @@ import { UserPlus, Mail, Lock, User, Phone, Building, Briefcase } from 'lucide-r
 
 const Register = () => {
   const navigate = useNavigate();
-  const { signUp } = useAuth();
+  const { signIn } = useAuth();
   const [formData, setFormData] = useState({
     full_name: '',
     email: '',
@@ -45,15 +45,51 @@ const Register = () => {
     }
 
     setLoading(true);
-    const { data, error } = await signUp(formData.email, formData.password, {
-      full_name: formData.full_name,
-      department: formData.department,
-      designation: formData.designation,
-      phone: formData.phone,
-    });
-    setLoading(false);
+    try {
+      // Use the backend API which creates the user with email_confirm: true
+      // and inserts into the users table using the service-role key (bypasses RLS)
+      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      const res = await fetch(`${apiBase}/users`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+          full_name: formData.full_name,
+          department: formData.department,
+          designation: formData.designation,
+          phone: formData.phone,
+          role: 'user',
+        }),
+      });
 
-    if (!error && data) navigate('/dashboard');
+      const result = await res.json();
+
+      if (!res.ok) {
+        throw new Error(result.message || 'Registration failed');
+      }
+
+      // Account created + confirmed — now sign in immediately
+      const { data: signInData, error: signInError } = await signIn(formData.email, formData.password);
+
+      if (signInError) {
+        // Account created but sign-in failed — redirect to login
+        navigate('/login');
+        return;
+      }
+
+      if (signInData?.session) {
+        navigate('/dashboard');
+      } else {
+        navigate('/login');
+      }
+    } catch (err) {
+      // Show the actual error from the server
+      const msg = err.message || 'Registration failed. Please try again.';
+      setErrors({ submit: msg });
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (
@@ -72,6 +108,14 @@ const Register = () => {
         </div>
 
         {/* Register Form */}
+        {errors.submit && (
+          <div className="mb-6 p-4 bg-red-50 border border-red-200 rounded-xl flex items-center gap-3 animate-pulse">
+            <div className="w-8 h-8 rounded-full bg-red-100 flex items-center justify-center flex-shrink-0">
+              <span className="text-red-600 font-bold">!</span>
+            </div>
+            <p className="text-sm text-red-600 font-medium">{errors.submit}</p>
+          </div>
+        )}
         <form onSubmit={handleSubmit} className="space-y-5">
           {/* Full Name */}
           <div className="space-y-2">

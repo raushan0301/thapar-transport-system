@@ -89,9 +89,13 @@ export const createRequest = async (requestData) => {
     }
     
     // Notify all admins about the new request
+    const adminMessage = data.current_status === 'pending_admin'
+      ? `A new transport request (${data.request_number}) is awaiting your approval.`
+      : `A new transport request (${data.request_number}) has been submitted and is awaiting Head approval.`;
+
     await notifyAdmins({
       title: 'New Transport Request Submission',
-      message: `A new transport request (${data.request_number}) has been submitted and is awaiting Head approval.`,
+      message: adminMessage,
       type: 'new_request',
       related_request_id: data.id,
     });

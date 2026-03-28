@@ -209,10 +209,18 @@ const HeadReviewRequest = () => {
                                     <p className="font-medium text-gray-900">{request.number_of_persons || 'Not specified'}</p>
                                     </div>
                                 </div>
-                                <div>
-                                    <p className="text-sm text-gray-500 mb-1">Purpose</p>
-                                    <p className="font-medium text-gray-900">{request.purpose}</p>
-                                </div>
+                                    <div>
+                                        <p className="text-sm text-gray-500 mb-1">Purpose</p>
+                                        <p className="font-medium text-gray-900">{request.purpose?.split('\n\n[Guest Details]:')[0].split('\n\n[Special Requirements]:')[0]}</p>
+                                    </div>
+                                    {(request.special_requirements || request.purpose?.includes('[Special Requirements]:')) && (
+                                        <div className="p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                                            <p className="text-sm text-amber-800 font-semibold mb-1">Special Requirements</p>
+                                            <p className="text-amber-900">
+                                                {request.special_requirements || request.purpose?.split('\n\n[Special Requirements]:\n')[1]}
+                                            </p>
+                                        </div>
+                                    )}
                             </div>
                         </div>
 
@@ -241,6 +249,22 @@ const HeadReviewRequest = () => {
                                         <p className="font-medium text-gray-900">{request.user?.designation || request.designation}</p>
                                     </div>
                                 </div>
+
+                                {request.purpose?.includes('[Guest Details]:') && (
+                                    <div className="mt-4 pt-4 border-t border-gray-100">
+                                        <p className="text-xs font-bold text-amber-600 mb-2 uppercase tracking-wider">Guest Information</p>
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-0.5">Guest Name</p>
+                                                <p className="font-medium text-gray-900">{request.purpose.split('\n\n[Guest Details]:\n')[1]?.split('\nContact: ')[0].replace('Name: ', '') || 'N/A'}</p>
+                                            </div>
+                                            <div>
+                                                <p className="text-xs text-gray-500 mb-0.5">Contact No.</p>
+                                                <p className="font-medium text-gray-900">{request.purpose.split('\nContact: ')[1]?.split('\n\n[Special Requirements]:')[0] || 'N/A'}</p>
+                                            </div>
+                                        </div>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

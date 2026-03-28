@@ -4,6 +4,7 @@ export const ROLES = {
   HEAD: 'head',
   ADMIN: 'admin',
   REGISTRAR: 'registrar',
+  DRIVER: 'driver',
 };
 
 // Request Status

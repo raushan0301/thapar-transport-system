@@ -12,7 +12,8 @@ import {
   BarChart,
   FileSpreadsheet,
   Shield,
-  UserCheck
+  UserCheck,
+  Truck
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/constants';
@@ -76,6 +77,14 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'My Requests', path: '/my-requests', icon: Clock },
         { name: 'Pending Approvals', path: '/registrar/pending', icon: CheckCircle },
         { name: 'Approval History', path: '/registrar/history', icon: XCircle },
+      ];
+    }
+
+    if (role === ROLES.DRIVER) {
+      return [
+        { name: 'Dashboard', path: '/dashboard', icon: Home },
+        { name: 'My Assignment', path: '/driver/trip', icon: Truck },
+        { name: 'My Profile', path: '/driver/profile', icon: UserCheck },
       ];
     }
 

@@ -5,7 +5,7 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
-import { Users, UserCheck, Search, Edit, Trash2, ArrowDownCircle, ArrowUpCircle, Shield } from 'lucide-react';
+import { Users, UserCheck, Search, Edit, ArrowDownCircle, ArrowUpCircle, Shield } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const HeadManagement = () => {
@@ -16,13 +16,11 @@ const HeadManagement = () => {
   const [userSearch, setUserSearch] = useState('');
 
   // Modals
-  const [showPromoteModal, setShowPromoteModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [showDemoteModal, setShowDemoteModal] = useState(false);
+  const [showPromoteModal, setShowPromoteModal] = useState(false);
 
   const [selectedHead, setSelectedHead] = useState(null);
-  const [headToDelete, setHeadToDelete] = useState(null);
   const [headToDemote, setHeadToDemote] = useState(null);
   const [userToPromote, setUserToPromote] = useState(null);
 
@@ -124,26 +122,6 @@ const HeadManagement = () => {
       toast.error('Failed to update head');
     } finally {
       setFormLoading(false);
-    }
-  };
-
-  // Hard delete from Auth + DB
-  const handleDeleteHead = async () => {
-    if (!headToDelete) return;
-    try {
-      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
-      const response = await fetch(`${apiBase}/users/${headToDelete.id}`, {
-        method: 'DELETE',
-        headers: { 'Content-Type': 'application/json' }
-      });
-      const result = await response.json();
-      if (!response.ok) throw new Error(result.message || 'Failed to delete');
-      toast.success('Head account deleted successfully!');
-      setShowDeleteModal(false);
-      setHeadToDelete(null);
-      fetchData();
-    } catch (err) {
-      toast.error(err.message || 'Failed to delete head');
     }
   };
 
@@ -250,9 +228,6 @@ const HeadManagement = () => {
                         <button onClick={() => { setHeadToDemote(head); setShowDemoteModal(true); }} className="p-2 hover:bg-yellow-50 rounded-lg transition-colors" title="Demote to User">
                           <ArrowDownCircle className="w-4 h-4 text-yellow-600" strokeWidth={1.5} />
                         </button>
-                        <button onClick={() => { setHeadToDelete(head); setShowDeleteModal(true); }} className="p-2 hover:bg-red-50 rounded-lg transition-colors" title="Delete account">
-                          <Trash2 className="w-4 h-4 text-red-600" strokeWidth={1.5} />
-                        </button>
                       </div>
                     </td>
                   </tr>
@@ -358,23 +333,6 @@ const HeadManagement = () => {
           <div className="flex justify-end space-x-3 pt-2">
             <Button variant="secondary" onClick={() => { setShowDemoteModal(false); setHeadToDemote(null); }}>Cancel</Button>
             <Button onClick={handleDemote} loading={formLoading} className="bg-yellow-500 hover:bg-yellow-600 text-white border-0">Demote to User</Button>
-          </div>
-        </div>
-      </Modal>
-
-      {/* ===== Delete Confirmation ===== */}
-      <Modal isOpen={showDeleteModal} onClose={() => { setShowDeleteModal(false); setHeadToDelete(null); }} title="Delete Head Account">
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 text-red-600 p-3 bg-red-50 rounded-lg">
-            <Trash2 className="w-6 h-6 flex-shrink-0" />
-            <p className="font-semibold text-sm">This permanently deletes the account. Cannot be undone.</p>
-          </div>
-          <p className="text-gray-700">
-            Are you sure you want to delete <strong>{headToDelete?.full_name}</strong>? Their login access will be fully revoked.
-          </p>
-          <div className="flex justify-end space-x-3 pt-2">
-            <Button variant="secondary" onClick={() => { setShowDeleteModal(false); setHeadToDelete(null); }}>Cancel</Button>
-            <Button onClick={handleDeleteHead} className="bg-red-600 hover:bg-red-700 text-white border-0">Delete Account</Button>
           </div>
         </div>
       </Modal>

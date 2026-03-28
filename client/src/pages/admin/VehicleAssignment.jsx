@@ -9,9 +9,11 @@ import { formatDate } from '../../utils/helpers';
 import { createNotification } from '../../services/requestService';
 import { Truck, Search, X, Check } from 'lucide-react';
 import toast from 'react-hot-toast';
+import { useAuth } from '../../context/AuthContext';
 
 const VehicleAssignment = () => {
   const navigate = useNavigate();
+  const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [vehicles, setVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -155,6 +157,20 @@ const VehicleAssignment = () => {
         .eq('id', selectedRequest.id);
 
       if (updateError) throw updateError;
+
+      // Create approval record for vehicle assignment
+      const { error: approvalError } = await supabase
+        .from('approvals')
+        .insert([{
+          request_id: selectedRequest.id,
+          approver_id: user.id,
+          approver_role: 'admin',
+          action: 'vehicle_assigned',
+          comment: `Vehicle ID: ${selectedVehicle}, Driver: ${finalDriverName}`,
+          approved_at: new Date().toISOString(),
+        }]);
+
+      if (approvalError) console.error('Error recording assignment:', approvalError);
 
       // Update vehicle to mark as unavailable
       const { error: vehicleError } = await supabase

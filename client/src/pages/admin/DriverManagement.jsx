@@ -6,7 +6,6 @@ import {
   UserCheck,
   Plus,
   Edit2,
-  Trash2,
   Phone,
   CreditCard,
   Truck,
@@ -24,7 +23,6 @@ const DriverManagement = () => {
   const [showModal, setShowModal] = useState(false);
   const [editingDriver, setEditingDriver] = useState(null);
   const [saving, setSaving] = useState(false);
-  const [deleteConfirm, setDeleteConfirm] = useState(null);
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
 
   const emptyForm = {
@@ -150,27 +148,6 @@ const DriverManagement = () => {
     }
   };
 
-  const handleDelete = async (id) => {
-    // Find the driver to check status
-    const driver = drivers.find(d => d.id === id);
-    if (driver && !driver.is_available) {
-        toast.error('Cannot delete a driver who is currently on duty');
-        setDeleteConfirm(null);
-        return;
-    }
-
-    try {
-      const { error } = await supabase.from('drivers').delete().eq('id', id);
-      if (error) throw error;
-      toast.success('Driver removed');
-      setDeleteConfirm(null);
-      fetchDrivers();
-    } catch (err) {
-      console.error('Error deleting driver:', err);
-      toast.error('Failed to delete driver. They may be referenced in trip requests.');
-    }
-  };
-
   const filtered = drivers.filter(d =>
     d.full_name?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     d.license_number?.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -285,9 +262,6 @@ const DriverManagement = () => {
                     <button onClick={() => openEdit(driver)} className="p-1.5 rounded-lg hover:bg-blue-50 text-blue-600 transition-colors">
                       <Edit2 className="w-4 h-4" />
                     </button>
-                    <button onClick={() => setDeleteConfirm(driver.id)} className="p-1.5 rounded-lg hover:bg-red-50 text-red-500 transition-colors">
-                      <Trash2 className="w-4 h-4" />
-                    </button>
                   </div>
                 </div>
 
@@ -317,16 +291,7 @@ const DriverManagement = () => {
                   )}
                 </div>
 
-                {/* Delete confirm inline */}
-                {deleteConfirm === driver.id && (
-                  <div className="mt-3 pt-3 border-t border-red-100 flex items-center gap-2">
-                    <AlertCircle className="w-4 h-4 text-red-500 flex-shrink-0" />
-                    <span className="text-xs text-red-600 flex-1">Delete this driver?</span>
-                    <button onClick={() => handleDelete(driver.id)} className="px-2 py-1 bg-red-600 text-white text-xs rounded-lg hover:bg-red-700">Yes</button>
-                    <button onClick={() => setDeleteConfirm(null)} className="px-2 py-1 bg-gray-100 text-gray-700 text-xs rounded-lg hover:bg-gray-200">No</button>
-                  </div>
-                )}
-              </div>
+                </div>
             ))}
           </div>
         )}

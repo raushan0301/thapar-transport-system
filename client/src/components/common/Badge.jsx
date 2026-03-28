@@ -73,13 +73,13 @@ export const StatusBadge = ({ status }) => {
   const statusConfig = {
     pending_head: {
       variant: 'warning',
-      label: 'Pending Head Approval',
+      label: 'Awaiting Head Approval',
       dot: true,
       pulse: true
     },
     pending_admin: {
       variant: 'info',
-      label: 'Pending Admin Review',
+      label: 'Awaiting Admin Approval',
       dot: true,
       pulse: true
     },

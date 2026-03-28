@@ -1,4 +1,48 @@
 import { format } from 'date-fns';
+import { toZonedTime } from 'date-fns-tz';
+
+const IST = 'Asia/Kolkata';
+
+// Convert any date string/object to IST Date object
+const toIST = (date) => {
+  if (!date) return null;
+  try { return toZonedTime(new Date(date), IST); } catch { return null; }
+};
+
+// Format date only — IST (e.g. "28 Mar 2026")
+export const formatDate = (date) => {
+  const d = toIST(date);
+  if (!d) return '—';
+  return format(d, 'dd MMM yyyy');
+};
+
+// Format date + time — IST (e.g. "28 Mar 2026, 08:30 AM IST")
+export const formatDateTime = (date) => {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('en-IN', {
+    day: '2-digit',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: IST,
+  }) + ' IST';
+};
+
+// Format time only — IST (e.g. "08:30 AM")
+export const formatTimeOnly = (date) => {
+  if (!date) return '—';
+  return new Date(date).toLocaleString('en-IN', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: true,
+    timeZone: IST,
+  });
+};
+
+// Get current IST ISO string for storing in DB
+export const nowIST = () => new Date().toISOString();
 
 // Get user initials from full name
 export const getInitials = (fullName) => {
@@ -8,31 +52,9 @@ export const getInitials = (fullName) => {
   return (names[0].charAt(0) + names[names.length - 1].charAt(0)).toUpperCase();
 };
 
-// Format date
-export const formatDate = (date) => {
-  if (!date) return '';
-  return format(new Date(date), 'dd MMM yyyy');
-};
-
-// Format date and time (with proper timezone handling)
-export const formatDateTime = (date) => {
-  if (!date) return '';
-  const dateObj = new Date(date);
-  return dateObj.toLocaleString('en-IN', {
-    day: '2-digit',
-    month: 'short',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: true,
-    timeZone: 'Asia/Kolkata' // IST timezone
-  });
-};
-
-// Format time only
+// Format HH:MM:SS time string (from DB) to 12h format
 export const formatTime = (time) => {
   if (!time) return '';
-  // time comes as HH:MM:SS from database
   const [hours, minutes] = time.split(':');
   const hour = parseInt(hours);
   const ampm = hour >= 12 ? 'PM' : 'AM';

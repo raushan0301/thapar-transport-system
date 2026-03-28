@@ -1,0 +1,8 @@
+{
+  "error": {
+    "code": "PGRST204",
+    "details": null,
+    "hint": null,
+    "message": "Could not find the 'invalid_column_to_check_schema' column of 'transport_requests' in the schema cache"
+  }
+}

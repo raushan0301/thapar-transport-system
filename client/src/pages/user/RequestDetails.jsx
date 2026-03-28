@@ -68,28 +68,6 @@ const RequestDetails = () => {
     }
   };
 
-  const handleDelete = async () => {
-    if (!window.confirm('Are you sure you want to delete this request?')) {
-      return;
-    }
-
-    try {
-      const { error } = await supabase
-        .from('transport_requests')
-        .delete()
-        .eq('id', id)
-        .eq('user_id', user.id);
-
-      if (error) throw error;
-
-      toast.success('Request deleted successfully');
-      navigate('/my-requests');
-    } catch (err) {
-      console.error('Error:', err);
-      toast.error('Failed to delete request');
-    }
-  };
-
   const handleResubmit = () => {
     // Navigate to edit page for rejected request
     // The edit page will handle resetting the status to pending_head
@@ -102,8 +80,12 @@ const RequestDetails = () => {
   // Check if current user is the request owner
   const isOwner = request.user_id === user.id;
 
-  // Check if request can be edited (only by owner, not yet approved)
-  const canEdit = isOwner && (request.current_status === 'pending_head' || request.current_status === 'draft');
+  // Check if request can be edited (by owner, not yet fully approved)
+  const canEdit = isOwner && (
+    request.current_status === 'pending_head' || 
+    request.current_status === 'pending_admin' || 
+    request.current_status === 'draft'
+  );
 
   // Check if request can be resubmitted (only by owner, if rejected)
   const canResubmit = isOwner && request.current_status === 'rejected';
@@ -121,15 +103,8 @@ const RequestDetails = () => {
                 <StatusBadge status={request.current_status} />
               </div>
             </div>
-            {canEdit && (
-              <div className="flex space-x-3">
-                <Button
-                  variant="secondary"
-                  icon={Trash2}
-                  onClick={handleDelete}
-                >
-                  Delete
-                </Button>
+            <div className="flex space-x-3">
+              {canEdit && (
                 <Button
                   variant="primary"
                   icon={Edit}
@@ -137,10 +112,8 @@ const RequestDetails = () => {
                 >
                   Edit Request
                 </Button>
-              </div>
-            )}
-            {canResubmit && (
-              <div className="flex space-x-3">
+              )}
+              {canResubmit && (
                 <Button
                   variant="primary"
                   icon={Edit}
@@ -149,8 +122,8 @@ const RequestDetails = () => {
                 >
                   Resubmit Request
                 </Button>
-              </div>
-            )}
+              )}
+            </div>
           </div>
         </div>
 
@@ -195,8 +168,17 @@ const RequestDetails = () => {
               </div>
               <div className="mt-4">
                 <p className="text-sm text-gray-500 mb-1">Purpose</p>
-                <p className="font-medium text-gray-900">{request.purpose}</p>
+                <p className="font-medium text-gray-900">{request.purpose?.split('\n\n[Guest Details]:')[0].split('\n\n[Special Requirements]:')[0]}</p>
               </div>
+
+              {(request.special_requirements || request.purpose?.includes('[Special Requirements]:')) && (
+                <div className="mt-4 p-3 bg-amber-50 border border-amber-200 rounded-lg">
+                  <p className="text-sm text-amber-800 font-semibold mb-1">Special Requirements</p>
+                  <p className="text-amber-900">
+                    {request.special_requirements || request.purpose?.split('\n\n[Special Requirements]:\n')[1]}
+                  </p>
+                </div>
+              )}
             </div>
 
             {/* User Details */}
@@ -223,6 +205,25 @@ const RequestDetails = () => {
                   <p className="font-medium text-gray-900">{request.user?.phone || 'N/A'}</p>
                 </div>
               </div>
+
+              {request.purpose?.includes('[Guest Details]:') && (
+                <div className="mt-6 pt-6 border-t border-gray-100">
+                  <p className="text-xs font-bold text-blue-600 mb-3 uppercase tracking-wider flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    Guest Information
+                  </p>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Guest Name</p>
+                      <p className="font-medium text-gray-900">{request.purpose.split('\n\n[Guest Details]:\n')[1]?.split('\nContact: ')[0].replace('Name: ', '') || 'N/A'}</p>
+                    </div>
+                    <div>
+                      <p className="text-xs text-gray-500 mb-1">Contact No.</p>
+                      <p className="font-medium text-gray-900">{request.purpose.split('\nContact: ')[1]?.split('\n\n[Special Requirements]:')[0] || 'N/A'}</p>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
             {/* Vehicle Details (if assigned) */}

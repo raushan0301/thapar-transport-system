@@ -5,7 +5,7 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
-import { Truck, Plus, Search, Edit, Trash2, Eye, X, User, Calendar, MapPin } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Eye, X, User, Calendar, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const VehicleManagement = () => {
@@ -20,8 +20,6 @@ const VehicleManagement = () => {
   const [assignmentDetails, setAssignmentDetails] = useState(null);
   const [assignmentLoading, setAssignmentLoading] = useState(false);
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [vehicleToDelete, setVehicleToDelete] = useState(null);
   const [formData, setFormData] = useState({
     vehicle_number: '',
     vehicle_type: '',
@@ -131,34 +129,8 @@ const VehicleManagement = () => {
     }
   };
 
-  const handleDeleteVehicle = async () => {
-    if (!vehicleToDelete) return;
-
-    // Safety check: Cannot delete if in use
-    if (!vehicleToDelete.is_available) {
-      toast.error('Cannot delete a vehicle that is currently in use');
-      setShowDeleteModal(false);
-      setVehicleToDelete(null);
-      return;
-    }
-
-    try {
-      const { error } = await supabase.from('vehicles').delete().eq('id', vehicleToDelete.id);
-      if (error) throw error;
-
-      toast.success('Vehicle deleted successfully!');
-      setShowDeleteModal(false);
-      setVehicleToDelete(null);
-      fetchVehicles();
-    } catch (err) {
-      console.error('Error deleting vehicle:', err);
-      toast.error('Failed to delete vehicle. It may be referenced in trip requests.');
-    }
-  };
-
   const openDeleteConfirm = (vehicle) => {
-    setVehicleToDelete(vehicle);
-    setShowDeleteModal(true);
+    // Disabled
   };
 
   const openEditModal = async (vehicle) => {
@@ -314,9 +286,6 @@ const VehicleManagement = () => {
                   <div className="flex space-x-2">
                     <button onClick={() => openEditModal(vehicle)} className="p-2 hover:bg-purple-100 rounded-lg transition-colors">
                       <Edit className="w-4 h-4 text-purple-600" strokeWidth={1.5} />
-                    </button>
-                    <button onClick={() => openDeleteConfirm(vehicle)} className="p-2 hover:bg-red-50 rounded-lg transition-colors">
-                      <Trash2 className="w-4 h-4 text-red-600" strokeWidth={1.5} />
                     </button>
                   </div>
                 </div>
@@ -626,38 +595,8 @@ const VehicleManagement = () => {
         </div>
       )}
 
-      {/* Delete Confirmation Modal */}
-      <Modal 
-        isOpen={showDeleteModal} 
-        onClose={() => { setShowDeleteModal(false); setVehicleToDelete(null); }} 
-        title="Delete Vehicle"
-      >
-        <div className="space-y-4">
-          <div className="flex items-center space-x-3 text-red-600 p-3 bg-red-50 rounded-lg">
-            <Trash2 className="w-6 h-6" />
-            <p className="font-semibold text-sm">Action cannot be undone.</p>
-          </div>
-          
-          <p className="text-gray-700">
-            Are you sure you want to delete vehicle <strong>{vehicleToDelete?.vehicle_number}</strong>?
-          </p>
-          
-          <div className="flex justify-end space-x-3 pt-4">
-            <Button 
-                variant="secondary" 
-                onClick={() => { setShowDeleteModal(false); setVehicleToDelete(null); }}
-            >
-                Cancel
-            </Button>
-            <Button 
-                variant="danger" 
-                onClick={handleDeleteVehicle}
-            >
-                Delete Vehicle
-            </Button>
-          </div>
-        </div>
-      </Modal>
+      {/* Deletion disabled */}
+
 
 
       <style>{`
