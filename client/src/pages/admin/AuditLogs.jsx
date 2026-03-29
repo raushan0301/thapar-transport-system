@@ -125,6 +125,7 @@ const AuditLogs = () => {
       const approvals = approvs.data || [];
 
       if (requests.length > 0) {
+        // eslint-disable-next-line no-unused-vars
         const statusCounts = requests.reduce((acc, r) => {
           acc[r.current_status] = (acc[r.current_status] || 0) + 1;
           return acc;

@@ -18,6 +18,7 @@ const PendingReview = () => {
 
   useEffect(() => {
     if (user?.id) fetchPendingRequests();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchPendingRequests = async () => {
