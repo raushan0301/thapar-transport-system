@@ -57,9 +57,9 @@ const UserManagement = () => {
   const [userToDemote, setUserToDemote] = useState(null);
 
   // Delete modal
-  const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [userToDelete, setUserToDelete] = useState(null);
-  const [deleting, setDeleting] = useState(false);
+  
+  
+  
 
   useEffect(() => { fetchUsers(); }, []);
 

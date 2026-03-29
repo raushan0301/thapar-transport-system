@@ -1,14 +1,3 @@
-/**
- * ADMIN DASHBOARD - MINIMAL WITH 3D & ANIMATIONS
- * 
- * Features:
- * - Clean, minimal design
- * - Strong 3D effects (perspective, depth, shadows)
- * - Smooth transitions everywhere
- * - Full animations (hover, scroll, load)
- * - Professional yet modern
- */
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
@@ -102,7 +91,6 @@ const AdminDashboard = () => {
 
       setRecentRequests(pendingRequests.slice(0, 5));
     } catch (err) {
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -297,7 +285,7 @@ const AdminDashboard = () => {
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 group-hover/item:text-blue-600 transition-colors">
                               {request.request_number}
                             </p>

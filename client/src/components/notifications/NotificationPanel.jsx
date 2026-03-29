@@ -1,7 +1,6 @@
 import React from 'react';
 import { useNotifications } from '../../context/NotificationContext';
 import NotificationItem from './NotificationItem';
-import Button from '../common/Button';
 import Loader from '../common/Loader';
 
 const NotificationPanel = ({ onClose }) => {

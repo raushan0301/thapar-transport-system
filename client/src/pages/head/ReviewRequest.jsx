@@ -50,7 +50,6 @@ const HeadReviewRequest = () => {
 
             setRequest(data);
         } catch (err) {
-            console.error('Error:', err);
             toast.error('Failed to load request');
             navigate('/head/pending');
         } finally {
@@ -125,8 +124,6 @@ const HeadReviewRequest = () => {
             setShowModal(false);
             navigate('/head/pending');
         } catch (err) {
-            console.error(`❌ ${modalType.toUpperCase()} FAILED:`, err);
-            toast.error(`Failed to ${modalType}: ${err.message || 'Unknown error'}`);
         } finally {
             setActionLoading(false);
         }

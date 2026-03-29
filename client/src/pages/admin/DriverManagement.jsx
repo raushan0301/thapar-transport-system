@@ -12,8 +12,7 @@ import {
   Search,
   X,
   Save,
-  AlertCircle
-} from 'lucide-react';
+  } from 'lucide-react';
 
 const DriverManagement = () => {
   const [drivers, setDrivers] = useState([]);
@@ -55,13 +54,11 @@ const DriverManagement = () => {
 
       if (error) {
         // Table might not exist yet — show empty state gracefully
-        console.warn('Drivers table not found or error:', error.message);
         setDrivers([]);
       } else {
         setDrivers(data || []);
       }
     } catch (err) {
-      console.error('Error fetching drivers:', err);
       setDrivers([]);
     } finally {
       setLoading(false);
@@ -108,7 +105,6 @@ const DriverManagement = () => {
                 setHasActiveAssignment(true);
             }
         } catch (err) {
-            console.error('Error checking assignment:', err);
         }
     }
 

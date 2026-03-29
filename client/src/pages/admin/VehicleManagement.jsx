@@ -5,7 +5,7 @@ import Input from '../../components/common/Input';
 import Modal from '../../components/common/Modal';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
-import { Truck, Plus, Search, Edit, Eye, X, User, Calendar, MapPin } from 'lucide-react';
+import { Truck, Plus, Search, Edit, Eye, X, User, MapPin } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const VehicleManagement = () => {
@@ -41,7 +41,6 @@ const VehicleManagement = () => {
       if (error) throw error;
       setVehicles(data || []);
     } catch (err) {
-      console.error('Error:', err);
       toast.error('Failed to fetch vehicles');
     } finally {
       setLoading(false);
@@ -79,7 +78,6 @@ const VehicleManagement = () => {
       resetForm();
       fetchVehicles();
     } catch (err) {
-      console.error('Error adding vehicle:', err);
       if (err.code === '23505') {
         toast.error('Vehicle number already exists');
       } else {
@@ -122,16 +120,13 @@ const VehicleManagement = () => {
       resetForm();
       fetchVehicles();
     } catch (err) {
-      console.error('Error updating vehicle:', err);
       toast.error('Failed to update vehicle');
     } finally {
       setFormLoading(false);
     }
   };
 
-  const openDeleteConfirm = (vehicle) => {
-    // Disabled
-  };
+  
 
   const openEditModal = async (vehicle) => {
     setSelectedVehicle(vehicle);
@@ -150,7 +145,6 @@ const VehicleManagement = () => {
           setHasActiveAssignment(true);
         }
       } catch (err) {
-        console.error('Error checking assignment:', err);
       }
     }
 
@@ -193,7 +187,6 @@ const VehicleManagement = () => {
       if (error) throw error;
       setAssignmentDetails(data);
     } catch (err) {
-      console.error('Error:', err);
       toast.error('Failed to fetch assignment details');
     } finally {
       setAssignmentLoading(false);
@@ -596,8 +589,6 @@ const VehicleManagement = () => {
       )}
 
       {/* Deletion disabled */}
-
-
 
       <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }

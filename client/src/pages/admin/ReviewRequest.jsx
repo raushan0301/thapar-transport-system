@@ -32,8 +32,6 @@ const AdminReviewRequest = () => {
     const fetchRequest = async () => {
         try {
             setLoading(true);
-            console.log('Admin Review - User:', user);
-            console.log('Admin Review - Request ID:', id);
 
             const { data, error } = await supabase
                 .from('transport_requests')
@@ -41,14 +39,11 @@ const AdminReviewRequest = () => {
                 .eq('id', id)
                 .single();
 
-            console.log('Admin Review - Request Data:', data);
-            console.log('Admin Review - Error:', error);
-
             if (error) throw error;
 
             // Check if status is pending_admin (more lenient - don't check role here as it might redirect admins)
             if (data.current_status !== 'pending_admin') {
-                console.log('Admin Review - Wrong status:', data.current_status);
+
                 toast.error(`This request is not pending admin review (Status: ${data.current_status})`);
                 navigate('/admin/pending');
                 return;
@@ -56,7 +51,6 @@ const AdminReviewRequest = () => {
 
             setRequest(data);
         } catch (err) {
-            console.error('Admin Review - Error:', err);
             toast.error(`Failed to load request: ${err.message}`);
             navigate('/admin/pending');
         } finally {
@@ -150,8 +144,6 @@ const AdminReviewRequest = () => {
             setShowModal(false);
             navigate('/admin/pending');
         } catch (err) {
-            console.error(`❌ ${modalType.toUpperCase()} FAILED:`, err);
-            toast.error(`Failed to process action: ${err.message || 'Unknown error'}`);
         } finally {
             setActionLoading(false);
         }

@@ -56,7 +56,6 @@ const RateSettings = () => {
         });
       }
     } catch (err) {
-      console.error('Error fetching rate settings:', err);
       toast.error('Failed to load rate settings');
     } finally {
       setFetchLoading(false);
@@ -111,7 +110,6 @@ const RateSettings = () => {
       // Refresh to confirm save
       await fetchRateSettings();
     } catch (err) {
-      console.error('Error saving rate settings:', err);
       toast.error('Failed to save rate settings. Please try again.');
     } finally {
       setLoading(false);

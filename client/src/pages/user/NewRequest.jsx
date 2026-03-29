@@ -80,7 +80,6 @@ const NewRequest = () => {
       return;
     }
 
-
     setLoading(true);
     try {
       const requestData = {
@@ -101,7 +100,7 @@ const NewRequest = () => {
         is_editable: true,
       };
 
-      const { data, error } = await createRequest(requestData);
+      const { error } = await createRequest(requestData);
       if (error) {
         handleSupabaseError(error, 'create your request');
         return;
@@ -110,7 +109,6 @@ const NewRequest = () => {
       showSuccess('Transport request submitted successfully!');
       navigate('/my-requests');
     } catch (error) {
-      console.error('Submit error:', error);
       handleSupabaseError(error, 'submit your request');
     } finally {
       setLoading(false);
@@ -171,7 +169,6 @@ const NewRequest = () => {
                   <Textarea label="Special Requirements (Optional)" name="special_requirements" value={formData.special_requirements} onChange={handleChange} placeholder="Any specific needs? (e.g. extra luggage, specific seating, accessibility)" rows={2} />
                 </div>
               </div>
-
 
               {/* Head Selection - Only for regular users */}
               {![ROLES.HEAD, ROLES.ADMIN, ROLES.REGISTRAR].includes(profile?.role) && (

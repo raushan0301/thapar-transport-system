@@ -4,10 +4,8 @@ import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
-  User, Phone, Mail, MapPin, CreditCard, Calendar,
-  Save, Edit2, X, CheckCircle2, Building2, FileText,
-  Truck, Car, Shield, AlertCircle, Clock, BadgeCheck
-} from 'lucide-react';
+  User, Phone, Mail, CreditCard, Save, Edit2, X, Building2, FileText,
+  Car, Shield, AlertCircle, } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const FieldGroup = ({ label, value, editing, onChange, type = 'text', placeholder, icon: Icon, readOnly = false }) => (
@@ -37,6 +35,7 @@ const FieldGroup = ({ label, value, editing, onChange, type = 'text', placeholde
   </div>
 );
 
+// eslint-disable-next-line no-unused-vars
 const StatCard = ({ icon: Icon, label, value, color = 'gray' }) => {
   const colors = {
     blue: 'from-blue-500 to-blue-600',
@@ -97,9 +96,7 @@ const DriverProfile = () => {
 
       setDriverRecord(drv);
 
-
     } catch (err) {
-      console.error(err);
     } finally {
       setLoading(false);
     }
@@ -165,8 +162,6 @@ const DriverProfile = () => {
           <h1 className="text-3xl font-bold text-gray-900 mb-1">My Profile</h1>
           <p className="text-gray-500 text-sm">Manage your personal information and driver details</p>
         </div>
-
-
 
         {/* License warnings */}
         {licenseExpired && (

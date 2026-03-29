@@ -15,12 +15,13 @@ const ApprovalHistory = () => {
   const { user } = useAuth();
   const [approvals, setApprovals] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filter, setFilter] = useState('all'); // all, approved, rejected
+  const [filter, setFilter] = useState('all');
 
   useEffect(() => {
     if (user?.id) {
       fetchApprovalHistory();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, filter]);
 
   const fetchApprovalHistory = async () => {
@@ -60,7 +61,6 @@ const ApprovalHistory = () => {
 
       setApprovals(data || []);
     } catch (err) {
-      console.error('Error fetching approval history:', err);
     } finally {
       setLoading(false);
     }

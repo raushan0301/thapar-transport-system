@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
-import { Menu, X, Bell, LogOut, User } from 'lucide-react';
+import { Menu,  Bell, LogOut, User } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import Avatar from '../common/Avatar';
 import NotificationPanel from '../notifications/NotificationPanel';

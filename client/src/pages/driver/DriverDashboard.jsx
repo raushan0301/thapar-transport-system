@@ -7,7 +7,7 @@ import {
   Truck, MapPin, User, Phone, Calendar, Clock,
   CheckCircle2, AlertCircle, Package, Navigation,
   Users, Info, Car, CreditCard, RefreshCw, Building2,
-  ArrowRight, Clipboard, TrendingUp, History
+  ArrowRight, History
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
@@ -64,7 +64,6 @@ const DriverDashboard = () => {
       setTripHistory(history.slice(0, 10));
 
     } catch (err) {
-      console.error('DriverDashboard error:', err);
       toast.error('Failed to load dashboard. Falling back to notification sync...');
       
       // Minimal notification fallback
@@ -96,7 +95,6 @@ const DriverDashboard = () => {
           setTripHistory(trips.filter(t => t.current_status !== 'vehicle_assigned'));
         }
       } catch (inner) {
-        console.error('Dashboard fallback failed:', inner);
       }
     } finally {
       setLoading(false);
@@ -122,7 +120,6 @@ const DriverDashboard = () => {
       toast.success('Trip marked as complete! Sent for admin review.');
       await fetchDriverData();
     } catch (err) {
-      console.error(err);
       toast.error('Failed to complete trip: ' + err.message);
     } finally {
       setActionLoading(false);

@@ -7,7 +7,7 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { ArrowLeft, User, MapPin, Calendar, Users, Car, Info, Clock, CheckCircle2, Edit, Trash2 } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Users, Car, Info, Clock, CheckCircle2, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
 
 const RequestDetails = () => {
@@ -61,7 +61,6 @@ const RequestDetails = () => {
 
       setApprovals(approvalsData || []);
     } catch (err) {
-      console.error('Error:', err);
       toast.error('Failed to load request details');
     } finally {
       setLoading(false);

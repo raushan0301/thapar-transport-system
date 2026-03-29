@@ -29,7 +29,6 @@ const PendingApprovals = () => {
       if (error) throw error;
       setRequests(data || []);
     } catch (err) {
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }

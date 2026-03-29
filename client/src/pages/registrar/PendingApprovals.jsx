@@ -3,7 +3,6 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import Badge from '../../components/common/Badge';
 import Loader from '../../components/common/Loader';
 import Modal from '../../components/common/Modal';
 import Textarea from '../../components/common/Textarea';
@@ -49,7 +48,6 @@ const PendingApprovals = () => {
 
       setRequests(data || []);
     } catch (err) {
-      console.error('Error fetching pending requests:', err);
       toast.error('Failed to load pending requests');
     } finally {
       setLoading(false);
@@ -111,7 +109,6 @@ const PendingApprovals = () => {
       fetchPendingRequests();
 
     } catch (err) {
-      console.error('Error approving request:', err);
       toast.error('Failed to approve request');
     } finally {
       setProcessing(false);
@@ -168,7 +165,6 @@ const PendingApprovals = () => {
       fetchPendingRequests();
 
     } catch (err) {
-      console.error('Error rejecting request:', err);
       toast.error('Failed to reject request');
     } finally {
       setProcessing(false);

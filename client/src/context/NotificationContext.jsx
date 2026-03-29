@@ -42,7 +42,6 @@ export const NotificationProvider = ({ children }) => {
         setNotifications(data || []);
         setUnreadCount((data || []).filter((n) => !n.is_read).length);
       } catch (error) {
-        console.error('Error fetching notifications:', error);
       } finally {
         setLoading(false);
       }
@@ -60,7 +59,7 @@ export const NotificationProvider = ({ children }) => {
             filter: `user_id=eq.${user.id}`,
           },
           (payload) => {
-            console.log('New notification:', payload);
+
             setNotifications((prev) => [payload.new, ...prev]);
             setUnreadCount((prev) => prev + 1);
           }
@@ -92,7 +91,6 @@ export const NotificationProvider = ({ children }) => {
       );
       setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (error) {
-      console.error('Error marking notification as read:', error);
     }
   };
 
@@ -111,7 +109,6 @@ export const NotificationProvider = ({ children }) => {
       setNotifications((prev) => prev.map((n) => ({ ...n, is_read: true })));
       setUnreadCount(0);
     } catch (error) {
-      console.error('Error marking all as read:', error);
     }
   };
 
@@ -132,7 +129,6 @@ export const NotificationProvider = ({ children }) => {
       setNotifications(data || []);
       setUnreadCount((data || []).filter((n) => !n.is_read).length);
     } catch (error) {
-      console.error('Error refreshing notifications:', error);
     } finally {
       setLoading(false);
     }

@@ -42,8 +42,7 @@ router.post('/', async (req, res) => {
         if (authError) {
             // If user already exists in Auth, we try to recover their ID and UPDATE their password/metadata
             if (authError.message.includes('already been registered') || authError.status === 422) {
-                console.log('🔄 User already exists in Auth. Updating credentials and looking up ID...');
-                
+
                 // Fetch user by email to get their ID
                 const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
                 if (listError) throw listError;
@@ -72,14 +71,13 @@ router.post('/', async (req, res) => {
                 if (updateError) throw updateError;
                 
                 authUser = updateData.user;
-                console.log('✅ Updated existing Auth user credentials:', authUser.id);
+
             } else {
-                console.error('❌ Auth create error:', authError);
                 return res.status(500).json({ success: false, message: authError.message });
             }
         } else {
             authUser = authData.user;
-            console.log('✨ Created new Auth user:', authUser.id);
+
         }
 
         // Step 2: Ensure user is also in the public.users table
@@ -97,7 +95,6 @@ router.post('/', async (req, res) => {
             }]);
 
         if (dbError) {
-            console.error('❌ DB sync error:', dbError);
             return res.status(500).json({ success: false, message: 'Auth account found/created, but failed to sync user record to database: ' + dbError.message });
         }
 
@@ -107,7 +104,6 @@ router.post('/', async (req, res) => {
             user: authUser
         });
     } catch (err) {
-        console.error('🚨 Synchronization error:', err);
         return res.status(500).json({ success: false, message: err.message || 'Synchronization failed' });
     }
 });
@@ -130,7 +126,6 @@ router.delete('/:id', async (req, res) => {
         const { error: authError } = await supabaseAdmin.auth.admin.deleteUser(id);
 
         if (authError) {
-            console.error('Auth delete error:', authError);
             return res.status(500).json({ success: false, message: authError.message });
         }
 
@@ -142,12 +137,10 @@ router.delete('/:id', async (req, res) => {
 
         if (dbError) {
             // Auth user already deleted; log warning but don't fail
-            console.warn('DB delete warning (auth user already removed):', dbError.message);
         }
 
-        return res.json({ success: true, message: 'User deleted from Auth and database' });
+        return res.json({ success: true, message: 'User deleted successfully' });
     } catch (err) {
-        console.error('Delete user error:', err);
         return res.status(500).json({ success: false, message: err.message || 'Failed to delete user' });
     }
 });

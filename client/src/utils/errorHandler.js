@@ -1,13 +1,6 @@
 import toast from 'react-hot-toast';
 
-/**
- * Handle Supabase errors with user-friendly messages
- * @param {Object} error - The error object from Supabase
- * @param {string} context - What operation was being performed (e.g., 'load data', 'save request')
- * @returns {string} - User-friendly error message
- */
 export const handleSupabaseError = (error, context = 'perform this action') => {
-    console.error(`Error trying to ${context}:`, error);
 
     // Permission denied (RLS policy)
     if (error.code === '42501' || error.code === 'PGRST301') {
@@ -68,45 +61,29 @@ export const handleSupabaseError = (error, context = 'perform this action') => {
     return message;
 };
 
-/**
- * Handle form validation errors
- * @param {Object} errors - Object with field names as keys and error messages as values
- */
 export const handleValidationErrors = (errors) => {
     const errorCount = Object.keys(errors).length;
 
     if (errorCount === 0) return;
 
     if (errorCount === 1) {
-        const [field, message] = Object.entries(errors)[0];
+        const [, message] = Object.entries(errors)[0];
         toast.error(message);
     } else {
         toast.error(`Please fix ${errorCount} errors in the form`);
     }
 };
 
-/**
- * Show success message
- * @param {string} message - Success message to display
- */
 export const showSuccess = (message) => {
     toast.success(message);
 };
 
-/**
- * Show info message
- * @param {string} message - Info message to display
- */
 export const showInfo = (message) => {
     toast(message, {
         icon: 'ℹ️',
     });
 };
 
-/**
- * Show warning message
- * @param {string} message - Warning message to display
- */
 export const showWarning = (message) => {
     toast(message, {
         icon: '⚠️',
@@ -117,13 +94,6 @@ export const showWarning = (message) => {
     });
 };
 
-/**
- * Handle async operations with automatic error handling
- * @param {Function} asyncFn - Async function to execute
- * @param {string} successMessage - Message to show on success
- * @param {string} errorContext - Context for error message
- * @returns {Promise} - Result of the async function
- */
 export const withErrorHandling = async (asyncFn, successMessage, errorContext) => {
     try {
         const result = await asyncFn();
@@ -137,11 +107,6 @@ export const withErrorHandling = async (asyncFn, successMessage, errorContext) =
     }
 };
 
-/**
- * Get user-friendly status label
- * @param {string} status - Status code
- * @returns {string} - User-friendly label
- */
 export const getStatusLabel = (status) => {
     const labels = {
         pending_head: 'Pending Head Approval',
@@ -157,18 +122,13 @@ export const getStatusLabel = (status) => {
     return labels[status] || status;
 };
 
-/**
- * Format error for display
- * @param {Error|string} error - Error object or message
- * @returns {string} - Formatted error message
- */
 export const formatError = (error) => {
     if (typeof error === 'string') return error;
     if (error?.message) return error.message;
     return 'An unexpected error occurred';
 };
 
-export default {
+const errorHandler = {
     handleSupabaseError,
     handleValidationErrors,
     showSuccess,
@@ -178,3 +138,5 @@ export default {
     getStatusLabel,
     formatError,
 };
+
+export default errorHandler;

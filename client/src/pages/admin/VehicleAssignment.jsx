@@ -1,8 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
-import { StatusBadge } from '../../components/common/Badge';
+
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
@@ -12,7 +11,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 
 const VehicleAssignment = () => {
-  const navigate = useNavigate();
+  
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [vehicles, setVehicles] = useState([]);
@@ -97,7 +96,6 @@ const VehicleAssignment = () => {
       setVehicles(vehiclesData || []);
       setDrivers(driversData || []);
     } catch (err) {
-      console.error('Error:', err);
       toast.error('Failed to fetch data');
     } finally {
       setLoading(false);
@@ -251,7 +249,6 @@ const VehicleAssignment = () => {
       setShowModal(false);
       fetchData(); // Refresh data
     } catch (err) {
-      console.error('Error:', err);
       toast.error(`Failed to assign vehicle: ${err.message}`);
     } finally {
       setAssigning(false);

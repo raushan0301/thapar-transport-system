@@ -1,5 +1,4 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import Loader from '../../components/common/Loader';
@@ -11,7 +10,7 @@ import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 
 const TravelCompletion = () => {
-  const navigate = useNavigate();
+  
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -60,7 +59,6 @@ const TravelCompletion = () => {
 
       setRequests(requestsWithVehicles);
     } catch (err) {
-      console.error('Error:', err);
       toast.error('Failed to fetch requests');
     } finally {
       setLoading(false);
@@ -237,14 +235,11 @@ const TravelCompletion = () => {
               }]);
           }
       } catch (notifyErr) {
-          console.error('Driver Notification Error:', notifyErr);
       }
-
 
       setShowModal(false);
       fetchRequests(); // Refresh list
     } catch (err) {
-      console.error('Error:', err);
       toast.error(`Failed to complete trip: ${err.message}`);
     } finally {
       setCompleting(false);

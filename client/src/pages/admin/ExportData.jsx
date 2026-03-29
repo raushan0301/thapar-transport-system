@@ -1,9 +1,8 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
-import Loader from '../../components/common/Loader';
+
 import { supabase } from '../../services/supabase';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
+import Loader from '../../components/common/Loader';
 import {
   Download, FileText, Printer, RefreshCcw,
   Calendar, Filter, CheckCircle2, Clock, Truck, AlertCircle
@@ -223,7 +222,6 @@ const ExportData = () => {
       setPreview(data || []);
       toast.success(`Loaded ${data?.length || 0} records`);
     } catch (err) {
-      console.error(err);
       toast.error(`Failed to load: ${err.message}`);
       setPreview([]);
     } finally {

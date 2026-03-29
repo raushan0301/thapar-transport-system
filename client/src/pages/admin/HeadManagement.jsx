@@ -43,7 +43,6 @@ const HeadManagement = () => {
       setHeads(headsRes.data || []);
       setAllUsers(usersRes.data || []);
     } catch (err) {
-      console.error('Error:', err);
       toast.error('Failed to fetch data');
     } finally {
       setLoading(false);

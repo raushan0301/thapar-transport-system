@@ -103,7 +103,6 @@ router.get('/trips', async (req, res) => {
         });
 
     } catch (err) {
-        console.error('Driver trips API error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });
@@ -115,7 +114,6 @@ router.get('/trips', async (req, res) => {
 router.post('/complete-trip', async (req, res) => {
     try {
         const { request_id, driver_id } = req.body;
-        console.log('--- Completion Request ---', { request_id, driver_id });
 
         if (!request_id) {
             return res.status(400).json({ success: false, message: 'request_id required' });
@@ -123,7 +121,6 @@ router.post('/complete-trip', async (req, res) => {
 
         const db = supabaseAdmin || supabase;
         const usingAdmin = !!supabaseAdmin;
-        console.log('Using admin client:', usingAdmin);
 
         // 1. Update Trip status
         const { error, count } = await db.from('transport_requests')
@@ -132,18 +129,16 @@ router.post('/complete-trip', async (req, res) => {
             .select('*', { count: 'exact' });
 
         if (error) {
-            console.error('Database update error:', error);
             throw error;
         }
 
         if (!count || count === 0) {
-            console.warn('No trip found for ID:', request_id);
             return res.status(404).json({ success: false, message: 'Trip record not found or no changes allowed' });
         }
 
         // 2. Free up driver and vehicle if driver_id is provided
         if (driver_id) {
-            console.log('Freeing driver/vehicle for driver_id:', driver_id);
+
             await db.from('drivers').update({ is_available: true, assigned_vehicle_id: null }).eq('id', driver_id);
             
             const { data: req_data } = await db.from('transport_requests')
@@ -152,14 +147,13 @@ router.post('/complete-trip', async (req, res) => {
                 .maybeSingle();
 
             if (req_data?.vehicle_id) {
-                console.log('Freeing vehicle:', req_data.vehicle_id);
+
                 await db.from('vehicles').update({ is_available: true }).eq('id', req_data.vehicle_id);
             }
         }
 
         res.json({ success: true, message: 'Trip marked as complete' });
     } catch (err) {
-        console.error('Complete trip API error:', err);
         res.status(500).json({ success: false, message: err.message });
     }
 });

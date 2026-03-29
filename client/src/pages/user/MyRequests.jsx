@@ -19,6 +19,7 @@ const MyRequests = () => {
 
   useEffect(() => {
     if (user?.id) fetchRequests();
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchRequests = async () => {
@@ -32,7 +33,6 @@ const MyRequests = () => {
       if (error) throw error;
       setRequests(data || []);
     } catch (err) {
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }
@@ -49,7 +49,6 @@ const MyRequests = () => {
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <DashboardLayout>
-        {/* Header */}
         <div className="mb-8 flex justify-between items-center animate-slideDown">
           <div>
             <div className="flex items-center space-x-3 mb-2">
@@ -61,7 +60,6 @@ const MyRequests = () => {
           <Button variant="primary" icon={Plus} onClick={() => navigate('/new-request')}>New Request</Button>
         </div>
 
-        {/* Filters */}
         <div className="bg-white rounded-xl p-4 mb-6 shadow-sm border border-gray-200" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '100ms', opacity: 0, animationFillMode: 'forwards' }}>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div className="relative">
@@ -83,7 +81,6 @@ const MyRequests = () => {
           </div>
         </div>
 
-        {/* Requests List */}
         {filteredRequests.length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center" style={{ animation: 'slideUp 0.6s ease-out', animationDelay: '200ms', opacity: 0, animationFillMode: 'forwards' }}>
             <FileText className="w-16 h-16 mx-auto mb-4 text-gray-300" strokeWidth={1.5} />

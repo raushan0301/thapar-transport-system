@@ -7,7 +7,7 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
-import { Clock, Search, Filter, Eye } from 'lucide-react';
+import { Clock, Search, Eye } from 'lucide-react';
 
 const PendingReview = () => {
   const navigate = useNavigate();
@@ -36,7 +36,6 @@ const PendingReview = () => {
       if (error) throw error;
       setRequests(data || []);
     } catch (err) {
-      console.error('Error:', err);
     } finally {
       setLoading(false);
     }

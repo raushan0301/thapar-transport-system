@@ -27,7 +27,6 @@ export const uploadToCloudinary = async (file) => {
       error: null,
     };
   } catch (error) {
-    console.error('Cloudinary upload error:', error);
     return {
       url: null,
       publicId: null,
@@ -39,5 +38,5 @@ export const uploadToCloudinary = async (file) => {
 export const deleteFromCloudinary = async (publicId) => {
   // Note: Deletion requires signed requests from backend
   // For now, we'll just mark as deleted in database
-  console.log('Delete from cloudinary:', publicId);
+
 };

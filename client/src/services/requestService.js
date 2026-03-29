@@ -16,7 +16,6 @@ export const getUserRequests = async (userId) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Error fetching user requests:', error);
     return { data: null, error };
   }
 };
@@ -44,7 +43,6 @@ export const getRequestById = async (requestId) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Error fetching request:', error);
     return { data: null, error };
   }
 };
@@ -102,7 +100,6 @@ export const createRequest = async (requestData) => {
 
     return { data, error: null };
   } catch (error) {
-    console.error('Error creating request:', error);
     return { data: null, error };
   }
 };
@@ -120,7 +117,6 @@ export const updateRequest = async (requestId, updateData) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Error updating request:', error);
     return { data: null, error };
   }
 };
@@ -143,7 +139,6 @@ export const getPredefinedHeads = async () => {
 
     return { data: transformedData, error: null };
   } catch (error) {
-    console.error('Error fetching heads:', error);
     return { data: null, error };
   }
 };
@@ -157,7 +152,6 @@ export const createNotification = async (notificationData) => {
 
     if (error) throw error;
   } catch (error) {
-    console.error('Error creating notification:', error);
   }
 };
 
@@ -186,7 +180,6 @@ export const notifyAdmins = async (notificationBase) => {
       if (notifyError) throw notifyError;
     }
   } catch (error) {
-    console.error('Error notifying admins:', error);
   }
 };
 
@@ -215,7 +208,6 @@ export const notifyRegistrars = async (notificationBase) => {
       if (notifyError) throw notifyError;
     }
   } catch (error) {
-    console.error('Error notifying registrars:', error);
   }
 };
 
@@ -240,7 +232,6 @@ export const uploadAttachment = async (requestId, file, userId) => {
     if (error) throw error;
     return { data, error: null };
   } catch (error) {
-    console.error('Error uploading attachment:', error);
     return { data: null, error };
   }
 };

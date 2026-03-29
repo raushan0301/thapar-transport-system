@@ -59,7 +59,6 @@ const UserDashboard = () => {
         setRecentRequests(requests?.slice(0, 5) || []);
 
       } catch (err) {
-        console.error('Error:', err);
       } finally {
         setLoading(false);
       }
@@ -211,7 +210,7 @@ const UserDashboard = () => {
                         }}
                       >
                         <div className="flex items-center justify-between">
-                          <div className="flex-1">
+                          <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 group-hover/item:text-blue-600 transition-colors">
                               {request.request_number}
                             </p>

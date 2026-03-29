@@ -18,6 +18,7 @@ const ApprovalHistory = () => {
     if (user?.email) {
       fetchApprovalHistory();
     }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user, filter]);
 
   const fetchApprovalHistory = async () => {
@@ -49,10 +50,8 @@ const ApprovalHistory = () => {
 
       if (error) throw error;
 
-      console.log('✅ Approval history:', data);
       setRequests(data || []);
     } catch (err) {
-      console.error('❌ Error fetching approval history:', err);
     } finally {
       setLoading(false);
     }

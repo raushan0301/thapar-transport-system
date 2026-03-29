@@ -48,7 +48,6 @@ const RegistrarReviewRequest = () => {
 
             setRequest(data);
         } catch (err) {
-            console.error('Error:', err);
             toast.error(`Failed to load request: ${err.message}`);
             navigate('/registrar/pending');
         } finally {
@@ -134,8 +133,6 @@ const RegistrarReviewRequest = () => {
             setShowModal(false);
             navigate('/registrar/pending');
         } catch (err) {
-            console.error(`❌ REGISTRAR ${modalType.toUpperCase()} FAILED:`, err);
-            toast.error(`Failed to process action: ${err.message || 'Unknown error'}`);
         } finally {
             setActionLoading(false);
         }

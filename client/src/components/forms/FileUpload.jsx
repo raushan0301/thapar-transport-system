@@ -48,7 +48,6 @@ const FileUpload = ({ onUploadComplete, existingFiles = [] }) => {
       onUploadComplete(fileData);
       toast.success('File uploaded successfully');
     } catch (error) {
-      console.error('Upload error:', error);
       toast.error('Failed to upload file');
     } finally {
       setUploading(false);

@@ -18,7 +18,7 @@ const EditRequest = () => {
     const isResubmit = searchParams.get('resubmit') === 'true';
     const [loading, setLoading] = useState(true);
     const [saving, setSaving] = useState(false);
-    const [request, setRequest] = useState(null);
+    const [, setRequest] = useState(null);
     const [formData, setFormData] = useState({
         purpose: '',
         place_of_visit: '',
@@ -78,7 +78,6 @@ const EditRequest = () => {
                 guest_contact: guestContact,
             });
         } catch (err) {
-            console.error('Error:', err);
             toast.error('Failed to load request');
             navigate('/my-requests');
         } finally {
@@ -101,10 +100,6 @@ const EditRequest = () => {
 
         setSaving(true);
         try {
-            console.log('Updating request:', id);
-            console.log('User ID:', user.id);
-            console.log('Form data:', formData);
-            console.log('Is resubmit:', isResubmit);
 
             // Prepare update data
             const updateData = {
@@ -157,12 +152,6 @@ const EditRequest = () => {
             }
 
             if (error) {
-                console.error('Supabase error details:', {
-                    message: error.message,
-                    details: error.details,
-                    hint: error.hint,
-                    code: error.code
-                });
                 throw error;
             }
 
@@ -173,7 +162,6 @@ const EditRequest = () => {
             }
             navigate(`/request/${id}`);
         } catch (err) {
-            console.error('Error updating request:', err);
             toast.error(`Failed to update request: ${err.message}`);
         } finally {
             setSaving(false);

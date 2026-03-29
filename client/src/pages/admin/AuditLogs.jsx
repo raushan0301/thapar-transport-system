@@ -2,8 +2,6 @@ import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
-import * as XLSX from 'xlsx';
-import { saveAs } from 'file-saver';
 import {
   FileText, Search, Filter, Download, RefreshCcw,
   CheckCircle2, XCircle, Clock, Truck,
@@ -126,13 +124,12 @@ const AuditLogs = () => {
       const requests  = reqs.data   || [];
       const approvals = approvs.data || [];
 
-      console.log(`[AuditLogs] Fetched ${requests.length} requests, ${approvals.length} approvals`);
       if (requests.length > 0) {
         const statusCounts = requests.reduce((acc, r) => {
           acc[r.current_status] = (acc[r.current_status] || 0) + 1;
           return acc;
         }, {});
-        console.log('[AuditLogs] Status breakdown:', statusCounts);
+
       }
 
       // DONE statuses: TravelCompletion.jsx writes 'completed', some flows write 'travel_completed'
@@ -168,7 +165,6 @@ const AuditLogs = () => {
           detail: hasRejection ? 'Transport request resubmitted for approval' : 'Transport request submitted to system',
         });
 
-
       });
 
       approvals.forEach(a => {
@@ -188,7 +184,6 @@ const AuditLogs = () => {
       evtList.sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp));
       setEvents(evtList);
     } catch (err) {
-      console.error(err);
       toast.error('Failed to load audit logs');
     } finally {
       setLoading(false);

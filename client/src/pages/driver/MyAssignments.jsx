@@ -5,8 +5,8 @@ import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
   Truck, Search, MapPin, Calendar, Clock, CheckCircle2,
-  AlertCircle, User, Phone, Building2, RefreshCw, Navigation,
-  Users, Clipboard, ChevronDown, ChevronUp, Car, Info
+  AlertCircle, User, Building2, RefreshCw, Navigation,
+  Users, ChevronDown, ChevronUp, Info
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 
@@ -31,7 +31,7 @@ const StatusBadge = ({ status }) => {
   );
 };
 
-const TripCard = ({ trip, onComplete, actionLoading, idx, confirming, setConfirming }) => {
+const Tripd = ({ trip, onComplete, actionLoading, idx, confirming, setConfirming }) => {
   const [expanded, setExpanded] = useState(false);
   const isActive = trip.current_status === 'vehicle_assigned';
   const isReview = trip.current_status === 'travel_completed';
@@ -262,7 +262,6 @@ const MyAssignments = () => {
       // The API already sorts and joins requester details
       setAssignments(data.trips || []);
     } catch (err) {
-      console.error('MyAssignments fetch error:', err);
       toast.error('Failed to load assignments. Falling back to notification sync...');
       
       // Keep a minimal notification fallback just in case the server is down
@@ -291,7 +290,6 @@ const MyAssignments = () => {
           setAssignments(Array.from(tripMap.values()));
         }
       } catch (inner) {
-        console.error('Fallback failed:', inner);
       }
     } finally {
       setLoading(false);
@@ -308,7 +306,7 @@ const MyAssignments = () => {
     }
     setActionLoading(requestId); // Use ID instead of boolean to track specific trip loading
     try {
-      console.log('Completing trip:', { requestId, driverId: driverRecord?.id });
+
       const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
       const response = await fetch(`${apiBase}/driver/complete-trip`, {
         method: 'POST',
@@ -327,7 +325,6 @@ const MyAssignments = () => {
       toast.success('Trip completed! Sent for admin review.');
       await fetchDriverData(); 
     } catch (err) {
-      console.error('Completion error:', err);
       toast.error('Failed to complete trip: ' + err.message);
     } finally {
       setActionLoading(null);
@@ -456,7 +453,7 @@ const MyAssignments = () => {
           </div>
         </div>
 
-        {/* Trip Cards */}
+        {/* Trip ds */}
         <div className="space-y-4">
           {filtered.length === 0 ? (
             <div className="bg-white rounded-2xl p-16 text-center border border-gray-100 shadow-sm">
@@ -472,7 +469,7 @@ const MyAssignments = () => {
             </div>
           ) : (
             filtered.map((trip, idx) => (
-              <TripCard
+              <Tripd
                 key={trip.id}
                 trip={trip}
                 idx={idx}

@@ -9,7 +9,6 @@ import {
   Car,
   Users,
   Settings,
-  BarChart,
   FileSpreadsheet,
   Shield,
   UserCheck,

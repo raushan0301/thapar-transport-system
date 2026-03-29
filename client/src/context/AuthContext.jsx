@@ -61,7 +61,6 @@ export const AuthProvider = ({ children }) => {
 
         return () => listener.subscription.unsubscribe();
       } catch (error) {
-        console.error('❌ Auth initialization error:', error);
       } finally {
         if (mounted) {
           setLoading(false);
@@ -92,12 +91,10 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (error) {
-        console.error('❌ Profile fetch error:', error.message, error.code);
 
         if (error.code === 'PGRST116') {
           // No profile found — this user was deleted by an admin.
           // Sign them out immediately to revoke access.
-          console.warn('🚫 No profile found for auth user — account may have been deleted. Signing out.');
           toast.error('Your account has been deleted. Please contact an administrator.');
           await supabase.auth.signOut();
           setUser(null);
@@ -112,7 +109,6 @@ export const AuthProvider = ({ children }) => {
 
       setProfile(data);
     } catch (error) {
-      console.error('💥 Exception loading profile:', error);
     } finally {
       loadingProfile.current = false;
     }
@@ -143,7 +139,6 @@ export const AuthProvider = ({ children }) => {
           ]);
 
         if (profileError) {
-          console.error('Profile creation error:', profileError);
         }
       }
 
@@ -173,7 +168,6 @@ export const AuthProvider = ({ children }) => {
         .single();
 
       if (profileError || !profileRecord) {
-        console.warn('🚫 Login successful but profile missing — account is likely deleted.');
         await supabase.auth.signOut();
         throw new Error('Your account has been deleted. Please contact an administrator.');
       }

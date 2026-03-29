@@ -68,7 +68,6 @@ const Profile = () => {
       toast.success('Profile updated successfully!');
       setHasChanges(false);
     } catch (err) {
-      console.error('Error updating profile:', err);
       toast.error('Failed to update profile. Please try again.');
     } finally {
       setLoading(false);
