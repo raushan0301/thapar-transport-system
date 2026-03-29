@@ -24,6 +24,7 @@ const DriverManagement = () => {
   const [editingDriver, setEditingDriver] = useState(null);
   const [saving, setSaving] = useState(false);
   const [hasActiveAssignment, setHasActiveAssignment] = useState(false);
+  const [driverUsers, setDriverUsers] = useState([]);
 
   const emptyForm = {
     full_name: '',
@@ -31,6 +32,7 @@ const DriverManagement = () => {
     license_number: '',
     license_expiry: '',
     assigned_vehicle_id: '',
+    user_id: '',
     is_available: true,
     notes: ''
   };
@@ -40,6 +42,7 @@ const DriverManagement = () => {
   useEffect(() => {
     fetchDrivers();
     fetchVehicles();
+    fetchDriverUsers();
   }, []);
 
   const fetchDrivers = async () => {
@@ -71,6 +74,15 @@ const DriverManagement = () => {
       .select('id, vehicle_number, vehicle_type')
       .order('vehicle_number', { ascending: true });
     setVehicles(data || []);
+  };
+
+  const fetchDriverUsers = async () => {
+    const { data } = await supabase
+      .from('users')
+      .select('id, full_name, email')
+      .eq('role', 'driver')
+      .order('full_name', { ascending: true });
+    setDriverUsers(data || []);
   };
 
   const openAdd = () => {
@@ -106,6 +118,7 @@ const DriverManagement = () => {
       license_number: driver.license_number || '',
       license_expiry: driver.license_expiry || '',
       assigned_vehicle_id: driver.assigned_vehicle_id || '',
+      user_id: driver.user_id || '',
       is_available: driver.is_available ?? true,
       notes: driver.notes || ''
     });
@@ -125,6 +138,7 @@ const DriverManagement = () => {
         license_number: form.license_number.trim(),
         license_expiry: form.license_expiry || null,
         assigned_vehicle_id: form.assigned_vehicle_id || null,
+        user_id: form.user_id || null,
         is_available: form.is_available,
         notes: form.notes.trim() || null
       };
@@ -375,6 +389,26 @@ const DriverManagement = () => {
                       </option>
                     ))}
                   </select>
+                </div>
+
+                {/* Linked User Account */}
+                <div>
+                  <label className="block text-sm font-medium text-gray-700 mb-1">Link to User Account</label>
+                  <select
+                    value={form.user_id}
+                    onChange={e => setForm(p => ({ ...p, user_id: e.target.value }))}
+                    className="w-full px-3 py-2 border border-gray-200 rounded-lg focus:outline-none focus:ring-2 focus:ring-teal-500 text-sm bg-white"
+                  >
+                    <option value="">— No User Linked —</option>
+                    {driverUsers.map(u => (
+                      <option key={u.id} value={u.id}>
+                        {u.full_name} ({u.email})
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-[10px] text-gray-400 mt-1">
+                    Linking allows the driver to see their trips in the Driver Dashboard.
+                  </p>
                 </div>
 
                 {/* Availability */}

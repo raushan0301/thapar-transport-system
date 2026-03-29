@@ -32,7 +32,7 @@ const RequestDetails = () => {
         .from('transport_requests')
         .select('*, user:users!transport_requests_user_id_fkey(full_name, email, department, phone)')
         .eq('id', id)
-        .single();
+        .maybeSingle();
 
       if (requestError) throw requestError;
 
@@ -42,7 +42,7 @@ const RequestDetails = () => {
           .from('vehicles')
           .select('*')
           .eq('id', requestData.vehicle_id)
-          .single();
+          .maybeSingle();
 
         if (vehicleData) {
           requestData.vehicle = vehicleData;

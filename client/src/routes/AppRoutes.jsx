@@ -46,6 +46,7 @@ import DriverManagement from '../pages/admin/DriverManagement';
 // Driver Pages
 import DriverDashboard from '../pages/driver/DriverDashboard';
 import DriverProfile from '../pages/driver/DriverProfile';
+import MyAssignments from '../pages/driver/MyAssignments';
 
 // Registrar Pages
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
@@ -311,15 +312,19 @@ const AppRoutes = () => {
 
       {/* Driver Routes */}
       <Route
-        path="/driver/trip"
+        path="/driver/assignments"
         element={
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.DRIVER]}>
-              <DriverDashboard />
+              <MyAssignments />
             </RoleRoute>
           </PrivateRoute>
         }
       />
+      {/* Alias for old/misspelled paths */}
+      <Route path="/driver/trip" element={<Navigate to="/driver/assignments" replace />} />
+      <Route path="/driver/assignment" element={<Navigate to="/driver/assignments" replace />} />
+      
       <Route
         path="/driver/profile"
         element={
@@ -330,7 +335,6 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
-
       <Route
         path="/registrar/pending"
         element={
@@ -364,7 +368,6 @@ const AppRoutes = () => {
 
       {/* Error Routes */}
       <Route path="/unauthorized" element={<Unauthorized />} />
-      <Route path="/" element={<Navigate to={user ? '/dashboard' : '/login'} replace />} />
       <Route path="*" element={<NotFound />} />
     </Routes>
   );

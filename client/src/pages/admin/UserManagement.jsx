@@ -117,14 +117,18 @@ const UserManagement = () => {
           .maybeSingle();
 
         if (!existingDriver) {
-          // Create a basic driver record so the dashboard works immediately
+          // Create a basic driver record linked to user_id so the dashboard works immediately
           await supabase.from('drivers').insert([{
             full_name: userToPromote.full_name,
             phone: userToPromote.phone || '',
             license_number: 'PENDING',
+            user_id: userToPromote.id, // Direct link to user account
             is_available: true,
-            notes: `Auto-created when user ${userToPromote.email} was promoted to driver role.`,
+            notes: `Auto-created on promotion of ${userToPromote.email}.`,
           }]);
+        } else if (!existingDriver.user_id) {
+          // Link existing driver record to user_id if not already linked
+          await supabase.from('drivers').update({ user_id: userToPromote.id }).eq('id', existingDriver.id);
         }
         toast.success(`${userToPromote.full_name} promoted to Driver! A driver record was also created — update license details in Driver Management.`);
       } else {

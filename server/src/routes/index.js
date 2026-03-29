@@ -6,6 +6,7 @@ const exportRoutes = require('./exportRoutes');
 const uploadRoutes = require('./uploadRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
 const userRoutes = require('./userRoutes');
+const driverRoutes = require('./driverRoutes');
 
 // Health check
 router.get('/health', (req, res) => {
@@ -21,5 +22,6 @@ router.use('/export', exportRoutes);
 router.use('/upload', uploadRoutes);
 router.use('/analytics', analyticsRoutes);
 router.use('/users', userRoutes);
+router.use('/driver', driverRoutes);
 
 module.exports = router;

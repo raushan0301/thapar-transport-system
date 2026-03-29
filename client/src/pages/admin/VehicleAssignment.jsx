@@ -158,6 +158,24 @@ const VehicleAssignment = () => {
 
       if (updateError) throw updateError;
 
+      // Auto-link driver record to user_id if missing
+      if (finalDriverId) {
+          const d = drivers.find(drv => drv.id === finalDriverId);
+          if (d && !d.user_id) {
+              // Try to find the user account for this driver
+              const { data: userData } = await supabase
+                .from('users')
+                .select('id')
+                .eq('role', 'driver')
+                .or(`phone.eq.${finalDriverPhone},full_name.ilike.${finalDriverName}`)
+                .maybeSingle();
+              
+              if (userData) {
+                  await supabase.from('drivers').update({ user_id: userData.id }).eq('id', finalDriverId);
+              }
+          }
+      }
+
       // Create approval record for vehicle assignment
       const { error: approvalError } = await supabase
         .from('approvals')
@@ -201,10 +219,33 @@ const VehicleAssignment = () => {
       await createNotification({
           user_id: selectedRequest.user_id,
           title: 'Vehicle Assigned',
-          message: `A vehicle (${vehicles.find(v => v.id === selectedVehicle)?.vehicle_number}) has been assigned to your request.`,
+          message: `A vehicle (${vehicles.find(v => v.id === selectedVehicle)?.vehicle_number}) has been assigned to your request. Driver: ${finalDriverName} (${finalDriverPhone})`,
           type: 'info',
           related_request_id: selectedRequest.id
       });
+
+      // Notify the driver (if they have a user account)
+      if (finalDriverId) {
+          // Find the user account for this driver to send notification
+          const { data: driverUser } = await supabase
+            .from('users')
+            .select('id')
+            .eq('role', 'driver')
+            .or(`phone.eq.${finalDriverPhone},full_name.ilike.${finalDriverName}`)
+            .maybeSingle();
+
+          if (driverUser) {
+              const requesterInfo = `${selectedRequest.user?.full_name || 'N/A'} from ${selectedRequest.user?.department || 'N/A'} (Contact: ${selectedRequest.user?.phone || 'N/A'})`;
+              
+              await createNotification({
+                  user_id: driverUser.id,
+                  title: 'New Trip Assigned',
+                  message: `You have been assigned a new trip to ${selectedRequest.place_of_visit} on ${formatDate(selectedRequest.date_of_visit)}. Requester: ${requesterInfo}`,
+                  type: 'vehicle_assigned',
+                  related_request_id: selectedRequest.id
+              });
+          }
+      }
 
       toast.success('Vehicle assigned successfully!');
       setShowModal(false);

@@ -83,7 +83,7 @@ const Sidebar = ({ isOpen, onClose }) => {
     if (role === ROLES.DRIVER) {
       return [
         { name: 'Dashboard', path: '/dashboard', icon: Home },
-        { name: 'My Assignment', path: '/driver/trip', icon: Truck },
+        { name: 'My Assignments', path: '/driver/assignments', icon: Truck },
         { name: 'My Profile', path: '/driver/profile', icon: UserCheck },
       ];
     }

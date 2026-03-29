@@ -1,235 +1,300 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
   Truck, MapPin, User, Phone, Calendar, Clock,
-  CheckCircle2, XCircle, AlertCircle, Package,
-  Navigation, Users, Info, Badge, Car, CreditCard
+  CheckCircle2, AlertCircle, Package, Navigation,
+  Users, Info, Car, CreditCard, RefreshCw, Building2,
+  ArrowRight, Clipboard, TrendingUp, History
 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 
 const fmtDate = (d) => {
   if (!d) return '—';
-  return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+  try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+  catch { return String(d); }
 };
 
 const StatusPill = ({ status }) => {
   const cfg = {
-    vehicle_assigned: { label: 'Trip Assigned', cls: 'bg-blue-100 text-blue-700 border-blue-200', dot: 'bg-blue-500' },
-    travel_completed: { label: 'Trip Completed', cls: 'bg-green-100 text-green-700 border-green-200', dot: 'bg-green-500' },
-    completed: { label: 'Completed', cls: 'bg-green-100 text-green-700 border-green-200', dot: 'bg-green-500' },
-    approved_awaiting_vehicle: { label: 'Awaiting Vehicle', cls: 'bg-yellow-100 text-yellow-700 border-yellow-200', dot: 'bg-yellow-500' },
+    vehicle_assigned: { label: 'Active Trip', cls: 'bg-blue-100 text-blue-700', dot: 'animate-pulse bg-blue-500' },
+    travel_completed: { label: 'Pending Review', cls: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
+    completed: { label: 'Completed', cls: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
+    approved_awaiting_vehicle: { label: 'Awaiting Vehicle', cls: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' },
   };
-  const c = cfg[status] || { label: status, cls: 'bg-gray-100 text-gray-600 border-gray-200', dot: 'bg-gray-400' };
+  const c = cfg[status] || { label: status?.replace(/_/g, ' '), cls: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-semibold border ${c.cls}`}>
-      <span className={`w-2 h-2 rounded-full ${c.dot}`} />
+    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${c.cls}`}>
+      <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {c.label}
     </span>
   );
 };
 
-const InfoRow = ({ icon: Icon, label, value, highlight }) => (
-  <div className="flex items-start gap-3 py-3 border-b border-gray-100 last:border-0">
-    <div className="w-8 h-8 rounded-lg bg-gray-100 flex items-center justify-center flex-shrink-0">
-      <Icon className="w-4 h-4 text-gray-500" />
-    </div>
-    <div className="flex-1 min-w-0">
-      <p className="text-xs text-gray-400 uppercase tracking-wide mb-0.5">{label}</p>
-      <p className={`text-sm font-semibold ${highlight ? 'text-blue-700' : 'text-gray-900'} truncate`}>{value || '—'}</p>
-    </div>
-  </div>
-);
-
 const DriverDashboard = () => {
   const { profile } = useAuth();
+  const navigate = useNavigate();
   const [driverRecord, setDriverRecord] = useState(null);
   const [currentTrip, setCurrentTrip] = useState(null);
   const [tripHistory, setTripHistory] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [confirming, setConfirming] = useState(false);
 
-  useEffect(() => {
-    if (profile) fetchDriverData();
-  }, [profile]);
-
-  const fetchDriverData = async () => {
+  const fetchDriverData = useCallback(async () => {
+    if (!profile) return;
     setLoading(true);
     try {
-      // Match driver record via user's email or full name since drivers table may not have user_id FK
-      const { data: driverData, error: driverErr } = await supabase
-        .from('drivers')
-        .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
-        .ilike('full_name', profile.full_name || '')
-        .maybeSingle();
+      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      const response = await fetch(`${apiBase}/driver/trips?user_id=${profile.id}`);
+      const data = await response.json();
 
-      if (!driverErr && driverData) {
-        setDriverRecord(driverData);
+      if (!data.success) throw new Error(data.message || 'Failed to fetch dashboard data');
 
-        // Fetch current active trip for this driver
-        const { data: activeTrip } = await supabase
-          .from('transport_requests')
-          .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
-          .eq('driver_id', driverData.id)
-          .eq('current_status', 'vehicle_assigned')
-          .order('submitted_at', { ascending: false })
-          .limit(1)
-          .maybeSingle();
+      setDriverRecord(data.driver);
+      
+      const allTrips = data.trips || [];
+      const active = allTrips.find(t => t.current_status === 'vehicle_assigned');
+      const history = allTrips.filter(t => t.current_status === 'travel_completed' || t.current_status === 'completed');
 
-        setCurrentTrip(activeTrip);
+      setCurrentTrip(active);
+      setTripHistory(history.slice(0, 10));
 
-        // Fetch trip history (completed trips)
-        const { data: history } = await supabase
-          .from('transport_requests')
-          .select('*, user:users!transport_requests_user_id_fkey(full_name, department)')
-          .eq('driver_id', driverData.id)
-          .in('current_status', ['travel_completed', 'completed'])
-          .order('submitted_at', { ascending: false })
-          .limit(10);
-
-        setTripHistory(history || []);
-      } else {
-        // Try fallback: match by phone or check phone from profile
-        console.warn('Driver record not found for profile:', profile?.full_name);
-      }
     } catch (err) {
-      console.error('Error fetching driver data:', err);
-      toast.error('Failed to load trip data');
+      console.error('DriverDashboard error:', err);
+      toast.error('Failed to load dashboard. Falling back to notification sync...');
+      
+      // Minimal notification fallback
+      try {
+        const { data: notifs } = await supabase
+          .from('notifications')
+          .select('*')
+          .eq('user_id', profile.id)
+          .not('related_request_id', 'is', null)
+          .order('created_at', { ascending: false })
+          .limit(20);
+          
+        if (notifs?.length > 0) {
+          const tripMap = new Map();
+          notifs.forEach(n => {
+            if (!tripMap.has(n.related_request_id)) {
+              tripMap.set(n.related_request_id, {
+                id: n.related_request_id,
+                place_of_visit: n.message?.split('to ')[1]?.split(' on ')[0] || 'Unknown',
+                date_of_visit: n.created_at,
+                current_status: (n.title?.includes('Completed') || n.message?.includes('completed')) ? 'travel_completed' : 'vehicle_assigned',
+                is_reconstructed: true,
+                user: { full_name: 'Requester (via alert)' }
+              });
+            }
+          });
+          const trips = Array.from(tripMap.values());
+          setCurrentTrip(trips.find(t => t.current_status === 'vehicle_assigned'));
+          setTripHistory(trips.filter(t => t.current_status !== 'vehicle_assigned'));
+        }
+      } catch (inner) {
+        console.error('Dashboard fallback failed:', inner);
+      }
     } finally {
       setLoading(false);
+    }
+  }, [profile]);
+
+  useEffect(() => { fetchDriverData(); }, [fetchDriverData]);
+
+  const handleCompleteTrip = async () => {
+    if (!currentTrip) return;
+    setActionLoading(true);
+    try {
+      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      const response = await fetch(`${apiBase}/driver/complete-trip`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ request_id: currentTrip.id, driver_id: driverRecord?.id })
+      });
+      const data = await response.json();
+
+      if (!data.success) throw new Error(data.message || 'Failed to complete trip');
+
+      toast.success('Trip marked as complete! Sent for admin review.');
+      await fetchDriverData();
+    } catch (err) {
+      console.error(err);
+      toast.error('Failed to complete trip: ' + err.message);
+    } finally {
+      setActionLoading(false);
+      setConfirming(false);
     }
   };
 
   if (loading) return (
     <DashboardLayout>
-      <div className="flex justify-center items-center h-64"><Loader size="lg" /></div>
+      <div className="flex flex-col items-center justify-center h-64 gap-3">
+        <Loader size="lg" />
+        <p className="text-sm text-gray-400 animate-pulse">Loading dashboard...</p>
+      </div>
     </DashboardLayout>
   );
-
-  const stats = [
-    { label: 'Total Trips', value: tripHistory.length + (currentTrip ? 1 : 0), icon: Truck, color: 'blue' },
-    { label: 'Active Trip', value: currentTrip ? 'Yes' : 'None', icon: Navigation, color: currentTrip ? 'amber' : 'gray' },
-    { label: 'Status', value: driverRecord?.is_available ? 'Available' : 'On Duty', icon: CheckCircle2, color: driverRecord?.is_available ? 'green' : 'orange' },
-    { label: 'Completed', value: tripHistory.length, icon: Package, color: 'teal' },
-  ];
-
-  const colorMap = {
-    blue: { bg: 'bg-blue-100', text: 'text-blue-700', grad: 'from-blue-500 to-blue-600' },
-    amber: { bg: 'bg-amber-100', text: 'text-amber-700', grad: 'from-amber-500 to-orange-600' },
-    green: { bg: 'bg-green-100', text: 'text-green-700', grad: 'from-green-500 to-emerald-600' },
-    gray: { bg: 'bg-gray-100', text: 'text-gray-600', grad: 'from-gray-400 to-gray-500' },
-    orange: { bg: 'bg-orange-100', text: 'text-orange-700', grad: 'from-orange-500 to-red-500' },
-    teal: { bg: 'bg-teal-100', text: 'text-teal-700', grad: 'from-teal-500 to-cyan-600' },
-  };
+  const requester = currentTrip?.user || {};
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100">
       <DashboardLayout>
 
         {/* Header */}
-        <div className="mb-8 animate-slideDown">
-          <div className="flex items-center gap-4 mb-2">
-            <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-500/30">
+        <div className="mb-8 flex items-center justify-between" style={{ animation: 'slideDown 0.4s ease-out' }}>
+          <div className="flex items-center gap-4">
+            <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-200">
               <Truck className="w-7 h-7 text-white" strokeWidth={1.5} />
             </div>
             <div>
               <h1 className="text-3xl font-bold text-gray-900">
-                Welcome, {profile?.full_name?.split(' ')[0]}!
+                Welcome, {profile?.full_name?.split(' ')[0]}! 👋
               </h1>
-              <p className="text-gray-500 text-sm">Driver Dashboard — Your trips and assignments</p>
+              <p className="text-gray-400 text-sm">Driver Dashboard — Your trips and assignments</p>
             </div>
           </div>
+          <button onClick={() => { setLoading(true); fetchDriverData(); }}
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 shadow-sm transition-all">
+            <RefreshCw className="w-4 h-4" /> Refresh
+          </button>
         </div>
 
-        {/* Driver Record Not Linked Warning */}
+        {/* Unlinked warning */}
         {!driverRecord && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
             <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-semibold text-amber-800">Profile Not Linked to Driver Record</p>
+              <p className="text-sm font-bold text-amber-800">Profile Not Linked to Driver Record</p>
               <p className="text-xs text-amber-700 mt-0.5">
-                Your driver account has not been linked to a driver record yet. Please contact the admin to link your profile with a driver entry in the system.
+                Contact admin to link your account. Some features may be limited.
               </p>
             </div>
           </div>
         )}
 
-        {/* Stat Cards */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
-          {stats.map((s, i) => {
-            const c = colorMap[s.color];
-            return (
-              <div key={i} className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-md transition-all duration-300"
-                style={{ animation: 'slideUp 0.5s ease-out', animationDelay: `${i * 60}ms`, opacity: 0, animationFillMode: 'forwards' }}>
-                <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${c.grad} flex items-center justify-center shadow-md mb-3`}>
-                  <s.icon className="w-5 h-5 text-white" strokeWidth={1.5} />
-                </div>
-                <p className="text-2xl font-bold text-gray-900">{s.value}</p>
-                <p className="text-xs text-gray-500 mt-0.5">{s.label}</p>
-              </div>
-            );
-          })}
-        </div>
-
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
 
-          {/* Current Active Trip */}
+          {/* ── Main Column: Active Trip + History ── */}
           <div className="lg:col-span-2 space-y-6">
+
+            {/* Active Trip Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 200ms', opacity: 0, animationFillMode: 'forwards' }}>
+              style={{ animation: 'slideUp 0.5s ease-out 200ms both' }}>
+
+              {currentTrip && <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400" />}
+
               <div className="p-5 border-b border-gray-100 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <Navigation className="w-5 h-5 text-blue-600" />
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
+                    <Navigation className="w-4.5 h-4.5 text-blue-600" />
+                  </div>
                   <h2 className="text-lg font-bold text-gray-900">Current Assignment</h2>
                 </div>
                 {currentTrip && <StatusPill status={currentTrip.current_status} />}
               </div>
 
               {!currentTrip ? (
-                <div className="p-12 text-center">
-                  <Truck className="w-16 h-16 mx-auto mb-4 text-gray-200" strokeWidth={1} />
-                  <p className="text-gray-500 font-medium">No active trip assigned</p>
-                  <p className="text-sm text-gray-400 mt-1">You'll see trip details here once admin assigns you a trip.</p>
+                <div className="p-14 text-center">
+                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
+                    <Truck className="w-10 h-10 text-gray-300" strokeWidth={1} />
+                  </div>
+                  <p className="text-gray-600 font-bold text-lg">No Active Trip</p>
+                  <p className="text-gray-400 text-sm mt-1">You'll see your next assignment once admin assigns a trip.</p>
+                  <button
+                    onClick={() => navigate('/driver/assignments')}
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-all border border-blue-100"
+                  >
+                    View All Assignments <ArrowRight className="w-4 h-4" />
+                  </button>
                 </div>
               ) : (
                 <div className="p-5 space-y-4">
                   {/* Trip Info */}
-                  <div className="bg-blue-50 border border-blue-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <Info className="w-4 h-4 text-blue-600" />
-                      <p className="text-sm font-bold text-blue-800">Trip Details</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4">
-                      <InfoRow icon={MapPin} label="Destination" value={currentTrip.place_of_visit} />
-                      <InfoRow icon={Calendar} label="Date" value={fmtDate(currentTrip.date_of_visit)} />
-                      <InfoRow icon={Clock} label="Time" value={currentTrip.time_of_visit} />
-                      <InfoRow icon={Users} label="Persons" value={currentTrip.number_of_persons} />
-                    </div>
-                    <div className="mt-2 pt-2 border-t border-blue-100">
-                      <p className="text-xs text-blue-600 uppercase tracking-wide mb-1">Purpose</p>
-                      <p className="text-sm text-gray-800">{currentTrip.purpose?.split('\n\n[Special Requirements]')[0]}</p>
+                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 rounded-xl p-4">
+                    <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                      <Info className="w-3.5 h-3.5" /> Trip Details
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { icon: MapPin, label: 'Destination', value: currentTrip.place_of_visit },
+                        { icon: Calendar, label: 'Date', value: fmtDate(currentTrip.date_of_visit) },
+                        { icon: Clock, label: 'Time', value: currentTrip.time_of_visit || '—' },
+                        { icon: Users, label: 'Passengers', value: currentTrip.number_of_persons ? `${currentTrip.number_of_persons} persons` : '—' },
+                      ].map(({ icon: Icon, label, value }) => (
+                        <div key={label} className="flex items-start gap-2">
+                          <Icon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[9px] font-bold uppercase text-blue-400 mb-0.5">{label}</p>
+                            <p className="text-sm font-bold text-gray-900">{value || '—'}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
                   {/* Requester Info */}
-                  <div className="bg-purple-50 border border-purple-100 rounded-xl p-4">
-                    <div className="flex items-center gap-2 mb-3">
-                      <User className="w-4 h-4 text-purple-600" />
-                      <p className="text-sm font-bold text-purple-800">Requester Details</p>
-                    </div>
-                    <div className="grid grid-cols-2 gap-x-4">
-                      <InfoRow icon={User} label="Name" value={currentTrip.user?.full_name} />
-                      <InfoRow icon={Phone} label="Phone" value={currentTrip.user?.phone || 'Not provided'} />
-                      <InfoRow icon={Info} label="Department" value={currentTrip.user?.department || currentTrip.department} />
-                      <InfoRow icon={Info} label="Designation" value={currentTrip.user?.designation || currentTrip.designation} />
+                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-xl p-4">
+                    <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
+                      <User className="w-3.5 h-3.5" /> Passenger / Requester
+                    </p>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { icon: User, label: 'Name', value: requester.full_name },
+                        { icon: Building2, label: 'Department', value: requester.department || currentTrip.department },
+                        { icon: Phone, label: 'Contact', value: requester.phone },
+                        { icon: Info, label: 'Designation', value: requester.designation || currentTrip.designation },
+                      ].map(({ icon: Icon, label, value }) => (
+                        <div key={label} className="flex items-start gap-2">
+                          <Icon className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="text-[9px] font-bold uppercase text-purple-400 mb-0.5">{label}</p>
+                            <p className="text-sm font-semibold text-gray-900">{value || '—'}</p>
+                          </div>
+                        </div>
+                      ))}
                     </div>
                   </div>
 
-                  {/* Request Number */}
-                  <div className="text-center py-2">
-                    <p className="text-xs text-gray-400">Request ID</p>
-                    <p className="font-mono font-bold text-blue-700 text-lg">{currentTrip.request_number}</p>
+                  {/* Action */}
+                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
+                    <div>
+                      <p className="text-[10px] text-gray-400 uppercase font-bold">Request ID</p>
+                      <p className="font-mono font-black text-blue-700">{currentTrip.request_number || '—'}</p>
+                    </div>
+                      <div className="flex gap-3">
+                        {confirming ? (
+                          <div className="flex items-center gap-2 bg-blue-50/50 p-1.5 rounded-2xl border border-blue-100" style={{ animation: 'slideIn 0.3s ease-out' }}>
+                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Final Step:</span>
+                            <button
+                              onClick={handleCompleteTrip}
+                              className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xs font-black shadow-lg shadow-green-200"
+                            >
+                              Yes, Confirm
+                            </button>
+                            <button
+                              onClick={() => setConfirming(false)}
+                              className="px-6 py-2 bg-white text-gray-500 rounded-xl text-xs font-bold border border-gray-200"
+                            >
+                              No
+                            </button>
+                          </div>
+                        ) : (
+                          <button
+                            onClick={() => setConfirming(true)}
+                            disabled={actionLoading}
+                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                          >
+                            {actionLoading
+                              ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                              : <CheckCircle2 className="w-5 h-5" />}
+                            {actionLoading ? 'Saving...' : 'Mark Trip Complete'}
+                          </button>
+                        )}
+                      </div>
                   </div>
                 </div>
               )}
@@ -237,30 +302,41 @@ const DriverDashboard = () => {
 
             {/* Trip History */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 300ms', opacity: 0, animationFillMode: 'forwards' }}>
-              <div className="p-5 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Package className="w-5 h-5 text-teal-600" />
+              style={{ animation: 'slideUp 0.5s ease-out 300ms both' }}>
+              <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+                <div className="flex items-center gap-2.5">
+                  <div className="w-9 h-9 rounded-xl bg-teal-100 flex items-center justify-center">
+                    <History className="w-4.5 h-4.5 text-teal-600" />
+                  </div>
                   <h2 className="text-lg font-bold text-gray-900">Trip History</h2>
                 </div>
+                {tripHistory.length > 0 && (
+                  <button onClick={() => navigate('/driver/assignments')}
+                    className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
+                    See All <ArrowRight className="w-3 h-3" />
+                  </button>
+                )}
               </div>
+
               {tripHistory.length === 0 ? (
-                <div className="p-10 text-center text-gray-400">
-                  <CheckCircle2 className="w-12 h-12 mx-auto mb-3 opacity-20" />
-                  <p className="text-sm">No completed trips yet.</p>
+                <div className="p-10 text-center">
+                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-200" strokeWidth={1} />
+                  <p className="text-gray-400 text-sm font-medium">No completed trips yet</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50">
                   {tripHistory.map((trip, i) => (
                     <div key={trip.id} className="p-4 hover:bg-gray-50 transition-colors"
-                      style={{ animation: 'slideRight 0.3s ease-out', animationDelay: `${i * 40}ms`, opacity: 0, animationFillMode: 'forwards' }}>
-                      <div className="flex items-center justify-between">
+                      style={{ animation: `slideRight 0.3s ease-out ${i * 40}ms both` }}>
+                      <div className="flex items-center justify-between gap-3">
                         <div className="flex-1 min-w-0">
-                          <p className="font-mono text-xs text-blue-600 font-bold">{trip.request_number}</p>
-                          <p className="text-sm font-semibold text-gray-900 mt-0.5 truncate">{trip.place_of_visit}</p>
-                          <p className="text-xs text-gray-500 mt-0.5">{trip.user?.full_name} · {trip.user?.department}</p>
+                          <p className="font-mono text-xs text-blue-600 font-bold">{trip.request_number || '—'}</p>
+                          <p className="text-sm font-bold text-gray-900 truncate mt-0.5">{trip.place_of_visit}</p>
+                          <p className="text-xs text-gray-400 mt-0.5">
+                            {trip.user?.full_name || '—'} · {trip.user?.department || '—'}
+                          </p>
                         </div>
-                        <div className="ml-4 flex flex-col items-end gap-1">
+                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
                           <StatusPill status={trip.current_status} />
                           <p className="text-xs text-gray-400">{fmtDate(trip.date_of_visit)}</p>
                         </div>
@@ -272,65 +348,101 @@ const DriverDashboard = () => {
             </div>
           </div>
 
-          {/* Right Column: Driver Profile + Vehicle */}
-          <div className="space-y-6">
-            {/* Driver profile card */}
+          {/* ── Right Column: Profile + Vehicle ── */}
+          <div className="space-y-5">
+            {/* Driver Profile Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 150ms', opacity: 0, animationFillMode: 'forwards' }}>
-              <div className="bg-gradient-to-br from-teal-500 to-cyan-600 p-5 text-white">
-                <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-3">
-                  <span className="text-2xl font-bold">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+              style={{ animation: 'slideUp 0.5s ease-out 150ms both' }}>
+              <div className="bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 p-6 text-center">
+                <div className="w-16 h-16 rounded-full bg-white/25 ring-4 ring-white/30 flex items-center justify-center mx-auto mb-3 shadow-xl">
+                  <span className="text-3xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
                 </div>
-                <h3 className="font-bold text-lg">{profile?.full_name}</h3>
-                <p className="text-teal-100 text-sm">Driver</p>
+                <h3 className="font-black text-lg text-white">{profile?.full_name}</h3>
+                <p className="text-teal-100 text-sm mt-0.5">{profile?.designation || 'Driver'}</p>
               </div>
-              <div className="p-4">
-                <InfoRow icon={Phone} label="Phone" value={profile?.phone || driverRecord?.phone || 'Not set'} />
-                <InfoRow icon={Info} label="Department" value={profile?.department || 'Driver'} />
-                <InfoRow icon={CreditCard} label="License" value={driverRecord?.license_number || 'Not linked'} />
-                <InfoRow icon={Calendar} label="License Expiry" value={driverRecord?.license_expiry ? fmtDate(driverRecord.license_expiry) : 'N/A'} />
-                <div className="mt-3 pt-3 border-t border-gray-100">
-                  <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-xs font-bold ${driverRecord?.is_available ? 'bg-green-100 text-green-700' : 'bg-orange-100 text-orange-700'}`}>
-                    <span className={`w-2 h-2 rounded-full ${driverRecord?.is_available ? 'bg-green-500' : 'bg-orange-500'}`} />
-                    {driverRecord?.is_available ? 'Available' : 'On Duty'}
-                  </span>
-                </div>
+
+              <div className="p-4 space-y-2">
+                {[
+                  { icon: Phone, label: profile?.phone || driverRecord?.phone || 'No phone' },
+                  { icon: CreditCard, label: driverRecord?.license_number || 'License: Not linked' },
+                  { icon: Calendar, label: driverRecord?.license_expiry ? `Expires: ${fmtDate(driverRecord.license_expiry)}` : 'Expiry: N/A' },
+                ].map(({ icon: Icon, label }) => (
+                  <div key={label} className="flex items-center gap-2.5 text-sm py-1.5 border-b border-gray-50 last:border-0">
+                    <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
+                    <span className="text-gray-700 truncate">{label}</span>
+                  </div>
+                ))}
+                <button
+                  onClick={() => navigate('/driver/profile')}
+                  className="w-full mt-3 py-2 text-sm font-semibold text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all border border-teal-100"
+                >
+                  Edit Profile
+                </button>
               </div>
             </div>
 
             {/* Assigned Vehicle */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 250ms', opacity: 0, animationFillMode: 'forwards' }}>
-              <div className="p-5 border-b border-gray-100">
-                <div className="flex items-center gap-2">
-                  <Car className="w-5 h-5 text-purple-600" />
-                  <h2 className="text-base font-bold text-gray-900">Assigned Vehicle</h2>
+              style={{ animation: 'slideUp 0.5s ease-out 250ms both' }}>
+              <div className="p-4 border-b border-gray-100 flex items-center gap-2">
+                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
+                  <Car className="w-4 h-4 text-purple-600" />
                 </div>
+                <h2 className="font-bold text-gray-900">Assigned Vehicle</h2>
               </div>
               <div className="p-4">
                 {driverRecord?.vehicle ? (
                   <>
-                    <div className="bg-purple-50 rounded-xl p-4 mb-3 text-center">
-                      <p className="text-2xl font-black text-purple-700 tracking-wide">{driverRecord.vehicle.vehicle_number}</p>
-                      <p className="text-sm text-purple-500 capitalize">{driverRecord.vehicle.vehicle_type?.replace('_', ' ')}</p>
+                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-4 text-center mb-3">
+                      <p className="text-3xl font-black tracking-widest text-purple-700">{driverRecord.vehicle.vehicle_number}</p>
+                      <p className="text-sm text-purple-500 capitalize mt-1">{driverRecord.vehicle.vehicle_type?.replace('_', ' ')}</p>
                     </div>
-                    <InfoRow icon={Car} label="Model" value={driverRecord.vehicle.model || 'N/A'} />
-                    <InfoRow icon={Users} label="Capacity" value={driverRecord.vehicle.capacity ? `${driverRecord.vehicle.capacity} persons` : 'N/A'} />
+                    {[
+                      { label: 'Model', value: driverRecord.vehicle.model || '—' },
+                      { label: 'Capacity', value: driverRecord.vehicle.capacity ? `${driverRecord.vehicle.capacity} persons` : '—' },
+                    ].map(({ label, value }) => (
+                      <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                        <span className="text-xs font-semibold text-gray-400 uppercase">{label}</span>
+                        <span className="text-sm font-bold text-gray-900">{value}</span>
+                      </div>
+                    ))}
                   </>
                 ) : (
-                  <div className="text-center py-8 text-gray-400">
-                    <Truck className="w-10 h-10 mx-auto mb-2 opacity-30" />
-                    <p className="text-sm">No vehicle assigned</p>
+                  <div className="text-center py-8">
+                    <Truck className="w-10 h-10 mx-auto mb-2 text-gray-200" strokeWidth={1} />
+                    <p className="text-sm text-gray-400">No vehicle assigned</p>
                   </div>
                 )}
               </div>
             </div>
 
-            {/* Notes */}
+            {/* Quick Actions */}
+            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
+              style={{ animation: 'slideUp 0.5s ease-out 300ms both' }}>
+              <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Quick Actions</p>
+              <div className="space-y-2">
+                <button
+                  onClick={() => navigate('/driver/assignments')}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-semibold text-blue-700 transition-all border border-blue-100"
+                >
+                  <span className="flex items-center gap-2"><Package className="w-4 h-4" /> View All Assignments</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+                <button
+                  onClick={() => navigate('/driver/profile')}
+                  className="w-full flex items-center justify-between px-4 py-3 bg-teal-50 hover:bg-teal-100 rounded-xl text-sm font-semibold text-teal-700 transition-all border border-teal-100"
+                >
+                  <span className="flex items-center gap-2"><User className="w-4 h-4" /> Update Profile</span>
+                  <ArrowRight className="w-4 h-4" />
+                </button>
+              </div>
+            </div>
+
+            {/* Admin Notes */}
             {driverRecord?.notes && (
               <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <p className="text-xs font-bold text-amber-700 mb-1 uppercase tracking-wide">Admin Notes</p>
-                <p className="text-sm text-amber-800">{driverRecord.notes}</p>
+                <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1.5">Admin Notes</p>
+                <p className="text-sm text-amber-800 leading-relaxed">{driverRecord.notes}</p>
               </div>
             )}
           </div>
@@ -338,10 +450,9 @@ const DriverDashboard = () => {
       </DashboardLayout>
 
       <style>{`
-        @keyframes slideUp { from { opacity:0; transform:translateY(20px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes slideDown { from { opacity:0; transform:translateY(-15px); } to { opacity:1; transform:translateY(0); } }
-        @keyframes slideRight { from { opacity:0; transform:translateX(-15px); } to { opacity:1; transform:translateX(0); } }
-        .animate-slideDown { animation: slideDown 0.4s ease-out; }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideRight { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
       `}</style>
     </div>
   );

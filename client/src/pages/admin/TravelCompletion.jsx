@@ -37,7 +37,7 @@ const TravelCompletion = () => {
       const { data, error } = await supabase
         .from('transport_requests')
         .select('*, user:users!transport_requests_user_id_fkey(full_name, email)')
-        .eq('current_status', 'vehicle_assigned')
+        .in('current_status', ['vehicle_assigned', 'travel_completed'])
         .order('date_of_visit', { ascending: true });
 
       if (error) throw error;
@@ -196,6 +196,51 @@ const TravelCompletion = () => {
       }
 
       toast.success('Trip completed successfully! Vehicle and Driver are now available.');
+      
+      // Notify the driver that the trip is completed
+      try {
+          let targetDriverUid = null;
+
+          if (selectedRequest.driver_id) {
+              // Route 1: driver_id exists — lookup from drivers table
+              const { data: dData } = await supabase.from('drivers').select('id, full_name, phone, user_id').eq('id', selectedRequest.driver_id).maybeSingle();
+              if (dData) {
+                  targetDriverUid = dData.user_id;
+                  if (!targetDriverUid) {
+                      const { data: ud } = await supabase.from('users').select('id').eq('role', 'driver')
+                        .or(`phone.eq.${dData.phone || ''},full_name.ilike.%${dData.full_name || ''}%`).maybeSingle();
+                      targetDriverUid = ud?.id;
+                  }
+              }
+          }
+          
+          // Route 2: No driver_id — search by driver_name/driver_contact on the request
+          if (!targetDriverUid && (selectedRequest.driver_name || selectedRequest.driver_contact)) {
+              const filters = [];
+              if (selectedRequest.driver_contact) filters.push(`phone.eq.${selectedRequest.driver_contact}`);
+              if (selectedRequest.driver_name) filters.push(`full_name.ilike.%${selectedRequest.driver_name}%`);
+              
+              if (filters.length > 0) {
+                  const { data: ud } = await supabase.from('users').select('id').eq('role', 'driver')
+                    .or(filters.join(',')).maybeSingle();
+                  targetDriverUid = ud?.id;
+              }
+          }
+
+          if (targetDriverUid) {
+              await supabase.from('notifications').insert([{
+                  user_id: targetDriverUid,
+                  title: 'Trip Completed',
+                  message: `Your trip to ${selectedRequest.place_of_visit} on ${selectedRequest.date_of_visit} has been marked as completed by admin.`,
+                  type: 'completed',
+                  related_request_id: selectedRequest.id,
+              }]);
+          }
+      } catch (notifyErr) {
+          console.error('Driver Notification Error:', notifyErr);
+      }
+
+
       setShowModal(false);
       fetchRequests(); // Refresh list
     } catch (err) {
@@ -246,6 +291,7 @@ const TravelCompletion = () => {
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Vehicle</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Date</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Destination</th>
+                  <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Status</th>
                   <th className="px-6 py-4 text-left text-sm font-semibold text-gray-900">Action</th>
                 </tr>
               </thead>
@@ -257,6 +303,17 @@ const TravelCompletion = () => {
                     <td className="px-6 py-4 text-gray-600">{req.vehicle?.vehicle_number || 'N/A'}</td>
                     <td className="px-6 py-4 text-gray-600">{formatDate(req.date_of_visit)}</td>
                     <td className="px-6 py-4 text-gray-900">{req.place_of_visit}</td>
+                    <td className="px-6 py-4">
+                      {req.current_status === 'travel_completed' ? (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-green-100 text-green-800 border border-green-200">
+                          Finished by Driver
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-100 text-blue-800 border border-blue-200">
+                          In Progress
+                        </span>
+                      )}
+                    </td>
                     <td className="px-6 py-4">
                       <Button variant="primary" size="sm" onClick={() => handleCompleteClick(req)}>Complete Trip</Button>
                     </td>

@@ -2,6 +2,7 @@ import React from 'react';
 import { CheckCircle, XCircle, Car, FileText, Info } from 'lucide-react';
 import { formatDateTime } from '../../utils/helpers';
 import { useNavigate } from 'react-router-dom';
+import { useAuth } from '../../context/AuthContext';
 
 const NotificationItem = ({ notification, onMarkAsRead }) => {
   const navigate = useNavigate();
@@ -29,9 +30,17 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
     return colors[type] || 'text-gray-500';
   };
 
+  const { profile } = useAuth();
+
   const handleClick = () => {
     onMarkAsRead(notification.id);
-    if (notification.related_request_id) {
+    if (!notification.related_request_id) return;
+
+    if (profile?.role === 'driver') {
+      // For drivers, take them to their assignments page where they have robust viewing logic
+      navigate('/driver/assignments');
+    } else {
+      // For others (requesters, admins), take them to the details page
       navigate(`/request/${notification.related_request_id}`);
     }
   };
