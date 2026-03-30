@@ -1,42 +1,66 @@
-const CLOUDINARY_CLOUD_NAME = process.env.REACT_APP_CLOUDINARY_CLOUD_NAME;
-const CLOUDINARY_UPLOAD_PRESET = process.env.REACT_APP_CLOUDINARY_UPLOAD_PRESET;
+import api from './api';
 
-export const uploadToCloudinary = async (file) => {
+/**
+ * Uploads an attachment for a specific transport request via the backend API.
+ * The backend handles secure Cloudinary upload and saves metadata to the database.
+ * 
+ * @param {File} file - The file to upload.
+ * @param {string} requestId - The ID of the transport request this file belongs to.
+ * @returns {Promise<{data: object, error: string|null}>}
+ */
+export const uploadAttachment = async (file, requestId) => {
   try {
-    const formData = new FormData();
-    formData.append('file', file);
-    formData.append('upload_preset', CLOUDINARY_UPLOAD_PRESET);
-    formData.append('folder', 'thapar-transport');
-
-    const response = await fetch(
-      `https://api.cloudinary.com/v1_1/${CLOUDINARY_CLOUD_NAME}/upload`,
-      {
-        method: 'POST',
-        body: formData,
-      }
-    );
-
-    if (!response.ok) {
-      throw new Error('Upload failed');
+    if (!file || !requestId) {
+      throw new Error('File and Request ID are required for upload');
     }
 
-    const data = await response.json();
+    const formData = new FormData();
+    formData.append('file', file);
+    formData.append('requestId', requestId);
+
+    const response = await api.post('/upload/attachment', formData, {
+      headers: {
+        'Content-Type': 'multipart/form-data',
+      },
+      // Optional: Add upload progress tracking if needed
+    });
+
     return {
-      url: data.secure_url,
-      publicId: data.public_id,
+      data: response.data.data.attachment,
       error: null,
     };
   } catch (error) {
+    console.error('Upload failed:', error);
     return {
-      url: null,
-      publicId: null,
-      error: error.message,
+      data: null,
+      error: error.message || 'Upload failed. Please try again.',
     };
   }
 };
 
-export const deleteFromCloudinary = async (publicId) => {
-  // Note: Deletion requires signed requests from backend
-  // For now, we'll just mark as deleted in database
+/**
+ * Deletes an attachment by its ID via the backend API.
+ * 
+ * @param {string} attachmentId - The ID of the attachment to delete.
+ * @returns {Promise<{success: boolean, error: string|null}>}
+ */
+export const deleteAttachment = async (attachmentId) => {
+  try {
+    if (!attachmentId) {
+      throw new Error('Attachment ID is required for deletion');
+    }
 
+    await api.delete(`/upload/attachment/${attachmentId}`);
+
+    return {
+      success: true,
+      error: null,
+    };
+  } catch (error) {
+    console.error('Deletion failed:', error);
+    return {
+      success: false,
+      error: error.message || 'Deletion failed. Please try again.',
+    };
+  }
 };

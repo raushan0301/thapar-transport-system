@@ -52,14 +52,14 @@ const DriverDashboard = () => {
       const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
       const { data: { session } } = await supabase.auth.getSession();
       const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
-      
+
       const response = await fetch(`${apiBase}/driver/trips?user_id=${profile.id}`, { headers });
       const data = await response.json();
 
       if (!data.success) throw new Error(data.message || 'Failed to fetch dashboard data');
 
       setDriverRecord(data.driver);
-      
+
       const allTrips = data.trips || [];
       const active = allTrips.find(t => t.current_status === 'vehicle_assigned');
       const history = allTrips.filter(t => t.current_status === 'travel_completed' || t.current_status === 'completed');
@@ -69,7 +69,7 @@ const DriverDashboard = () => {
 
     } catch (err) {
       toast.error('Failed to load dashboard. Falling back to notification sync...');
-      
+
       // Minimal notification fallback
       try {
         const { data: notifs } = await supabase
@@ -79,7 +79,7 @@ const DriverDashboard = () => {
           .not('related_request_id', 'is', null)
           .order('created_at', { ascending: false })
           .limit(20);
-          
+
         if (notifs?.length > 0) {
           const tripMap = new Map();
           notifs.forEach(n => {
@@ -270,36 +270,36 @@ const DriverDashboard = () => {
                       <p className="text-[10px] text-gray-400 uppercase font-bold">Request ID</p>
                       <p className="font-mono font-black text-blue-700">{currentTrip.request_number || '—'}</p>
                     </div>
-                      <div className="flex gap-3">
-                        {confirming ? (
-                          <div className="flex items-center gap-2 bg-blue-50/50 p-1.5 rounded-2xl border border-blue-100" style={{ animation: 'slideIn 0.3s ease-out' }}>
-                            <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Final Step:</span>
-                            <button
-                              onClick={handleCompleteTrip}
-                              className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xs font-black shadow-lg shadow-green-200"
-                            >
-                              Yes, Confirm
-                            </button>
-                            <button
-                              onClick={() => setConfirming(false)}
-                              className="px-6 py-2 bg-white text-gray-500 rounded-xl text-xs font-bold border border-gray-200"
-                            >
-                              No
-                            </button>
-                          </div>
-                        ) : (
+                    <div className="flex gap-3">
+                      {confirming ? (
+                        <div className="flex items-center gap-2 bg-blue-50/50 p-1.5 rounded-2xl border border-blue-100" style={{ animation: 'slideIn 0.3s ease-out' }}>
+                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Final Step:</span>
                           <button
-                            onClick={() => setConfirming(true)}
-                            disabled={actionLoading}
-                            className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                            onClick={handleCompleteTrip}
+                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xs font-black shadow-lg shadow-green-200"
                           >
-                            {actionLoading
-                              ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                              : <CheckCircle2 className="w-5 h-5" />}
-                            {actionLoading ? 'Saving...' : 'Mark Trip Complete'}
+                            Yes, Confirm
                           </button>
-                        )}
-                      </div>
+                          <button
+                            onClick={() => setConfirming(false)}
+                            className="px-6 py-2 bg-white text-gray-500 rounded-xl text-xs font-bold border border-gray-200"
+                          >
+                            No
+                          </button>
+                        </div>
+                      ) : (
+                        <button
+                          onClick={() => setConfirming(true)}
+                          disabled={actionLoading}
+                          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
+                        >
+                          {actionLoading
+                            ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                            : <CheckCircle2 className="w-5 h-5" />}
+                          {actionLoading ? 'Saving...' : 'Mark Trip Complete'}
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
               )}

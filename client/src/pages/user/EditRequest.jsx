@@ -4,6 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import Input from '../../components/common/Input';
 import Loader from '../../components/common/Loader';
+import FileUpload from '../../components/forms/FileUpload';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { ArrowLeft, Save, FileText, MapPin, Calendar, Users, Clock, User, Phone } from 'lucide-react';
@@ -29,6 +30,7 @@ const EditRequest = () => {
         guest_name: '',
         guest_contact: '',
     });
+    const [attachments, setAttachments] = useState([]);
 
     useEffect(() => {
         if (id && user?.id) fetchRequest();
@@ -40,7 +42,7 @@ const EditRequest = () => {
             setLoading(true);
             const { data, error } = await supabase
                 .from('transport_requests')
-                .select('*')
+                .select('*, attachments(*)')
                 .eq('id', id)
                 .eq('user_id', user.id) // Ensure user owns this request
                 .single();
@@ -60,6 +62,7 @@ const EditRequest = () => {
             }
             
             setRequest(data);
+            setAttachments(data.attachments || []);
 
             const cleanPurpose = data.purpose?.split('\n\n[Guest Details]:')[0].split('\n\n[Special Requirements]:')[0] || '';
             const guestPart = data.purpose?.split('\n\n[Guest Details]:\n')[1] || '';
@@ -281,6 +284,20 @@ const EditRequest = () => {
                                         placeholder="Any specific needs? (e.g. extra luggage, specific seating, accessibility)"
                                     />
                                 </div>
+                            </div>
+
+                            {/* Attachments Section */}
+                            <div className="mt-8 pt-6 border-t border-gray-100">
+                                <h3 className="text-sm font-bold text-gray-900 mb-4 flex items-center gap-2 uppercase tracking-wider">
+                                    <FileText className="w-4 h-4 text-blue-600" />
+                                    Attachments
+                                </h3>
+                                <FileUpload 
+                                    requestId={id}
+                                    existingFiles={attachments}
+                                    onUploadComplete={(newFile) => setAttachments(prev => [...prev, newFile])}
+                                    onRemove={(fileId) => setAttachments(prev => prev.filter(f => f.id !== fileId))}
+                                />
                             </div>
 
                             {/* Action Buttons */}

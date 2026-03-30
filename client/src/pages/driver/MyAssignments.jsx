@@ -43,9 +43,8 @@ const Tripd = ({ trip, onComplete, actionLoading, idx, confirming, setConfirming
 
   return (
     <div
-      className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 ${
-        isActive ? 'border-blue-200 shadow-md shadow-blue-50' : 'border-gray-100 shadow-sm'
-      }`}
+      className={`bg-white rounded-2xl border overflow-hidden hover:shadow-md transition-all duration-300 ${isActive ? 'border-blue-200 shadow-md shadow-blue-50' : 'border-gray-100 shadow-sm'
+        }`}
       style={{ animation: `slideUp 0.4s ease-out ${idx * 60}ms both` }}
     >
       {isActive && <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400" />}
@@ -56,9 +55,8 @@ const Tripd = ({ trip, onComplete, actionLoading, idx, confirming, setConfirming
         {/* Header */}
         <div className="flex items-start justify-between gap-3 mb-4">
           <div className="flex items-center gap-3">
-            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${
-              isActive ? 'bg-blue-100' : isReview ? 'bg-amber-100' : 'bg-green-100'
-            }`}>
+            <div className={`w-11 h-11 rounded-xl flex items-center justify-center flex-shrink-0 ${isActive ? 'bg-blue-100' : isReview ? 'bg-amber-100' : 'bg-green-100'
+              }`}>
               <Navigation className={`w-5 h-5 ${isActive ? 'text-blue-600' : isReview ? 'text-amber-600' : 'text-green-600'}`} />
             </div>
             <div>
@@ -177,59 +175,59 @@ const Tripd = ({ trip, onComplete, actionLoading, idx, confirming, setConfirming
           </>
         )}
 
-            <div className="flex flex-wrap gap-2">
-              {isActive && (
-                <div className="flex items-center gap-2">
-                  {confirming === trip.id ? (
-                    <div className="flex items-center gap-2" style={{ animation: 'slideIn 0.3s ease-out' }}>
-                      <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight mr-1">Sure?</span>
-                      <button
-                        onClick={() => {
-                          setConfirming(null);
-                          onComplete(trip.id);
-                        }}
-                        className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-sm"
-                      >
-                        Yes
-                      </button>
-                      <button
-                        onClick={() => setConfirming(null)}
-                        className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300"
-                      >
-                        No
-                      </button>
-                    </div>
+        <div className="flex flex-wrap gap-2">
+          {isActive && (
+            <div className="flex items-center gap-2">
+              {confirming === trip.id ? (
+                <div className="flex items-center gap-2" style={{ animation: 'slideIn 0.3s ease-out' }}>
+                  <span className="text-[10px] font-bold text-blue-600 uppercase tracking-tight mr-1">Sure?</span>
+                  <button
+                    onClick={() => {
+                      setConfirming(null);
+                      onComplete(trip.id);
+                    }}
+                    className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-sm"
+                  >
+                    Yes
+                  </button>
+                  <button
+                    onClick={() => setConfirming(null)}
+                    className="px-4 py-1.5 bg-gray-200 text-gray-700 rounded-lg text-xs font-bold hover:bg-gray-300"
+                  >
+                    No
+                  </button>
+                </div>
+              ) : (
+                <button
+                  onClick={() => setConfirming(trip.id)}
+                  disabled={!!actionLoading}
+                  className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl text-xs font-bold shadow-[0_4px_12px_rgba(37,99,235,0.2)] flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
+                >
+                  {actionLoading === trip.id ? (
+                    <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
                   ) : (
-                    <button
-                      onClick={() => setConfirming(trip.id)}
-                      disabled={!!actionLoading}
-                      className="px-4 py-2 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-xl text-xs font-bold shadow-[0_4px_12px_rgba(37,99,235,0.2)] flex items-center gap-2 transition-all hover:scale-105 active:scale-95 disabled:opacity-50"
-                    >
-                      {actionLoading === trip.id ? (
-                        <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <CheckCircle2 className="w-3 h-3" />
-                      )}
-                      {actionLoading === trip.id ? 'Saving...' : 'Mark Trip Complete'}
-                    </button>
+                    <CheckCircle2 className="w-3 h-3" />
                   )}
-                </div>
-              )}
-
-              {isReview && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-xl">
-                  <Clock className="w-3.5 h-3.5 text-amber-500" />
-                  <span className="text-[11px] font-bold text-amber-700">Awaiting Admin Final Review</span>
-                </div>
-              )}
-
-              {isDone && (
-                <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-100 rounded-xl">
-                  <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
-                  <span className="text-[11px] font-bold text-green-700">Trip Finalized ✓</span>
-                </div>
+                  {actionLoading === trip.id ? 'Saving...' : 'Mark Trip Complete'}
+                </button>
               )}
             </div>
+          )}
+
+          {isReview && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-amber-50 border border-amber-100 rounded-xl">
+              <Clock className="w-3.5 h-3.5 text-amber-500" />
+              <span className="text-[11px] font-bold text-amber-700">Awaiting Admin Final Review</span>
+            </div>
+          )}
+
+          {isDone && (
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-50 border border-green-100 rounded-xl">
+              <CheckCircle2 className="w-3.5 h-3.5 text-green-500" />
+              <span className="text-[11px] font-bold text-green-700">Trip Finalized ✓</span>
+            </div>
+          )}
+        </div>
       </div>
     </div>
   );
@@ -262,12 +260,12 @@ const MyAssignments = () => {
       if (!data.success) throw new Error(data.message || 'Failed to fetch trips');
 
       setDriverRecord(data.driver);
-      
+
       // The API already sorts and joins requester details
       setAssignments(data.trips || []);
     } catch (err) {
       toast.error('Failed to load assignments. Falling back to notification sync...');
-      
+
       // Keep a minimal notification fallback just in case the server is down
       try {
         const { data: notifs } = await supabase
@@ -276,7 +274,7 @@ const MyAssignments = () => {
           .eq('user_id', profile.id)
           .not('related_request_id', 'is', null)
           .order('created_at', { ascending: false });
-        
+
         if (notifs?.length > 0) {
           const tripMap = new Map();
           notifs.forEach(n => {
@@ -321,7 +319,7 @@ const MyAssignments = () => {
         headers,
         body: JSON.stringify({ request_id: requestId, driver_id: driverRecord?.id })
       });
-      
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({}));
         throw new Error(errorData.message || `Server error: ${response.status}`);
@@ -331,7 +329,7 @@ const MyAssignments = () => {
       if (!data.success) throw new Error(data.message || 'Failed to update trip status');
 
       toast.success('Trip completed! Sent for admin review.');
-      await fetchDriverData(); 
+      await fetchDriverData();
     } catch (err) {
       toast.error('Failed to complete trip: ' + err.message);
     } finally {
@@ -405,9 +403,8 @@ const MyAssignments = () => {
             <button
               key={s.id}
               onClick={() => setStatusFilter(s.id)}
-              className={`bg-white rounded-xl p-4 text-left border shadow-sm hover:shadow-md transition-all ${
-                statusFilter === s.id ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-100'
-              }`}
+              className={`bg-white rounded-xl p-4 text-left border shadow-sm hover:shadow-md transition-all ${statusFilter === s.id ? 'border-blue-400 ring-2 ring-blue-100' : 'border-gray-100'
+                }`}
               style={{ animation: `slideUp 0.4s ease-out ${i * 50}ms both` }}
             >
               <p className="text-2xl font-black text-gray-900">{s.count}</p>
@@ -451,9 +448,8 @@ const MyAssignments = () => {
               <button
                 key={f.id}
                 onClick={() => setStatusFilter(f.id)}
-                className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${
-                  statusFilter === f.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
-                }`}
+                className={`px-4 py-2 rounded-xl text-sm font-semibold whitespace-nowrap transition-all ${statusFilter === f.id ? 'bg-blue-600 text-white shadow-lg shadow-blue-200' : 'bg-gray-100 text-gray-600 hover:bg-gray-200'
+                  }`}
               >
                 {f.label}
               </button>

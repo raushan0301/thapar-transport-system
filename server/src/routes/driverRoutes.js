@@ -140,7 +140,7 @@ router.post('/complete-trip', async (req, res) => {
         if (driver_id) {
 
             await db.from('drivers').update({ is_available: true, assigned_vehicle_id: null }).eq('id', driver_id);
-            
+
             const { data: req_data } = await db.from('transport_requests')
                 .select('vehicle_id')
                 .eq('id', request_id)

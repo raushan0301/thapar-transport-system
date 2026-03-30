@@ -1,7 +1,8 @@
 const multer = require('multer');
 const { uploadFile, uploadImage, saveAttachmentMetadata, getRequestAttachments, deleteAttachment } = require('../services/cloudinaryService');
 const { successResponse } = require('../utils/responseFormatter');
-const { ValidationError } = require('../utils/errorTypes');
+const { ValidationError, NotFoundError } = require('../utils/errorTypes');
+const { supabase } = require('../config/database');
 
 // Configure multer for memory storage
 const storage = multer.memoryStorage();
@@ -25,6 +26,20 @@ const uploadAttachmentController = async (req, res, next) => {
 
         if (!requestId) {
             throw new ValidationError('Request ID is required');
+        }
+
+        // IDOR Protection: Prevent users from uploading attachments to other people's requests
+        if (req.profile.role === 'user') {
+            const { data: reqCheck, error: checkErr } = await supabase
+                .from('transport_requests')
+                .select('user_id')
+                .eq('id', requestId)
+                .single();
+            
+            if (checkErr || !reqCheck) throw new NotFoundError('Transport request not found');
+            if (reqCheck.user_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Unauthorized to upload attachments to this request' });
+            }
         }
 
         // Determine if it's an image
@@ -68,6 +83,20 @@ const getAttachmentsController = async (req, res, next) => {
     try {
         const { requestId } = req.params;
 
+        // IDOR Protection for attachments
+        if (req.profile.role === 'user') {
+            const { data: reqCheck, error: checkErr } = await supabase
+                .from('transport_requests')
+                .select('user_id')
+                .eq('id', requestId)
+                .single();
+            
+            if (checkErr || !reqCheck) throw new NotFoundError('Transport request not found');
+            if (reqCheck.user_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Unauthorized to view attachments for this request' });
+            }
+        }
+
         const attachments = await getRequestAttachments(requestId);
 
         successResponse(res, attachments, 'Attachments fetched successfully');
@@ -83,7 +112,7 @@ const deleteAttachmentController = async (req, res, next) => {
     try {
         const { id } = req.params;
 
-        await deleteAttachment(id, req.user.id);
+        await deleteAttachment(id, req.user.id, req.profile?.role);
 
         successResponse(res, null, 'Attachment deleted successfully');
     } catch (error) {

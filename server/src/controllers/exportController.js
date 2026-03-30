@@ -2,6 +2,7 @@ const { generateRequestPDF } = require('../services/pdfService');
 const { generateRequestsExcel, generateVehiclesExcel, generateAnalyticsExcel } = require('../services/excelService');
 const { successResponse } = require('../utils/responseFormatter');
 const { NotFoundError } = require('../utils/errorTypes');
+const { supabase } = require('../config/database');
 
 /**
  * Generate PDF for a transport request
@@ -9,6 +10,20 @@ const { NotFoundError } = require('../utils/errorTypes');
 const generateRequestPDFController = async (req, res, next) => {
     try {
         const { id } = req.params;
+
+        // IDOR Protection: Ensure standard users can only export their own requests
+        if (req.profile.role === 'user') {
+            const { data: reqCheck, error: checkErr } = await supabase
+                .from('transport_requests')
+                .select('user_id')
+                .eq('id', id)
+                .single();
+            
+            if (checkErr || !reqCheck) throw new NotFoundError('Transport request not found');
+            if (reqCheck.user_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Unauthorized to view this request PDF' });
+            }
+        }
 
         const pdfDoc = await generateRequestPDF(id);
 

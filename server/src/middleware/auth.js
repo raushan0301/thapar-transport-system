@@ -21,15 +21,18 @@ const verifyToken = async (req, res, next) => {
             throw new ApiError(401, 'Invalid or expired token');
         }
 
-        // Fetch user profile from database
-        const { data: profile, error: profileError } = await supabase
+        // Fetch user profile from database - Use Admin client if available to bypass RLS
+        const db = require('../config/database').supabaseAdmin || supabase;
+        const { data: profile, error: profileError } = await db
             .from('users')
             .select('*')
             .eq('id', user.id)
             .single();
 
-        if (profileError) {
-            throw new ApiError(404, 'User profile not found');
+        if (profileError || !profile) {
+            // Log specifically for debugging
+            require('../utils/logger').error(`Auth Error: Profile not found for user ${user.id}. Ensure user exists in 'users' table.`);
+            throw new ApiError(404, `User profile not found in database for ID: ${user.id}`);
         }
 
         // Attach user and profile to request

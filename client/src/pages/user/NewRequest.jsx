@@ -8,6 +8,7 @@ import HeadSelector from '../../components/forms/HeadSelector';
 import FileUpload from '../../components/forms/FileUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createRequest } from '../../services/requestService';
+import { uploadAttachment } from '../../services/cloudinaryService';
 import { validateTransportRequest } from '../../utils/validators';
 import { handleSupabaseError, showSuccess } from '../../utils/errorHandler';
 import { FileText, Send, Calendar, MapPin, Users, Info, User, Phone, Clock } from 'lucide-react';
@@ -57,8 +58,14 @@ const NewRequest = () => {
     if (errors.head) setErrors((prev) => ({ ...prev, head: '' }));
   };
 
-  const handleFileUpload = (fileData) => {
-    setAttachments((prev) => [...prev, fileData]);
+  const handleFileSelect = (file) => {
+    setAttachments((prev) => [...prev, file]);
+  };
+
+  const handleFileRemove = (index, isLocal) => {
+    if (isLocal) {
+      setAttachments(prev => prev.filter((_, i) => i !== index));
+    }
   };
 
   const handleSubmit = async (e) => {
@@ -100,10 +107,18 @@ const NewRequest = () => {
         is_editable: true,
       };
 
-      const { error } = await createRequest(requestData);
+      const { data: request, error } = await createRequest(requestData);
       if (error) {
         handleSupabaseError(error, 'create your request');
         return;
+      }
+
+      // Step 2: Upload attachments if any
+      if (attachments.length > 0) {
+        toast.loading('Uploading attachments...');
+        const uploadPromises = attachments.map(file => uploadAttachment(file, request.id));
+        await Promise.all(uploadPromises);
+        toast.dismiss();
       }
 
       showSuccess('Transport request submitted successfully!');
@@ -187,7 +202,11 @@ const NewRequest = () => {
                   <FileText className="w-5 h-5 text-green-600" strokeWidth={1.5} />
                   <h2 className="text-xl font-semibold text-gray-900">Attachments (Optional)</h2>
                 </div>
-                <FileUpload onUploadComplete={handleFileUpload} existingFiles={attachments} />
+                <FileUpload 
+                  onFileSelect={handleFileSelect} 
+                  onRemove={handleFileRemove}
+                  existingFiles={[]} 
+                />
               </div>
 
               {/* Submit Buttons */}

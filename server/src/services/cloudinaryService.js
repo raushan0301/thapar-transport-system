@@ -153,7 +153,7 @@ const getRequestAttachments = async (requestId) => {
 /**
  * Delete attachment (from both Cloudinary and database)
  */
-const deleteAttachment = async (attachmentId, userId) => {
+const deleteAttachment = async (attachmentId, userId, userRole = 'user') => {
     // Fetch attachment
     const { data: attachment, error: fetchError } = await supabase
         .from('attachments')
@@ -163,6 +163,11 @@ const deleteAttachment = async (attachmentId, userId) => {
 
     if (fetchError || !attachment) {
         throw new Error('Attachment not found');
+    }
+
+    // Role verification: user must either own the attachment or be an admin/manager to delete it.
+    if (attachment.uploaded_by !== userId && userRole !== 'admin' && userRole !== 'registrar') {
+        throw new Error('Unauthorized to delete this attachment');
     }
 
     // Delete from Cloudinary
