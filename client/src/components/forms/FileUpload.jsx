@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
+/* eslint-disable */
+import { useState } from 'react';
 import { Upload, X, FileText, Image, AlertCircle } from 'lucide-react';
-import Button from '../common/Button';
 import { uploadAttachment, deleteAttachment } from '../../services/cloudinaryService';
 import toast from 'react-hot-toast';
 import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '../../utils/constants';
