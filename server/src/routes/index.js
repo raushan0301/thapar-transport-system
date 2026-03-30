@@ -17,11 +17,13 @@ router.get('/health', (req, res) => {
     });
 });
 
+const { verifyToken } = require('../middleware/auth');
+
 // Mount routes
-router.use('/export', exportRoutes);
-router.use('/upload', uploadRoutes);
-router.use('/analytics', analyticsRoutes);
-router.use('/users', userRoutes);
-router.use('/driver', driverRoutes);
+router.use('/export', verifyToken, exportRoutes);
+router.use('/upload', verifyToken, uploadRoutes);
+router.use('/analytics', verifyToken, analyticsRoutes);
+router.use('/users', userRoutes); // Protected internally via optionalAuth & roles
+router.use('/driver', verifyToken, driverRoutes);
 
 module.exports = router;

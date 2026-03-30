@@ -1,10 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const { supabaseAdmin } = require('../config/database');
+const { optionalAuth, verifyToken } = require('../middleware/auth');
+const { checkRole } = require('../middleware/roleCheck');
 
 // POST /api/v1/users — create a new user with pre-confirmed email
-router.post('/', async (req, res) => {
-    const {
+router.post('/', optionalAuth, async (req, res) => {
+    let {
         email,
         password,
         full_name,
@@ -16,6 +18,11 @@ router.post('/', async (req, res) => {
 
     if (!email || !password || !full_name || !role) {
         return res.status(400).json({ success: false, message: 'Missing required fields' });
+    }
+
+    // Security check: Force role to 'user' unless logged in as admin
+    if (role !== 'user' && req.profile?.role !== 'admin') {
+        return res.status(403).json({ success: false, message: 'Unauthorized to assign elevated roles' });
     }
 
     if (!supabaseAdmin) {
@@ -109,7 +116,7 @@ router.post('/', async (req, res) => {
 });
 
 // DELETE /api/v1/users/:id — hard-delete a user from Supabase Auth + users table
-router.delete('/:id', async (req, res) => {
+router.delete('/:id', verifyToken, checkRole(['admin']), async (req, res) => {
     const { id } = req.params;
 
     if (!id) {

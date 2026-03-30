@@ -50,7 +50,10 @@ const DriverDashboard = () => {
     setLoading(true);
     try {
       const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
-      const response = await fetch(`${apiBase}/driver/trips?user_id=${profile.id}`);
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
+      
+      const response = await fetch(`${apiBase}/driver/trips?user_id=${profile.id}`, { headers });
       const data = await response.json();
 
       if (!data.success) throw new Error(data.message || 'Failed to fetch dashboard data');
@@ -109,9 +112,13 @@ const DriverDashboard = () => {
     setActionLoading(true);
     try {
       const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      const { data: { session } } = await supabase.auth.getSession();
+      const headers = { 'Content-Type': 'application/json' };
+      if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
+
       const response = await fetch(`${apiBase}/driver/complete-trip`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers,
         body: JSON.stringify({ request_id: currentTrip.id, driver_id: driverRecord?.id })
       });
       const data = await response.json();
