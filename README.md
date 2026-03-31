@@ -170,4 +170,4 @@ Developed for Thapar Institute of Engineering & Technology
 
 **Status**: 🚧 In Development
 
-**Last Updated**: November 2025
+**Last Updated**:  November 2025
