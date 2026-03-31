@@ -14,82 +14,81 @@ router.get('/trips', async (req, res) => {
             return res.status(400).json({ success: false, message: 'user_id required' });
         }
 
-        const db = supabaseAdmin || supabase;
-
-        // 1. Find the driver record
-        let driverRecord = null;
-        let driverId = null;
-
-        // Try by user_id
-        let { data: drv } = await db.from('drivers')
-            .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
-            .eq('user_id', user_id).maybeSingle();
-        if (drv) { driverRecord = drv; driverId = drv.id; }
-
-        // Also get user profile for name/phone fallback
-        const { data: userProfile } = await db.from('users')
-            .select('full_name, phone, email, department, designation')
-            .eq('id', user_id).maybeSingle();
-
-        if (!drv && userProfile?.full_name) {
-            ({ data: drv } = await db.from('drivers')
-                .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
-                .ilike('full_name', `%${userProfile.full_name}%`).maybeSingle());
-            if (drv) { driverRecord = drv; driverId = drv.id; }
-        }
-        if (!drv && userProfile?.phone) {
-            ({ data: drv } = await db.from('drivers')
-                .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
-                .eq('phone', userProfile.phone).maybeSingle());
-            if (drv) { driverRecord = drv; driverId = drv.id; }
+        // IDOR Protection
+        const isManager = ['admin', 'registrar', 'head'].includes(req.profile?.role);
+        if (user_id !== req.user.id && !isManager) {
+            return res.status(403).json({ success: false, message: 'Unauthorized' });
         }
 
-        // 2. Fetch all trips for this driver
-        let allTrips = [];
+        const db = require('../config/database').supabaseAdmin || supabase;
 
-        if (driverId) {
-            const { data } = await db.from('transport_requests')
-                .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
-                .eq('driver_id', driverId)
-                .order('date_of_visit', { ascending: false });
-            if (data) allTrips = [...data];
-        }
+        // 1. Run driver and user lookups in parallel for better performance
+        const [
+            { data: userProfile },
+            { data: directDrv }
+        ] = await Promise.all([
+            db.from('users').select('full_name, phone, department, designation').eq('id', user_id).maybeSingle(),
+            db.from('drivers').select('*, vehicle:vehicles(*)').eq('user_id', user_id).maybeSingle()
+        ]);
 
-        if (userProfile?.full_name) {
-            const { data } = await db.from('transport_requests')
-                .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
-                .ilike('driver_name', `%${userProfile.full_name}%`)
-                .order('date_of_visit', { ascending: false });
-            if (data) data.forEach(t => { if (!allTrips.find(e => e.id === t.id)) allTrips.push(t); });
-        }
+        let driverRecord = directDrv;
+        let driverId = directDrv?.id;
 
-        if (userProfile?.phone) {
-            const { data } = await db.from('transport_requests')
-                .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
-                .eq('driver_contact', userProfile.phone)
-                .order('date_of_visit', { ascending: false });
-            if (data) data.forEach(t => { if (!allTrips.find(e => e.id === t.id)) allTrips.push(t); });
-        }
-
-        // 3. Also get trips referenced in notifications (catch any edge cases)
-        const { data: notifs } = await db.from('notifications')
-            .select('related_request_id')
-            .eq('user_id', user_id)
-            .not('related_request_id', 'is', null);
-
-        if (notifs?.length > 0) {
-            const existingIds = new Set(allTrips.map(t => t.id));
-            const notifIds = [...new Set(notifs.map(n => n.related_request_id))].filter(id => !existingIds.has(id));
-            if (notifIds.length > 0) {
-                const { data: extra } = await db.from('transport_requests')
-                    .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
-                    .in('id', notifIds);
-                if (extra) allTrips = [...allTrips, ...extra];
+        // 2. Logic to find driver record if direct user_id link is missing
+        if (!driverRecord && userProfile) {
+            const { data: fallbackDrv } = await db.from('drivers')
+                .select('*, vehicle:vehicles(*)')
+                .or(`full_name.ilike.%${userProfile.full_name}%,phone.eq.${userProfile.phone || 'none'}`)
+                .maybeSingle();
+            
+            if (fallbackDrv) {
+                driverRecord = fallbackDrv;
+                driverId = fallbackDrv.id;
             }
         }
 
-        // Sort: active first, then by date
-        allTrips.sort((a, b) => {
+        // 3. Fetch all potential trips concurrently
+        const queryPromises = [];
+        
+        if (driverId) {
+            queryPromises.push(db.from('transport_requests')
+                .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
+                .eq('driver_id', driverId));
+        }
+        
+        if (userProfile?.full_name) {
+            queryPromises.push(db.from('transport_requests')
+                .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
+                .ilike('driver_name', `%${userProfile.full_name}%`));
+        }
+
+        // Fetch notifications for referencing
+        queryPromises.push(db.from('notifications')
+            .select('related_request_id')
+            .eq('user_id', user_id)
+            .not('related_request_id', 'is', null));
+
+        const results = await Promise.all(queryPromises);
+        
+        const tripMap = new Map();
+        results.forEach(res => {
+            if (res.data && Array.isArray(res.data) && res.data[0]?.place_of_visit) {
+                res.data.forEach(t => tripMap.set(t.id, t));
+            }
+        });
+
+        const notifs = results.find(res => res.data && res.data[0]?.related_request_id === undefined === false);
+        if (notifs?.data?.length > 0) {
+            const missingIds = [...new Set(notifs.data.map(n => n.related_request_id))].filter(id => !tripMap.has(id));
+            if (missingIds.length > 0) {
+                const { data: extra } = await db.from('transport_requests')
+                    .select('*, user:users!transport_requests_user_id_fkey(full_name, email, phone, department, designation)')
+                    .in('id', missingIds);
+                if (extra) extra.forEach(t => tripMap.set(t.id, t));
+            }
+        }
+
+        const allTrips = Array.from(tripMap.values()).sort((a, b) => {
             if (a.current_status === 'vehicle_assigned' && b.current_status !== 'vehicle_assigned') return -1;
             if (a.current_status !== 'vehicle_assigned' && b.current_status === 'vehicle_assigned') return 1;
             return new Date(b.date_of_visit || b.submitted_at) - new Date(a.date_of_visit || a.submitted_at);
@@ -123,7 +122,7 @@ router.post('/complete-trip', async (req, res) => {
         const usingAdmin = !!supabaseAdmin;
 
         // 1. Update Trip status
-        const { error, count } = await db.from('transport_requests')
+        const { data: updatedData, error, count } = await db.from('transport_requests')
             .update({ current_status: 'travel_completed', updated_at: new Date().toISOString() })
             .eq('id', request_id)
             .select('*', { count: 'exact' });
@@ -152,7 +151,11 @@ router.post('/complete-trip', async (req, res) => {
             }
         }
 
-        res.json({ success: true, message: 'Trip marked as complete' });
+        res.json({ 
+            success: true, 
+            message: 'Trip marked as complete',
+            trip: updatedData?.[0]
+        });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });
     }

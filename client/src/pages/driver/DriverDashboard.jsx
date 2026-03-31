@@ -126,7 +126,11 @@ const DriverDashboard = () => {
       if (!data.success) throw new Error(data.message || 'Failed to complete trip');
 
       toast.success('Trip marked as complete! Sent for admin review.');
-      await fetchDriverData();
+      
+      // Delay full refresh slightly for production consistency
+      setTimeout(() => {
+        fetchDriverData();
+      }, 800);
     } catch (err) {
       toast.error('Failed to complete trip: ' + err.message);
     } finally {

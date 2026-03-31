@@ -329,7 +329,11 @@ const MyAssignments = () => {
       if (!data.success) throw new Error(data.message || 'Failed to update trip status');
 
       toast.success('Trip completed! Sent for admin review.');
-      await fetchDriverData();
+      
+      // Safety delay for production database consistency
+      setTimeout(() => {
+        fetchDriverData();
+      }, 800);
     } catch (err) {
       toast.error('Failed to complete trip: ' + err.message);
     } finally {
