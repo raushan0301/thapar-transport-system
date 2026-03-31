@@ -250,7 +250,9 @@ const MyAssignments = () => {
     if (!profile) return;
     setLoading(true);
     try {
-      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      let apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      if (apiBase && !apiBase.includes('/api/v1')) apiBase = `${apiBase.replace(/\/$/, '')}/api/v1`;
+
       const { data: { session } } = await supabase.auth.getSession();
       const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
 
@@ -308,8 +310,9 @@ const MyAssignments = () => {
     }
     setActionLoading(requestId); // Use ID instead of boolean to track specific trip loading
     try {
+      let apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+      if (apiBase && !apiBase.includes('/api/v1')) apiBase = `${apiBase.replace(/\/$/, '')}/api/v1`;
 
-      const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
       const { data: { session } } = await supabase.auth.getSession();
       const headers = { 'Content-Type': 'application/json' };
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;

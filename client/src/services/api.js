@@ -3,7 +3,8 @@ import axios from 'axios';
 import { supabase } from './supabase';
 
 // Use environment variable from Create React App (defaults to local dev port if not set)
-const apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+let apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
+if (apiBase && !apiBase.includes('/api/v1')) apiBase = `${apiBase.replace(/\/$/, '')}/api/v1`;
 
 const api = axios.create({
   baseURL: apiBase,
