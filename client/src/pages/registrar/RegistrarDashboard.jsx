@@ -99,7 +99,7 @@ const RegistrarDashboard = () => {
                 ) : (
                   <div className="space-y-3">
                     {recentRequests.map((req, i) => (
-                      <div key={req.id} className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-amber-200 hover:shadow-md transform hover:-translate-x-1" onClick={() => navigate(`/registrar/review/${req.id}`)} style={{ animation: 'slideRight 0.4s ease-out forwards', animationDelay: `${i * 100}ms` }}>
+                      <div key={req.id} className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-amber-50 hover:to-orange-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-amber-200 hover:shadow-md transform hover:-translate-x-1" onClick={() => navigate(`/request/${req.id}`)} style={{ animation: 'slideRight 0.4s ease-out forwards', animationDelay: `${i * 100}ms` }}>
                         <div className="flex items-center justify-between">
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-gray-900 group-hover/item:text-amber-600 transition-colors">{req.request_number}</p>

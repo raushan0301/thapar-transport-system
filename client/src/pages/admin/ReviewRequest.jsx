@@ -41,12 +41,9 @@ const AdminReviewRequest = () => {
 
             if (error) throw error;
 
-            // Check if status is pending_admin (more lenient - don't check role here as it might redirect admins)
+            // Instead of redirecting, we will just allow it to load and conditionally show buttons
             if (data.current_status !== 'pending_admin') {
-
-                toast.error(`This request is not pending admin review (Status: ${data.current_status})`);
-                navigate('/admin/pending');
-                return;
+                toast.success(`Viewing request in ${data.current_status.replace('_', ' ')} state`);
             }
 
             setRequest(data);
@@ -171,6 +168,7 @@ const AdminReviewRequest = () => {
                 </div>
 
                 {/* Action Buttons */}
+                {request.current_status === 'pending_admin' && (
                 <div className="mb-6 flex flex-wrap gap-4 animate-slideDown" style={{ animationDelay: '100ms' }}>
                     <button
                         onClick={() => handleActionClick('reject')}
@@ -197,6 +195,7 @@ const AdminReviewRequest = () => {
                         <span>Approve Directly</span>
                     </button>
                 </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Request Information */}

@@ -6,9 +6,11 @@ import { StatusBadge } from '../../components/common/Badge';
 import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
-import { formatDate } from '../../utils/helpers';
+import { formatDate, formatDateTime } from '../../utils/helpers';
 import { ArrowLeft, User, MapPin, Calendar, Users, Car, Info, Clock, CheckCircle2, Edit } from 'lucide-react';
 import toast from 'react-hot-toast';
+import RequestActions from '../../components/requests/RequestActions';
+import api from '../../services/api';
 
 const RequestDetails = () => {
   const { id } = useParams();
@@ -51,15 +53,15 @@ const RequestDetails = () => {
 
       setRequest(requestData);
 
-      // Fetch approval history (only approved/rejected, not routing actions)
-      const { data: approvalsData } = await supabase
-        .from('approvals')
-        .select('*, approver:users!approvals_approver_id_fkey(full_name, email)')
-        .eq('request_id', id)
-        .in('action', ['approved', 'rejected'])
-        .order('approved_at', { ascending: true });
-
-      setApprovals(approvalsData || []);
+      // Fetch approval history via backend API to bypass any Row Level Security (RLS) restricts for Registrars
+      try {
+        const response = await api.get(`/requests/${id}/approvals`);
+        if (response.data?.success) {
+            setApprovals(response.data.data || []);
+        }
+      } catch (timelineErr) {
+        console.error('Failed to fetch timeline via API', timelineErr);
+      }
     } catch (err) {
       toast.error('Failed to load request details');
     } finally {
@@ -125,6 +127,9 @@ const RequestDetails = () => {
             </div>
           </div>
         </div>
+
+        {/* Dynamic Action Buttons for Assigned Reviewers */}
+        <RequestActions request={request} onActionComplete={fetchRequestDetails} />
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Main Details */}
@@ -262,7 +267,7 @@ const RequestDetails = () => {
               <div className="space-y-3">
                 <div>
                   <p className="text-sm text-gray-500">Submitted</p>
-                  <p className="font-medium text-gray-900">{formatDate(request.submitted_at)}</p>
+                  <p className="font-medium text-gray-900">{formatDateTime(request.submitted_at)}</p>
                 </div>
                 <div>
                   <p className="text-sm text-gray-500">Status</p>
@@ -297,7 +302,7 @@ const RequestDetails = () => {
                         {approval.comment && (
                           <p className="text-xs text-gray-600 mt-1 italic">"{approval.comment}"</p>
                         )}
-                        <p className="text-xs text-gray-400 mt-1">{formatDate(approval.approved_at)}</p>
+                        <p className="text-xs text-gray-400 mt-1">{formatDateTime(approval.approved_at)}</p>
                       </div>
                     </div>
                   ))}

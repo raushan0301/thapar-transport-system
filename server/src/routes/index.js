@@ -7,6 +7,7 @@ const uploadRoutes = require('./uploadRoutes');
 const analyticsRoutes = require('./analyticsRoutes');
 const userRoutes = require('./userRoutes');
 const driverRoutes = require('./driverRoutes');
+const requestRoutes = require('./requestRoutes');
 
 // Health check
 router.get('/health', (req, res) => {
@@ -25,5 +26,6 @@ router.use('/upload', verifyToken, uploadRoutes);
 router.use('/analytics', verifyToken, analyticsRoutes);
 router.use('/users', userRoutes); // Protected internally via optionalAuth & roles
 router.use('/driver', verifyToken, driverRoutes);
+router.use('/requests', verifyToken, requestRoutes);
 
 module.exports = router;

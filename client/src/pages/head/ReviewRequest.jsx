@@ -42,8 +42,8 @@ const HeadReviewRequest = () => {
 
             // Check if current user is assigned head
             const isAssignedHead = data.head_id === user.id || data.custom_head_email === user.email;
-            if (!isAssignedHead || data.current_status !== 'pending_head') {
-                toast.error('You are not authorized to review this request');
+            if (!isAssignedHead) {
+                toast.error('You are not authorized to view this request');
                 navigate('/head/pending');
                 return;
             }
@@ -149,6 +149,7 @@ const HeadReviewRequest = () => {
                 </div>
 
                 {/* Action Buttons */}
+                {request.current_status === 'pending_head' && (
                 <div className="mb-6 flex space-x-4 animate-slideDown" style={{ animationDelay: '100ms' }}>
                     <button
                         onClick={() => handleActionClick('reject')}
@@ -167,6 +168,7 @@ const HeadReviewRequest = () => {
                         <span>Approve</span>
                     </button>
                 </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Request Information */}

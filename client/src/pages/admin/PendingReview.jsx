@@ -102,7 +102,7 @@ const PendingReview = () => {
                     <td className="px-6 py-4 text-gray-600">{formatDate(req.date_of_visit)}</td>
                     <td className="px-6 py-4"><StatusBadge status={req.current_status} /></td>
                     <td className="px-6 py-4">
-                      <Button variant="ghost" size="sm" icon={Eye} onClick={() => navigate(`/admin/review/${req.id}`)}>Review</Button>
+                      <Button variant="ghost" size="sm" icon={Eye} onClick={() => navigate(`/request/${req.id}`)}>Review</Button>
                     </td>
                   </tr>
                 ))}

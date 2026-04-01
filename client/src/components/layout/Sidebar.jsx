@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { NavLink } from 'react-router-dom';
 import {
   Home,
@@ -16,9 +16,67 @@ import {
 } from 'lucide-react';
 import { useAuth } from '../../context/AuthContext';
 import { ROLES } from '../../utils/constants';
+import { supabase } from '../../services/supabase';
 
 const Sidebar = ({ isOpen, onClose }) => {
-  const { profile, loading } = useAuth();
+  const { user, profile, loading } = useAuth();
+  const [counts, setCounts] = useState({
+    headPending: 0,
+    adminPending: 0,
+    vehicleAssignment: 0,
+    travelCompletion: 0,
+    registrarPending: 0
+  });
+
+  useEffect(() => {
+    if (!profile || !user) return;
+
+    const fetchCounts = async () => {
+      try {
+        if (profile.role === ROLES.HEAD) {
+          const { count } = await supabase
+            .from('transport_requests')
+            .select('*', { count: 'exact', head: true })
+            .eq('current_status', 'pending_head')
+            .or(`head_id.eq.${user.id},custom_head_email.eq.${user.email}`);
+            
+          setCounts(prev => ({ ...prev, headPending: count || 0 }));
+        }
+
+        if (profile.role === ROLES.ADMIN) {
+          const { count: pendingCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'pending_admin');
+          const { count: vehicleCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'approved_awaiting_vehicle');
+          const { count: travelCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'vehicle_assigned');
+          
+          setCounts(prev => ({
+            ...prev,
+            adminPending: pendingCount || 0,
+            vehicleAssignment: vehicleCount || 0,
+            travelCompletion: travelCount || 0
+          }));
+        }
+
+        if (profile.role === ROLES.REGISTRAR) {
+          const { count } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'pending_registrar');
+          setCounts(prev => ({ ...prev, registrarPending: count || 0 }));
+        }
+      } catch (err) {
+        console.error('Failed to fetch counts:', err);
+      }
+    };
+
+    fetchCounts();
+
+    const channel = supabase.channel('sidebar_counts')
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'transport_requests' }, () => {
+        fetchCounts();
+      })
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [profile, user]);
 
   // Wait for profile to load
   if (loading || !profile) {
@@ -46,7 +104,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         ...commonItems,
         { name: 'New Request', path: '/new-request', icon: FileText },
         { name: 'My Requests', path: '/my-requests', icon: Clock },
-        { name: 'Pending Approvals', path: '/head/pending', icon: CheckCircle },
+        { name: 'Pending Approvals', path: '/head/pending', icon: CheckCircle, badge: counts.headPending },
         { name: 'Approval History', path: '/head/history', icon: XCircle },
       ];
     }
@@ -56,9 +114,9 @@ const Sidebar = ({ isOpen, onClose }) => {
         ...commonItems,
         { name: 'New Request', path: '/new-request', icon: FileText },
         { name: 'My Requests', path: '/my-requests', icon: Clock },
-        { name: 'Pending Review', path: '/admin/pending', icon: CheckCircle },
-        { name: 'Vehicle Assignment', path: '/admin/vehicle-assignment', icon: Car },
-        { name: 'Travel Completion', path: '/admin/travel-completion', icon: XCircle },
+        { name: 'Pending Review', path: '/admin/pending', icon: CheckCircle, badge: counts.adminPending },
+        { name: 'Vehicle Assignment', path: '/admin/vehicle-assignment', icon: Car, badge: counts.vehicleAssignment },
+        { name: 'Travel Completion', path: '/admin/travel-completion', icon: XCircle, badge: counts.travelCompletion },
         { name: 'Vehicle Management', path: '/admin/vehicles', icon: Car },
         { name: 'Driver Management', path: '/admin/drivers', icon: UserCheck },
         { name: 'Head Management', path: '/admin/heads', icon: Users },
@@ -74,7 +132,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         ...commonItems,
         { name: 'New Request', path: '/new-request', icon: FileText },
         { name: 'My Requests', path: '/my-requests', icon: Clock },
-        { name: 'Pending Approvals', path: '/registrar/pending', icon: CheckCircle },
+        { name: 'Pending Approvals', path: '/registrar/pending', icon: CheckCircle, badge: counts.registrarPending },
         { name: 'Approval History', path: '/registrar/history', icon: XCircle },
       ];
     }
@@ -121,8 +179,13 @@ const Sidebar = ({ isOpen, onClose }) => {
                   }`
                 }
               >
-                <item.icon className="w-5 h-5" />
-                <span className="font-medium">{item.name}</span>
+                <item.icon className="w-5 h-5 shrink-0" />
+                <span className="font-medium flex-1 truncate text-[15px]">{item.name}</span>
+                {item.badge > 0 && (
+                  <span className="shrink-0 bg-red-500 text-white text-xs font-bold px-2 py-0.5 rounded-full min-w-[1.5rem] inline-flex items-center justify-center shadow-sm">
+                    {item.badge}
+                  </span>
+                )}
               </NavLink>
             ))}
           </nav>

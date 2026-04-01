@@ -40,10 +40,10 @@ const RegistrarReviewRequest = () => {
 
             if (error) throw error;
 
+            // Remove the block that throws an error and redirects to the pending page
+            // so registrars can view old requests from notifications.
             if (data.current_status !== 'pending_registrar') {
-                toast.error(`This request is not pending registrar review (Status: ${data.current_status})`);
-                navigate('/registrar/pending');
-                return;
+                toast.success(`Viewing request in ${data.current_status.replace('_', ' ')} state`);
             }
 
             setRequest(data);
@@ -160,6 +160,7 @@ const RegistrarReviewRequest = () => {
                 </div>
 
                 {/* Action Buttons */}
+                {request.current_status === 'pending_registrar' && (
                 <div className="mb-6 flex flex-wrap gap-4 animate-slideDown" style={{ animationDelay: '100ms' }}>
                     <button
                         onClick={() => handleActionClick('reject')}
@@ -178,6 +179,7 @@ const RegistrarReviewRequest = () => {
                         <span>Approve Request</span>
                     </button>
                 </div>
+                )}
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Request Information */}

@@ -27,12 +27,9 @@ import EditRequest from '../pages/user/EditRequest';
 import HeadDashboard from '../pages/head/HeadDashboard';
 import HeadPendingApprovals from '../pages/head/PendingApprovals';
 import HeadApprovalHistory from '../pages/head/ApprovalHistory';
-import HeadReviewRequest from '../pages/head/ReviewRequest';
-
 // Admin Pages
 import AdminDashboard from '../pages/admin/AdminDashboard';
 import AdminPendingReview from '../pages/admin/PendingReview';
-import AdminReviewRequest from '../pages/admin/ReviewRequest';
 import VehicleAssignment from '../pages/admin/VehicleAssignment';
 import TravelCompletion from '../pages/admin/TravelCompletion';
 import VehicleManagement from '../pages/admin/VehicleManagement';
@@ -52,7 +49,6 @@ import MyAssignments from '../pages/driver/MyAssignments';
 import RegistrarDashboard from '../pages/registrar/RegistrarDashboard';
 import RegistrarPendingApprovals from '../pages/registrar/PendingApprovals';
 import RegistrarApprovalHistory from '../pages/registrar/ApprovalHistory';
-import RegistrarReviewRequest from '../pages/registrar/ReviewRequest';
 import Loader from '../components/common/Loader';
 
 // Dashboard Router - Shows correct dashboard based on user role
@@ -187,16 +183,6 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
-      <Route
-        path="/head/review/:id"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.HEAD]}>
-              <HeadReviewRequest />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
 
       {/* Admin Routes */}
       <Route
@@ -205,16 +191,6 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.ADMIN]}>
               <AdminPendingReview />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/admin/review/:id"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <AdminReviewRequest />
             </RoleRoute>
           </PrivateRoute>
         }
@@ -351,16 +327,6 @@ const AppRoutes = () => {
           <PrivateRoute>
             <RoleRoute allowedRoles={[ROLES.REGISTRAR]}>
               <RegistrarApprovalHistory />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
-      <Route
-        path="/registrar/review/:id"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.REGISTRAR]}>
-              <RegistrarReviewRequest />
             </RoleRoute>
           </PrivateRoute>
         }

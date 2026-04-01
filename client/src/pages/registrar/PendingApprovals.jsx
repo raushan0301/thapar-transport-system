@@ -255,7 +255,7 @@ const PendingApprovals = () => {
                       <Button
                         variant="primary"
                         size="sm"
-                        onClick={() => navigate(`/registrar/review/${request.id}`)}
+                        onClick={() => navigate(`/request/${request.id}`)}
                       >
                         Review
                       </Button>

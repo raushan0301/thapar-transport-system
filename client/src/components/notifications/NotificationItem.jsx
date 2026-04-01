@@ -40,7 +40,7 @@ const NotificationItem = ({ notification, onMarkAsRead }) => {
       // For drivers, take them to their assignments page where they have robust viewing logic
       navigate('/driver/assignments');
     } else {
-      // For others (requesters, admins), take them to the details page
+      // For others (requesters, admins, heads, registrars), take them to the details page where they can take action
       navigate(`/request/${notification.related_request_id}`);
     }
   };
