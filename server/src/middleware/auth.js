@@ -18,6 +18,11 @@ const verifyToken = async (req, res, next) => {
         const { data: { user }, error } = await supabase.auth.getUser(token);
 
         if (error || !user) {
+            // Log the detailed error from Supabase for debugging
+            require('../utils/logger').error('Supabase Auth Error:', {
+                error: error?.message || 'No user found',
+                tokenPrefix: token.substring(0, 10) + '...'
+            });
             throw new ApiError(401, 'Invalid or expired token');
         }
 

@@ -284,9 +284,11 @@ const DriverDashboard = () => {
                           <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Final Step:</span>
                           <button
                             onClick={handleCompleteTrip}
-                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xs font-black shadow-lg shadow-green-200"
+                            disabled={actionLoading}
+                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xs font-black shadow-lg shadow-green-200 disabled:opacity-50 flex items-center gap-2"
                           >
-                            Yes, Confirm
+                            {actionLoading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                            {actionLoading ? 'Saving...' : 'Yes, Confirm'}
                           </button>
                           <button
                             onClick={() => setConfirming(false)}

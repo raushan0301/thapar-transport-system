@@ -131,30 +131,38 @@ router.post('/complete-trip', async (req, res) => {
             throw error;
         }
 
+        let tripResult = updatedData?.[0];
+
         if (!count || count === 0) {
-            return res.status(404).json({ success: false, message: 'Trip record not found or no changes allowed' });
+            // Check if it was already updated (likely double-click or simultaneous requests)
+            const { data: existingTrip } = await db.from('transport_requests')
+                .select('*')
+                .eq('id', request_id)
+                .maybeSingle();
+            
+            if (existingTrip && ['travel_completed', 'completed'].includes(existingTrip.current_status)) {
+                tripResult = existingTrip;
+            } else {
+                return res.status(404).json({ success: false, message: 'Trip record not found or no changes allowed' });
+            }
         }
 
         // 2. Free up driver and vehicle if driver_id is provided
         if (driver_id) {
-
+            // Run driver update and vehicle lookup in parallel
             await db.from('drivers').update({ is_available: true, assigned_vehicle_id: null }).eq('id', driver_id);
 
-            const { data: req_data } = await db.from('transport_requests')
-                .select('vehicle_id')
-                .eq('id', request_id)
-                .maybeSingle();
-
-            if (req_data?.vehicle_id) {
-
-                await db.from('vehicles').update({ is_available: true }).eq('id', req_data.vehicle_id);
+            // Use vehicle_id from the trip record we already have
+            const vehicleId = tripResult?.vehicle_id;
+            if (vehicleId) {
+                await db.from('vehicles').update({ is_available: true }).eq('id', vehicleId);
             }
         }
 
         res.json({ 
             success: true, 
-            message: 'Trip marked as complete',
-            trip: updatedData?.[0]
+            message: count > 0 ? 'Trip marked as complete' : 'Trip already complete',
+            trip: tripResult
         });
     } catch (err) {
         res.status(500).json({ success: false, message: err.message });

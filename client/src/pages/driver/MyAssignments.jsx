@@ -186,9 +186,11 @@ const Tripd = ({ trip, onComplete, actionLoading, idx, confirming, setConfirming
                       setConfirming(null);
                       onComplete(trip.id);
                     }}
-                    className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-sm"
+                    disabled={!!actionLoading}
+                    className="px-4 py-1.5 bg-green-600 text-white rounded-lg text-xs font-bold hover:bg-green-700 shadow-sm disabled:opacity-50 flex items-center gap-2"
                   >
-                    Yes
+                    {actionLoading === trip.id && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
+                    {actionLoading === trip.id ? 'Saving' : 'Yes'}
                   </button>
                   <button
                     onClick={() => setConfirming(null)}
