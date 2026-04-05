@@ -13,32 +13,38 @@ import {
   Clock,
   CheckCircle2,
   Truck,
-  Users,
   Calendar,
   ArrowRight,
   Activity,
-  Zap
+  Zap,
+  MapPin,
+  AlertCircle,
+  Eye,
+  ShieldCheck,
+  UserCheck,
+  ChevronRight
 } from 'lucide-react';
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
   const { user } = useAuth();
   const [stats, setStats] = useState({
-    totalRequests: 0,
-    pendingReview: 0,
-    completed: 0,
-    activeVehicles: 0,
-    totalUsers: 0,
-    thisMonth: 0
+    needsApproval: 0,
+    awaitingVehicle: 0,
+    onDutyNow: 0,
+    completedToday: 0,
+    fleetStandby: 0,
+    todaysSchedule: 0
   });
-  const [recentRequests, setRecentRequests] = useState([]);
+  const [allRequests, setAllRequests] = useState([]);
+  const [availableVehicles, setAvailableVehicles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [activeFilter, setActiveFilter] = useState(null);
 
   useEffect(() => {
     if (user?.id) {
       fetchDashboardData();
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [user]);
 
   const fetchDashboardData = async () => {
@@ -53,48 +59,72 @@ const AdminDashboard = () => {
 
       const { data: vehicles } = await supabase
         .from('vehicles')
-        .select('id')
+        .select('*, driver:drivers(id, full_name)')
         .eq('is_available', true);
 
-      const { data: users } = await supabase
-        .from('users')
-        .select('id');
+      const now = new Date();
+      const todayStr = now.toISOString().split('T')[0];
 
-      const totalRequests = requests?.length || 0;
-
-      // Pending Review: ALL pending_admin requests OR pending_head assigned to this admin
-      const pendingReview = requests?.filter(r =>
+      // Stats Calculation
+      const needsApproval = requests?.filter(r =>
         r.current_status === 'pending_admin' ||
         (r.current_status === 'pending_head' && r.custom_head_email === user.email)
       ).length || 0;
 
-      const completed = requests?.filter(r => r.current_status === 'completed').length || 0;
-
-      const now = new Date();
-      const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const thisMonth = requests?.filter(r =>
-        new Date(r.submitted_at) >= firstDayOfMonth
+      const awaitingVehicle = requests?.filter(r => r.current_status === 'approved_awaiting_vehicle').length || 0;
+      const onDutyNow = requests?.filter(r => r.current_status === 'vehicle_assigned').length || 0;
+      const completedToday = requests?.filter(r => 
+        r.current_status === 'completed' && 
+        (r.updated_at?.split('T')[0] === todayStr || r.submitted_at?.split('T')[0] === todayStr)
+      ).length || 0;
+      const fleetStandby = vehicles?.length || 0;
+      const todaysSchedule = requests?.filter(r =>
+        r.date_of_visit === todayStr && r.current_status !== 'rejected' && r.current_status !== 'cancelled'
       ).length || 0;
 
       setStats({
-        totalRequests,
-        pendingReview,
-        completed,
-        activeVehicles: vehicles?.length || 0,
-        totalUsers: users?.length || 0,
-        thisMonth
+        needsApproval,
+        awaitingVehicle,
+        onDutyNow,
+        completedToday,
+        fleetStandby,
+        todaysSchedule
       });
 
-      // Recent requests: ALL pending_admin OR pending_head assigned to this admin
-      const pendingRequests = requests?.filter(r =>
-        r.current_status === 'pending_admin' ||
-        (r.current_status === 'pending_head' && r.custom_head_email === user.email)
-      ) || [];
-
-      setRecentRequests(pendingRequests.slice(0, 5));
+      setAllRequests(requests || []);
+      setAvailableVehicles(vehicles || []);
     } catch (err) {
+      console.error(err);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const getFilteredList = () => {
+    const now = new Date();
+    const todayStr = now.toISOString().split('T')[0];
+
+    switch (activeFilter) {
+      case 'fleet':
+        return availableVehicles;
+      case 'needs_approval':
+        return allRequests.filter(r => 
+          r.current_status === 'pending_admin' || 
+          (r.current_status === 'pending_head' && r.custom_head_email === user.email)
+        );
+      case 'assign_vehicle':
+        return allRequests.filter(r => r.current_status === 'approved_awaiting_vehicle');
+      case 'on_duty':
+        return allRequests.filter(r => r.current_status === 'vehicle_assigned');
+      case 'completed_today':
+        return allRequests.filter(r => 
+          r.current_status === 'completed' && 
+          (r.updated_at?.split('T')[0] === todayStr || r.submitted_at?.split('T')[0] === todayStr)
+        );
+      case 'today_schedule':
+        return allRequests.filter(r => r.date_of_visit === todayStr && r.current_status !== 'rejected' && r.current_status !== 'cancelled');
+      default:
+        return allRequests.filter(r => ['pending_admin', 'approved_awaiting_vehicle'].includes(r.current_status));
     }
   };
 
@@ -110,367 +140,300 @@ const AdminDashboard = () => {
 
   const getColorClasses = (color) => {
     switch (color) {
-      case 'blue': return { text: 'text-blue-600', bg: 'bg-blue-600', glow: 'bg-blue-500' };
       case 'amber': return { text: 'text-amber-600', bg: 'bg-amber-600', glow: 'bg-amber-500' };
-      case 'green': return { text: 'text-green-600', bg: 'bg-green-600', glow: 'bg-green-500' };
-      case 'purple': return { text: 'text-purple-600', bg: 'bg-purple-600', glow: 'bg-purple-500' };
+      case 'blue': return { text: 'text-blue-600', bg: 'bg-blue-600', glow: 'bg-blue-500' };
       case 'indigo': return { text: 'text-indigo-600', bg: 'bg-indigo-600', glow: 'bg-indigo-500' };
+      case 'green': return { text: 'text-green-600', bg: 'bg-green-600', glow: 'bg-green-500' };
+      case 'teal': return { text: 'text-teal-600', bg: 'bg-teal-600', glow: 'bg-teal-500' };
       case 'cyan': return { text: 'text-cyan-600', bg: 'bg-cyan-600', glow: 'bg-cyan-500' };
       default: return { text: 'text-gray-600', bg: 'bg-gray-600', glow: 'bg-gray-500' };
     }
   };
 
+  const currentList = getFilteredList().slice(0, 5);
+
   const statsData = [
     {
-      title: 'Total Requests',
-      value: stats.totalRequests,
-      icon: FileText,
-      color: 'blue',
-      bgGradient: 'from-blue-500 to-blue-600',
-      shadowColor: 'shadow-blue-500/50',
-      classes: getColorClasses('blue')
-    },
-    {
-      title: 'Pending Review',
-      value: stats.pendingReview,
+      id: 'needs_approval',
+      title: 'Needs Approval',
+      value: stats.needsApproval,
       icon: Clock,
       color: 'amber',
-      bgGradient: 'from-amber-500 to-orange-600',
       shadowColor: 'shadow-amber-500/50',
-      classes: getColorClasses('amber')
+      classes: getColorClasses('amber'),
+      path: '/admin/pending'
     },
     {
-      title: 'Completed',
-      value: stats.completed,
+      id: 'assign_vehicle',
+      title: 'Assign Vehicle',
+      value: stats.awaitingVehicle,
+      icon: Truck,
+      color: 'blue',
+      shadowColor: 'shadow-blue-500/50',
+      classes: getColorClasses('blue'),
+      path: '/admin/vehicle-assignment'
+    },
+    {
+      id: 'fleet',
+      title: 'Fleet Standby',
+      value: stats.fleetStandby,
+      icon: Truck,
+      color: 'teal',
+      shadowColor: 'shadow-teal-500/50',
+      classes: getColorClasses('teal'),
+      path: '/admin/vehicles'
+    },
+    {
+      id: 'completed_today',
+      title: 'Completed Today',
+      value: stats.completedToday,
       icon: CheckCircle2,
       color: 'green',
-      bgGradient: 'from-green-500 to-emerald-600',
       shadowColor: 'shadow-green-500/50',
-      classes: getColorClasses('green')
+      classes: getColorClasses('green'),
+      path: '/admin/audit'
     },
     {
-      title: 'Active Vehicles',
-      value: stats.activeVehicles,
-      icon: Truck,
-      color: 'purple',
-      bgGradient: 'from-purple-500 to-purple-600',
-      shadowColor: 'shadow-purple-500/50',
-      classes: getColorClasses('purple')
-    },
-    {
-      title: 'Total Users',
-      value: stats.totalUsers,
-      icon: Users,
+      id: 'on_duty',
+      title: 'On Duty Now',
+      value: stats.onDutyNow,
+      icon: Activity,
       color: 'indigo',
-      bgGradient: 'from-indigo-500 to-indigo-600',
       shadowColor: 'shadow-indigo-500/50',
-      classes: getColorClasses('indigo')
+      classes: getColorClasses('indigo'),
+      path: '/admin/travel-completion'
     },
     {
-      title: 'This Month',
-      value: stats.thisMonth,
+      id: 'today_schedule',
+      title: "Today's Schedule",
+      value: stats.todaysSchedule,
       icon: Calendar,
       color: 'cyan',
-      bgGradient: 'from-cyan-500 to-blue-600',
       shadowColor: 'shadow-cyan-500/50',
-      classes: getColorClasses('cyan')
+      classes: getColorClasses('cyan'),
+      path: '/admin/pending'
     },
   ];
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
+    <div 
+      className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100 pb-12"
+      onClick={() => setActiveFilter(null)}
+    >
       <DashboardLayout>
-        {/* Header - Animated */}
+        {/* Header */}
         <div className="mb-8 animate-slideDown">
           <h1 className="text-4xl font-bold text-gray-900 mb-2">
             Admin Dashboard
           </h1>
-          <p className="text-gray-600">
-            Overview of your transport management system
+          <p className="text-gray-600 font-medium">
+            Overview of transport operations and live task tracking
           </p>
         </div>
 
-        {/* Stats Grid - 3D Cards with Animations */}
+        {/* Stats Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
           {statsData.map((stat, index) => (
             <div
               key={index}
-              className="group perspective-1000"
+              onClick={(e) => {
+                e.stopPropagation();
+                if (['on_duty', 'completed_today', 'today_schedule', 'needs_approval', 'assign_vehicle', 'fleet'].includes(stat.id)) {
+                   setActiveFilter(activeFilter === stat.id ? null : stat.id);
+                } else {
+                   navigate(stat.path);
+                }
+              }}
+              className={`group cursor-pointer perspective-1000 transform transition-all duration-300 ${activeFilter === stat.id ? 'scale-[1.03]' : ''}`}
               style={{
                 animation: 'slideUp 0.6s ease-out forwards',
                 animationDelay: `${index * 100}ms`,
                 opacity: 0
               }}
             >
-              {/* 3D Card */}
               <div className="relative preserve-3d transition-all duration-500 hover:rotate-y-6 hover:rotate-x-3">
-                {/* Card Shadow - Animated */}
-                <div className={`absolute inset-0 rounded-2xl blur-xl opacity-0 group-hover:opacity-40 transition-opacity duration-500 ${stat.shadowColor} ${stat.classes.glow}`}></div>
-
-                {/* Main Card */}
-                <div className="relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-gray-200 transform hover:-translate-y-2">
-                  {/* Icon - No Background */}
-                  <div className="mb-4">
+                <div className={`absolute inset-0 rounded-2xl blur-xl transition-opacity duration-500 ${activeFilter === stat.id ? 'opacity-50' : 'opacity-0 group-hover:opacity-40'} ${stat.shadowColor} ${stat.classes.glow}`}></div>
+                <div className={`relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border-2 ${activeFilter === stat.id ? `border-${stat.color}-500 shadow-${stat.color}-100` : 'border-transparent hover:border-gray-200'} transform hover:-translate-y-2`}>
+                  <div className="flex justify-between items-start mb-4">
                     <stat.icon className={`w-12 h-12 ${stat.classes.text} transform transition-transform duration-500 group-hover:scale-110`} strokeWidth={1.5} />
+                    {activeFilter === stat.id && <Eye className={`w-5 h-5 ${stat.classes.text} animate-pulse`} />}
                   </div>
-
-                  {/* Value - Animated Counter */}
                   <div className="mb-2">
                     <p className="text-4xl font-bold text-gray-900 transition-all duration-500 group-hover:scale-110 origin-left">
                       {stat.value}
                     </p>
                   </div>
-
-                  {/* Title */}
-                  <p className="text-sm font-medium text-gray-600">
+                  <p className="text-sm font-bold text-gray-500 uppercase tracking-wide">
                     {stat.title}
                   </p>
-
-                  {/* Bottom Accent Line */}
-                  <div className={`mt-4 h-0.5 ${stat.classes.bg} rounded-full transform scale-x-0 group-hover:scale-x-100 transition-transform duration-500 origin-left`}></div>
+                  <div className={`mt-4 h-0.5 ${stat.classes.bg} rounded-full transform ${activeFilter === stat.id ? 'scale-x-100' : 'scale-x-0 group-hover:scale-x-100'} transition-transform duration-500 origin-left`}></div>
                 </div>
               </div>
             </div>
           ))}
         </div>
 
-        {/* Content Grid - 3D Sections */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Recent Requests - 3D Card */}
+        {/* Live Filter Table Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6" onClick={(e) => e.stopPropagation()}>
           <div
             className="group perspective-1000"
-            style={{
-              animation: 'slideUp 0.6s ease-out forwards',
-              animationDelay: '600ms',
-              opacity: 0
-            }}
+            style={{ animation: 'slideUp 0.6s ease-out forwards 600ms', opacity: 0 }}
           >
-            <div className="relative preserve-3d transition-all duration-500 hover:rotate-y-3">
-              {/* Card Shadow */}
-              <div className="absolute inset-0 bg-blue-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
-
-              {/* Main Card */}
-              <div className="relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-blue-200 transform hover:-translate-y-1">
-                <div className="flex justify-between items-center mb-6">
-                  <div className="flex items-center space-x-3">
-                    <Activity className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
-                    <h2 className="text-xl font-bold text-gray-900">Recent Requests</h2>
-                  </div>
-                  {stats.totalRequests > 0 && (
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => navigate('/admin/pending')}
-                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50"
-                    >
-                      View All <ArrowRight className="w-4 h-4 ml-1" />
-                    </Button>
-                  )}
+            <div className={`relative bg-white rounded-2xl p-6 shadow-lg border transition-all duration-500 ${activeFilter ? 'border-indigo-500 ring-2 ring-indigo-400/10' : 'border-gray-100'}`}>
+              <div className="flex justify-between items-center mb-6">
+                <div className="flex items-center space-x-3">
+                  <Activity className={`w-6 h-6 ${activeFilter ? 'text-indigo-600' : 'text-blue-600'}`} strokeWidth={1.5} />
+                  <h2 className="text-xl font-bold text-gray-900">
+                    {activeFilter === 'on_duty' ? 'On Duty Vehicles' : 
+                     activeFilter === 'completed_today' ? 'Completed Today' : 
+                     activeFilter === 'today_schedule' ? "Today's Schedule" : 
+                     activeFilter === 'needs_approval' ? 'Needs Approval' :
+                     activeFilter === 'assign_vehicle' ? 'Assign Vehicle' :
+                     activeFilter === 'fleet' ? 'Fleet On Standby' :
+                     'Priority Tasks'}
+                  </h2>
                 </div>
-
-                {recentRequests.length === 0 ? (
-                  <div className="text-center py-12 text-gray-400">
-                    <FileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
-                    <p>No requests yet</p>
-                  </div>
-                ) : (
-                  <div className="space-y-3">
-                    {recentRequests.map((request, index) => (
-                      <div
-                        key={request.id}
-                        className="group/item p-4 bg-gray-50 hover:bg-gradient-to-r hover:from-blue-50 hover:to-purple-50 rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-blue-200 hover:shadow-md transform hover:-translate-x-1"
-                        onClick={() => navigate(`/request/${request.id}`)}
-                        style={{
-                          animation: 'slideRight 0.4s ease-out forwards',
-                          animationDelay: `${index * 100}ms`,
-                          opacity: 0
-                        }}
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex-1 min-w-0">
-                            <p className="font-semibold text-gray-900 group-hover/item:text-blue-600 transition-colors">
-                              {request.request_number}
-                            </p>
-                            <p className="text-sm text-gray-600 truncate mt-1">
-                              {request.purpose}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {formatDate(request.date_of_visit)}
-                            </p>
-                          </div>
-                          <div className="ml-4 transform group-hover/item:scale-110 transition-transform duration-300">
-                            <StatusBadge status={request.current_status} />
-                          </div>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
+                {activeFilter && (
+                   <Button variant="ghost" size="sm" onClick={() => setActiveFilter(null)} className="text-gray-500 text-xs font-bold hover:bg-gray-50 underline">
+                     Clear Filter
+                   </Button>
                 )}
               </div>
+
+              {currentList.length === 0 ? (
+                <div className="text-center py-12 text-gray-400">
+                  <FileText className="w-16 h-16 mx-auto mb-4 opacity-30" />
+                  <p className="font-bold uppercase tracking-wider text-xs">No records found for this view</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {currentList.map((item, index) => {
+                     if (activeFilter === 'fleet') {
+                        return (
+                           <div
+                             key={item.id}
+                             className="group/item p-4 bg-gray-50 hover:bg-white rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-teal-100 hover:shadow-md transform hover:-translate-x-1"
+                             onClick={() => navigate('/admin/vehicles')}
+                           >
+                              <div className="flex items-center justify-between">
+                                 <div className="flex gap-4 items-center">
+                                    <div className="w-10 h-10 bg-teal-50 rounded-xl flex items-center justify-center text-teal-600 group-hover/item:scale-110 transition-transform">
+                                       <Truck className="w-5 h-5" />
+                                    </div>
+                                    <div>
+                                       <p className="font-bold text-gray-900">{item.vehicle_number}</p>
+                                       <p className="text-xs text-gray-500 uppercase font-black tracking-widest">{item.vehicle_type}</p>
+                                    </div>
+                                 </div>
+                                 <div className="flex flex-col items-end gap-1">
+                                    <span className="inline-flex px-2 py-1 rounded-full text-[10px] font-bold bg-green-100 text-green-700">Available</span>
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest flex items-center gap-1">
+                                       <UserCheck className="w-3 h-3" /> {item.driver?.full_name || 'No Driver'}
+                                    </p>
+                                 </div>
+                              </div>
+                           </div>
+                        );
+                     }
+                     return (
+                        <div
+                          key={item.id}
+                          className="group/item p-4 bg-gray-50 hover:bg-white rounded-xl cursor-pointer transition-all duration-300 border border-transparent hover:border-blue-100 hover:shadow-md transform hover:-translate-x-1"
+                          onClick={() => navigate(`/request/${item.id}`)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-gray-900 group-hover/item:text-blue-600 transition-colors">
+                                {item.request_number}
+                              </p>
+                              <p className="text-sm text-gray-600 truncate mt-1">
+                                {item.place_of_visit}
+                              </p>
+                            </div>
+                            <div className="ml-4 flex flex-col items-end gap-1">
+                              <StatusBadge status={item.current_status} />
+                              <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">{formatDate(item.date_of_visit)}</span>
+                            </div>
+                          </div>
+                        </div>
+                     );
+                  })}
+                  {getFilteredList().length > 5 && (
+                     <p className="text-center text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-4">
+                        Showing top 5 results. View full records for more.
+                     </p>
+                  )}
+                </div>
+              )}
             </div>
           </div>
 
-          {/* Quick Actions - 3D Card */}
+          {/* Direct Actions Panel - Professional UI Updated */}
           <div
-            className="group perspective-1000"
-            style={{
-              animation: 'slideUp 0.6s ease-out forwards',
-              animationDelay: '700ms',
-              opacity: 0
-            }}
+            className="space-y-6"
+            style={{ animation: 'slideUp 0.6s ease-out forwards 700ms', opacity: 0 }}
           >
-            <div className="relative preserve-3d transition-all duration-500 hover:rotate-y-3">
-              {/* Card Shadow */}
-              <div className="absolute inset-0 bg-purple-500 rounded-2xl blur-xl opacity-0 group-hover:opacity-20 transition-opacity duration-500"></div>
-
-              {/* Main Card */}
-              <div className="relative bg-white rounded-2xl p-6 shadow-lg hover:shadow-2xl transition-all duration-500 border border-gray-100 hover:border-purple-200 transform hover:-translate-y-1">
-                <div className="flex items-center space-x-3 mb-6">
-                  <Zap className="w-6 h-6 text-purple-600" strokeWidth={1.5} />
-                  <h2 className="text-xl font-bold text-gray-900">Quick Actions</h2>
-                </div>
-
-                <div className="space-y-3">
-                  {[
-                    {
-                      title: 'Review Pending Requests',
-                      desc: `${stats.pendingReview} requests waiting`,
-                      path: '/admin/pending',
-                      icon: Clock,
-                      gradient: 'from-amber-500 to-orange-600'
-                    },
-                    {
-                      title: 'Assign Vehicles',
-                      desc: 'Manage vehicle assignments',
-                      path: '/admin/vehicle-assignment',
-                      icon: Truck,
-                      gradient: 'from-blue-500 to-cyan-600'
-                    },
-                    {
-                      title: 'Complete Travel Details',
-                      desc: 'Fill post-travel information',
-                      path: '/admin/travel-completion',
-                      icon: CheckCircle2,
-                      gradient: 'from-green-500 to-emerald-600'
-                    },
-                    {
-                      title: 'Manage Vehicles',
-                      desc: `${stats.activeVehicles} active vehicles`,
-                      path: '/admin/vehicles',
-                      icon: Truck,
-                      gradient: 'from-purple-500 to-pink-600'
-                    },
-                    {
-                      title: 'Manage Drivers',
-                      desc: 'Add or update drivers',
-                      path: '/admin/drivers',
-                      icon: Users,
-                      gradient: 'from-teal-500 to-cyan-600'
-                    },
-                  ].map((action, index) => (
-                    <button
-                      key={index}
-                      className="w-full group/action"
-                      onClick={() => navigate(action.path)}
-                      style={{
-                        animation: 'slideLeft 0.4s ease-out forwards',
-                        animationDelay: `${index * 100}ms`,
-                        opacity: 0
-                      }}
-                    >
-                      <div className="relative p-4 bg-gray-50 hover:bg-white rounded-xl transition-all duration-300 border border-transparent hover:border-gray-200 hover:shadow-md transform hover:translate-x-2">
-                        {/* Hover Gradient Background */}
-                        <div className={`absolute inset-0 bg-gradient-to-r ${action.gradient} rounded-xl opacity-0 group-hover/action:opacity-10 transition-opacity duration-300`}></div>
-
-                        <div className="relative flex items-center justify-between">
-                          <div className="flex items-center space-x-3">
-                            <action.icon className="w-6 h-6 text-gray-700 transform group-hover/action:scale-110 transition-all duration-300" strokeWidth={1.5} />
-                            <div className="text-left">
-                              <p className="font-semibold text-gray-900 group-hover/action:text-blue-600 transition-colors">
-                                {action.title}
-                              </p>
-                              <p className="text-sm text-gray-600">
-                                {action.desc}
-                              </p>
-                            </div>
-                          </div>
-                          <ArrowRight className="w-5 h-5 text-gray-400 group-hover/action:text-blue-600 transform group-hover/action:translate-x-2 transition-all duration-300" />
-                        </div>
-                      </div>
-                    </button>
-                  ))}
-                </div>
+            <div className="bg-white rounded-2xl p-6 shadow-lg border border-gray-100">
+              <div className="flex items-center space-x-3 mb-6">
+                <Zap className="w-6 h-6 text-purple-600" strokeWidth={1.5} />
+                <h2 className="text-xl font-bold text-gray-900">Direct Actions</h2>
+              </div>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                {[
+                  {
+                    title: 'Assign Vehicles',
+                    subtitle: 'Fleet Matching',
+                    path: '/admin/vehicle-assignment',
+                    color: 'blue'
+                  },
+                  {
+                    title: 'Complete Trips',
+                    subtitle: 'Mileage & Fuel Logs',
+                    path: '/admin/travel-completion',
+                    color: 'green'
+                  },
+                  {
+                    title: 'User Management',
+                    subtitle: 'Roles & Drivers',
+                    path: '/admin/users',
+                    color: 'purple'
+                  },
+                  {
+                    title: 'Fleet Records',
+                    subtitle: 'Vehicle List',
+                    path: '/admin/vehicles',
+                    color: 'teal'
+                  }
+                ].map((action, i) => (
+                  <button 
+                    key={i}
+                    onClick={() => navigate(action.path)} 
+                    className={`p-4 bg-${action.color}-50/50 hover:bg-white border-2 border-transparent hover:border-${action.color}-200 rounded-xl transition-all duration-300 text-left group flex justify-between items-center`}
+                  >
+                    <div>
+                      <p className={`font-bold text-sm tracking-tight text-${action.color}-900 group-hover:text-${action.color}-600 transition-colors`}>
+                         {action.title}
+                      </p>
+                      <p className={`text-[10px] text-${action.color}-400 mt-1 uppercase font-bold`}>
+                         {action.subtitle}
+                      </p>
+                    </div>
+                    <ChevronRight className={`w-4 h-4 text-${action.color}-300 group-hover:text-${action.color}-600 transform group-hover:translate-x-1 transition-all`} />
+                  </button>
+                ))}
               </div>
             </div>
           </div>
         </div>
       </DashboardLayout>
 
-      {/* Custom Animations */}
       <style>{`
-        @keyframes slideUp {
-          from {
-            opacity: 0;
-            transform: translateY(30px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideDown {
-          from {
-            opacity: 0;
-            transform: translateY(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateY(0);
-          }
-        }
-
-        @keyframes slideRight {
-          from {
-            opacity: 0;
-            transform: translateX(-20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        @keyframes slideLeft {
-          from {
-            opacity: 0;
-            transform: translateX(20px);
-          }
-          to {
-            opacity: 1;
-            transform: translateX(0);
-          }
-        }
-
-        .perspective-1000 {
-          perspective: 1000px;
-        }
-
-        .preserve-3d {
-          transform-style: preserve-3d;
-        }
-
-        .rotate-y-6 {
-          transform: rotateY(6deg);
-        }
-
-        .rotate-x-3 {
-          transform: rotateX(3deg);
-        }
-
-        .rotate-y-3 {
-          transform: rotateY(3deg);
-        }
+        @keyframes slideUp { from { opacity: 0; transform: translateY(30px); } to { opacity: 1; transform: translateY(0); } }
+        @keyframes slideDown { from { opacity: 0; transform: translateY(-20px); } to { opacity: 1; transform: translateY(0); } }
+        .perspective-1000 { perspective: 1000px; }
+        .preserve-3d { transform-style: preserve-3d; }
+        .rotate-y-6 { transform: rotateY(6deg); }
+        .rotate-x-3 { transform: rotateX(3deg); }
       `}</style>
     </div>
   );

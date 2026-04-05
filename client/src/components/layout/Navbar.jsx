@@ -59,7 +59,7 @@ const Navbar = ({ onMenuClick }) => {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowNotifications(false)}
                   ></div>
-                  <div className="absolute right-0 mt-2 z-50">
+                  <div className="fixed inset-x-4 top-[4.5rem] md:absolute md:inset-x-auto md:right-0 md:top-auto md:mt-2 z-50">
                     <NotificationPanel onClose={() => setShowNotifications(false)} />
                   </div>
                 </>
@@ -72,7 +72,7 @@ const Navbar = ({ onMenuClick }) => {
                 onClick={() => setShowProfileMenu(!showProfileMenu)}
                 className="flex items-center gap-2 p-2 rounded-lg hover:bg-gray-100"
               >
-                <Avatar name={profile?.full_name} size="sm" />
+                <Avatar name={profile?.full_name} src={profile?.avatar_url} size="sm" />
                 <div className="hidden md:block text-left">
                   <p className="text-sm font-medium text-gray-800">{profile?.full_name}</p>
                   <p className="text-xs text-gray-500 capitalize">{profile?.role}</p>
@@ -86,7 +86,7 @@ const Navbar = ({ onMenuClick }) => {
                     className="fixed inset-0 z-40"
                     onClick={() => setShowProfileMenu(false)}
                   ></div>
-                  <div className="absolute right-0 mt-2 w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
+                  <div className="fixed inset-x-8 top-[4.5rem] md:absolute md:inset-x-auto md:right-0 md:top-auto md:mt-2 w-auto md:w-48 bg-white rounded-lg shadow-lg border border-gray-200 py-2 z-50">
                     <Link
                       to="/profile"
                       className="flex items-center gap-2 px-4 py-2 hover:bg-gray-100"

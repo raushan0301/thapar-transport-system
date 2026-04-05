@@ -7,7 +7,7 @@ const NotificationPanel = ({ onClose }) => {
   const { notifications, loading, markAsRead, markAllAsRead, unreadCount } = useNotifications();
 
   return (
-    <div className="w-96 bg-white rounded-lg shadow-xl border border-gray-200 max-h-[500px] flex flex-col">
+    <div className="w-[calc(100vw-2rem)] sm:w-96 max-w-[calc(100vw-2rem)] bg-white rounded-lg shadow-xl border border-gray-200 max-h-[500px] flex flex-col overflow-hidden">
       {/* Header */}
       <div className="px-4 py-3 border-b border-gray-200 flex justify-between items-center">
         <h3 className="font-semibold text-gray-800">Notifications</h3>

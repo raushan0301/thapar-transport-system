@@ -7,7 +7,7 @@ import Loader from '../../components/common/Loader';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate, formatDateTime } from '../../utils/helpers';
-import { ArrowLeft, User, MapPin, Calendar, Users, Car, Info, Clock, CheckCircle2, Edit } from 'lucide-react';
+import { ArrowLeft, User, MapPin, Calendar, Users, Car, Info, Clock, CheckCircle2, Edit, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import RequestActions from '../../components/requests/RequestActions';
 import api from '../../services/api';
@@ -18,6 +18,7 @@ const RequestDetails = () => {
   const { user } = useAuth();
   const [request, setRequest] = useState(null);
   const [approvals, setApprovals] = useState([]);
+  const [attachments, setAttachments] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -61,6 +62,16 @@ const RequestDetails = () => {
         }
       } catch (timelineErr) {
         console.error('Failed to fetch timeline via API', timelineErr);
+      }
+
+      // Fetch file attachments
+      try {
+        const attachmentResponse = await api.get(`/upload/attachments/${id}`);
+        if (attachmentResponse.data?.success) {
+            setAttachments(attachmentResponse.data.data || []);
+        }
+      } catch (attachmentErr) {
+        console.error('Failed to fetch attachments', attachmentErr);
       }
     } catch (err) {
       toast.error('Failed to load request details');
@@ -186,7 +197,7 @@ const RequestDetails = () => {
             </div>
 
             {/* User Details */}
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 animate-slideUp" style={{ animationDelay: '200ms' }}>
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 animate-slideUp" style={{ animationDelay: '150ms' }}>
               <div className="flex items-center space-x-2 mb-4">
                 <User className="w-6 h-6 text-blue-600" strokeWidth={1.5} />
                 <h2 className="text-xl font-bold text-gray-900">User Details</h2>
@@ -229,6 +240,41 @@ const RequestDetails = () => {
                 </div>
               )}
             </div>
+
+            {/* Attachments Section */}
+            {attachments.length > 0 && (
+              <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 animate-slideUp" style={{ animationDelay: '200ms' }}>
+                <div className="flex items-center space-x-2 mb-4">
+                  <FileText className="w-6 h-6 text-green-600" strokeWidth={1.5} />
+                  <h2 className="text-xl font-bold text-gray-900">Attachments</h2>
+                </div>
+                <div className="flex flex-wrap gap-4">
+                  {attachments.map((file, idx) => (
+                    <a
+                      key={file.id || idx}
+                      href={file.file_url}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="group relative flex flex-col items-center justify-center p-4 border border-gray-200 rounded-lg w-32 bg-gray-50 hover:bg-gray-100 shadow-sm transition-colors"
+                    >
+                      {file.file_type && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(file.file_type.toLowerCase()) ? (
+                         <img 
+                          src={file.file_url} 
+                          alt={file.file_name}
+                          className="w-20 h-20 object-cover rounded shadow-sm mb-2"
+                         />
+                      ) : (
+                        <FileText className="w-12 h-12 text-gray-400 mb-2" strokeWidth={1.5} />
+                      )}
+                      
+                      <span className="text-xs text-gray-700 text-center truncate w-full font-medium" title={file.file_name}>
+                        {file.file_name}
+                      </span>
+                    </a>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {/* Vehicle Details (if assigned) */}
             {request.vehicle && (

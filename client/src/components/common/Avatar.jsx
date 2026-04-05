@@ -1,7 +1,7 @@
 import React from 'react';
 import { getInitials } from '../../utils/helpers';
 
-const Avatar = ({ name, size = 'md', className = '' }) => {
+const Avatar = ({ name, src, size = 'md', className = '' }) => {
   const sizes = {
     sm: 'w-8 h-8 text-xs',
     md: 'w-10 h-10 text-sm',
@@ -26,6 +26,16 @@ const Avatar = ({ name, size = 'md', className = '' }) => {
     const charCode = name.charCodeAt(0);
     return colors[charCode % colors.length];
   };
+
+  if (src) {
+    return (
+      <img
+        src={src}
+        alt={name || 'Avatar'}
+        className={`${sizes[size]} rounded-full object-cover ${className}`}
+      />
+    );
+  }
 
   return (
     <div

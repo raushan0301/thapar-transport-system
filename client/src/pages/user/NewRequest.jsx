@@ -8,7 +8,7 @@ import HeadSelector from '../../components/forms/HeadSelector';
 import FileUpload from '../../components/forms/FileUpload';
 import { useAuth } from '../../context/AuthContext';
 import { createRequest } from '../../services/requestService';
-import { uploadAttachment } from '../../services/cloudinaryService';
+import { linkAttachment } from '../../services/cloudinaryService';
 import { validateTransportRequest } from '../../utils/validators';
 import { handleSupabaseError, showSuccess } from '../../utils/errorHandler';
 import { FileText, Send, Calendar, MapPin, Users, Info, User, Phone, Clock } from 'lucide-react';
@@ -19,8 +19,10 @@ const NewRequest = () => {
   const navigate = useNavigate();
   const { profile } = useAuth();
   const [loading, setLoading] = useState(false);
+  const [uploading, setUploading] = useState(false);
   const [errors, setErrors] = useState({});
-  const [attachments, setAttachments] = useState([]);
+  // uploadedFiles holds cloud file metadata returned from /upload/temp
+  const [uploadedFiles, setUploadedFiles] = useState([]);
   const [formData, setFormData] = useState({
     department: profile?.department || '',
     designation: profile?.designation || '',
@@ -58,14 +60,13 @@ const NewRequest = () => {
     if (errors.head) setErrors((prev) => ({ ...prev, head: '' }));
   };
 
-  const handleFileSelect = (file) => {
-    setAttachments((prev) => [...prev, file]);
+  const handleUploadComplete = (fileData) => {
+    setUploadedFiles(prev => [...prev, fileData]);
+    setUploading(false);
   };
 
-  const handleFileRemove = (index, isLocal) => {
-    if (isLocal) {
-      setAttachments(prev => prev.filter((_, i) => i !== index));
-    }
+  const handleFileRemove = (index) => {
+    setUploadedFiles(prev => prev.filter((_, i) => i !== index));
   };
 
   const handleSubmit = async (e) => {
@@ -113,12 +114,17 @@ const NewRequest = () => {
         return;
       }
 
-      // Step 2: Upload attachments if any
-      if (attachments.length > 0) {
-        toast.loading('Uploading attachments...');
-        const uploadPromises = attachments.map(file => uploadAttachment(file, request.id));
-        await Promise.all(uploadPromises);
-        toast.dismiss();
+      // Step 2: Link pre-uploaded attachments to this request
+      if (uploadedFiles.length > 0) {
+        const linkToast = toast.loading(`Saving ${uploadedFiles.length} attachment(s)...`);
+        try {
+          await Promise.all(uploadedFiles.map(f => linkAttachment(request.id, f)));
+          toast.dismiss(linkToast);
+        } catch (linkErr) {
+          toast.dismiss(linkToast);
+          console.error('Link attachment error:', linkErr);
+          // Don't block success — request was created
+        }
       }
 
       showSuccess('Transport request submitted successfully!');
@@ -162,9 +168,10 @@ const NewRequest = () => {
                   <Input label="Number of Persons" type="number" name="number_of_persons" value={formData.number_of_persons} onChange={handleChange} min="1" error={errors.number_of_persons} required leftIcon={Users} />
                 </div>
 
-                {/* Purpose */}
-                <div className="mt-6">
+                {/* Purpose and Special Requirements */}
+                <div className="mt-6 space-y-6">
                   <Textarea label="Purpose of Visit" name="purpose" value={formData.purpose} onChange={handleChange} placeholder="Describe the purpose of your visit" rows={3} error={errors.purpose} required />
+                  <Textarea label="Special Requirements (Optional)" name="special_requirements" value={formData.special_requirements} onChange={handleChange} placeholder="Any specific needs? (e.g. extra luggage, specific seating, accessibility)" rows={2} />
                 </div>
 
                 {/* Guest Details Section */}
@@ -177,11 +184,6 @@ const NewRequest = () => {
                     <Input label="Guest Name" name="guest_name" value={formData.guest_name} onChange={handleChange} placeholder="e.g., Prof. John Doe" leftIcon={User} />
                     <Input label="Guest Contact No." name="guest_contact" value={formData.guest_contact} onChange={handleChange} placeholder="e.g., +91 98765 43210" leftIcon={Phone} />
                   </div>
-                </div>
-
-                {/* Additional Needs */}
-                <div className="mt-6">
-                  <Textarea label="Special Requirements (Optional)" name="special_requirements" value={formData.special_requirements} onChange={handleChange} placeholder="Any specific needs? (e.g. extra luggage, specific seating, accessibility)" rows={2} />
                 </div>
               </div>
 
@@ -203,16 +205,29 @@ const NewRequest = () => {
                   <h2 className="text-xl font-semibold text-gray-900">Attachments (Optional)</h2>
                 </div>
                 <FileUpload 
-                  onFileSelect={handleFileSelect} 
+                  onUploadStart={() => setUploading(true)}
+                  onUploadComplete={(fileData) => {
+                    if (fileData) setUploadedFiles(prev => [...prev, fileData]);
+                    setUploading(false);
+                  }} 
                   onRemove={handleFileRemove}
-                  existingFiles={[]} 
+                  uploadedFiles={uploadedFiles} 
+                  disabled={loading}
                 />
               </div>
 
               {/* Submit Buttons */}
               <div className="flex justify-end space-x-4 pt-6 border-t border-gray-200">
-                <Button type="button" variant="secondary" onClick={() => navigate('/user/requests')}>Cancel</Button>
-                <Button type="submit" variant="primary" loading={loading} icon={Send}>Submit Request</Button>
+                <Button type="button" variant="secondary" onClick={() => navigate('/dashboard')}>Cancel</Button>
+                <Button 
+                  type="submit" 
+                  variant="primary" 
+                  loading={loading} 
+                  disabled={uploading} 
+                  icon={Send}
+                >
+                  {uploading ? 'Uploading Files...' : 'Submit Request'}
+                </Button>
               </div>
             </form>
           </div>

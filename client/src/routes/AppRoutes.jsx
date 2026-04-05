@@ -33,12 +33,10 @@ import AdminPendingReview from '../pages/admin/PendingReview';
 import VehicleAssignment from '../pages/admin/VehicleAssignment';
 import TravelCompletion from '../pages/admin/TravelCompletion';
 import VehicleManagement from '../pages/admin/VehicleManagement';
-import HeadManagement from '../pages/admin/HeadManagement';
 import UserManagement from '../pages/admin/UserManagement';
 import RateSettings from '../pages/admin/RateSettings';
 import ExportData from '../pages/admin/ExportData';
 import AuditLogs from '../pages/admin/AuditLogs';
-import DriverManagement from '../pages/admin/DriverManagement';
 
 // Driver Pages
 import DriverDashboard from '../pages/driver/DriverDashboard';
@@ -225,16 +223,7 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
-      <Route
-        path="/admin/heads"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <HeadManagement />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
+      <Route path="/admin/heads" element={<Navigate to="/admin/users" replace />} />
       <Route
         path="/admin/users"
         element={
@@ -275,16 +264,7 @@ const AppRoutes = () => {
           </PrivateRoute>
         }
       />
-      <Route
-        path="/admin/drivers"
-        element={
-          <PrivateRoute>
-            <RoleRoute allowedRoles={[ROLES.ADMIN]}>
-              <DriverManagement />
-            </RoleRoute>
-          </PrivateRoute>
-        }
-      />
+      <Route path="/admin/drivers" element={<Navigate to="/admin/users" replace />} />
 
       {/* Driver Routes */}
       <Route

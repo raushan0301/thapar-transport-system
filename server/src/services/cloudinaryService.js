@@ -1,6 +1,6 @@
 const cloudinary = require('../config/cloudinary');
 const sharp = require('sharp');
-const { supabase } = require('../config/database');
+const { supabaseAdmin } = require('../config/database');
 const { ValidationError } = require('../utils/errorTypes');
 const { MAX_FILE_SIZE, ALLOWED_FILE_TYPES } = require('../config/constants');
 
@@ -22,13 +22,19 @@ const uploadFile = async (file, folder = 'transport-attachments') => {
     }
 
     try {
+        // Determine resource type: images as 'image', others as 'raw'
+        // This avoids 401 errors on some accounts that have PDF-to-image conversion disabled
+        const isImage = file.mimetype.startsWith('image/') && !file.mimetype.includes('pdf');
+        const resourceType = isImage ? 'image' : 'raw';
+
         // Upload to Cloudinary
         const result = await new Promise((resolve, reject) => {
             const uploadStream = cloudinary.uploader.upload_stream(
                 {
                     folder,
-                    resource_type: 'auto',
-                    allowed_formats: ['jpg', 'jpeg', 'png', 'pdf']
+                    resource_type: resourceType,
+                    // allowed_formats is less critical for raw but good for security
+                    ...(isImage && { allowed_formats: ['jpg', 'jpeg', 'png', 'webp'] })
                 },
                 (error, result) => {
                     if (error) reject(error);
@@ -42,10 +48,11 @@ const uploadFile = async (file, folder = 'transport-attachments') => {
         return {
             url: result.secure_url,
             publicId: result.public_id,
-            format: result.format,
+            format: result.format || file.originalname.split('.').pop(),
             size: result.bytes,
             width: result.width,
-            height: result.height
+            height: result.height,
+            resource_type: result.resource_type
         };
     } catch (error) {
         throw new Error(`File upload failed: ${error.message}`);
@@ -108,7 +115,7 @@ const deleteFile = async (publicId) => {
  * Save attachment metadata to database
  */
 const saveAttachmentMetadata = async (requestId, fileData, uploadedBy) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('attachments')
         .insert([
             {
@@ -117,7 +124,6 @@ const saveAttachmentMetadata = async (requestId, fileData, uploadedBy) => {
                 file_name: fileData.originalName || 'attachment',
                 file_type: fileData.format,
                 file_size: fileData.size,
-                cloudinary_public_id: fileData.publicId,
                 uploaded_by: uploadedBy
             }
         ])
@@ -125,9 +131,10 @@ const saveAttachmentMetadata = async (requestId, fileData, uploadedBy) => {
         .single();
 
     if (error) {
+        console.error('DB insert error:', error);
         // If database save fails, delete from Cloudinary
-        await deleteFile(fileData.publicId);
-        throw new Error('Failed to save attachment metadata');
+        if (fileData.publicId) await deleteFile(fileData.publicId);
+        throw new Error(`Failed to save attachment metadata: ${error.message}`);
     }
 
     return data;
@@ -137,17 +144,17 @@ const saveAttachmentMetadata = async (requestId, fileData, uploadedBy) => {
  * Get attachments for a request
  */
 const getRequestAttachments = async (requestId) => {
-    const { data, error } = await supabase
+    const { data, error } = await supabaseAdmin
         .from('attachments')
         .select('*')
-        .eq('request_id', requestId)
-        .order('created_at', { ascending: false });
+        .eq('request_id', requestId);
 
     if (error) {
-        throw new Error('Failed to fetch attachments');
+        console.error('Fetch attachments error:', error);
+        throw new Error(`Failed to fetch attachments: ${error.message}`);
     }
 
-    return data;
+    return data || [];
 };
 
 /**
@@ -155,7 +162,7 @@ const getRequestAttachments = async (requestId) => {
  */
 const deleteAttachment = async (attachmentId, userId, userRole = 'user') => {
     // Fetch attachment
-    const { data: attachment, error: fetchError } = await supabase
+    const { data: attachment, error: fetchError } = await supabaseAdmin
         .from('attachments')
         .select('*')
         .eq('id', attachmentId)
@@ -176,7 +183,7 @@ const deleteAttachment = async (attachmentId, userId, userRole = 'user') => {
     }
 
     // Delete from database
-    const { error: deleteError } = await supabase
+    const { error: deleteError } = await supabaseAdmin
         .from('attachments')
         .delete()
         .eq('id', attachmentId);

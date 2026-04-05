@@ -6,8 +6,9 @@ import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
   User, Phone, Mail, CreditCard, Save, Edit2, X, Building2, FileText,
-  Car, Shield, AlertCircle, } from 'lucide-react';
+  Car, Shield, AlertCircle, Camera} from 'lucide-react';
 import toast from 'react-hot-toast';
+import { uploadProfileImage } from '../../services/cloudinaryService';
 
 const FieldGroup = ({ label, value, editing, onChange, type = 'text', placeholder, icon: Icon, readOnly = false }) => (
   <div>
@@ -66,6 +67,7 @@ const DriverProfile = () => {
   const [loading, setLoading] = useState(true);
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [form, setForm] = useState({
     full_name: '',
     phone: '',
@@ -139,6 +141,34 @@ const DriverProfile = () => {
     setForm({ full_name: profile.full_name || '', phone: profile.phone || '', department: profile.department || '', designation: profile.designation || '' });
   };
 
+  const handleAvatarSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    if (!file.type.startsWith('image/')) {
+      toast.error('Please select an image file');
+      return;
+    }
+
+    setUploadingAvatar(true);
+    const uploadToast = toast.loading('Uploading profile image...');
+    
+    try {
+      const { data, error } = await uploadProfileImage(file);
+      
+      if (error) throw new Error(error);
+      
+      toast.success('Profile image updated!', { id: uploadToast });
+      await refreshProfile();
+    } catch (err) {
+      toast.error(err.message || 'Failed to upload image', { id: uploadToast });
+    } finally {
+      setUploadingAvatar(false);
+      // Reset input
+      e.target.value = '';
+    }
+  };
+
   const isDirty = form.full_name !== (profile?.full_name || '') ||
     form.phone !== (profile?.phone || '') ||
     form.department !== (profile?.department || '') ||
@@ -189,9 +219,31 @@ const DriverProfile = () => {
           <div className="space-y-5">
             {/* Avatar Card */}
             <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ animation: 'slideUp 0.5s ease-out both' }}>
-              <div className="bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 p-8 text-center">
-                <div className="w-24 h-24 rounded-full bg-white/25 backdrop-blur flex items-center justify-center mx-auto mb-4 shadow-xl ring-4 ring-white/30">
-                  <span className="text-5xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+              <div className="bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 p-8 text-center relative group">
+                <div className="relative w-24 h-24 mx-auto mb-4">
+                  {profile?.avatar_url ? (
+                    <img 
+                      src={profile.avatar_url} 
+                      alt={profile.full_name || 'Avatar'}
+                      className="w-full h-full rounded-full object-cover shadow-xl ring-4 ring-white/30 bg-white"
+                    />
+                  ) : (
+                    <div className="w-full h-full rounded-full bg-white/25 backdrop-blur flex items-center justify-center shadow-xl ring-4 ring-white/30">
+                      <span className="text-5xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+                    </div>
+                  )}
+
+                  {/* Upload Avatar Overlay/Button */}
+                  <label className={`absolute bottom-0 right-0 p-1.5 bg-white rounded-full shadow-lg cursor-pointer hover:bg-gray-100 transition-colors ${uploadingAvatar ? 'opacity-50 pointer-events-none' : ''}`}>
+                    <input 
+                      type="file" 
+                      accept="image/*" 
+                      className="hidden" 
+                      onChange={handleAvatarSelect}
+                      disabled={uploadingAvatar}
+                    />
+                    <Camera className="w-4 h-4 text-teal-600" />
+                  </label>
                 </div>
                 <h2 className="text-xl font-black text-white">{profile?.full_name}</h2>
                 <p className="text-teal-100 text-sm font-medium mt-1">{profile?.designation || 'Driver'}</p>

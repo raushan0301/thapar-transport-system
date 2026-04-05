@@ -58,7 +58,10 @@ if (NODE_ENV === 'development') {
 }
 
 // Rate limiting
-app.use('/api', apiLimiter);
+app.use('/api', (req, res, next) => {
+    if (req.path.startsWith('/v1/upload')) return next();
+    return apiLimiter(req, res, next);
+});
 
 // API routes
 app.use('/api/v1', routes);

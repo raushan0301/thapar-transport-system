@@ -118,9 +118,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         { name: 'Vehicle Assignment', path: '/admin/vehicle-assignment', icon: Car, badge: counts.vehicleAssignment },
         { name: 'Travel Completion', path: '/admin/travel-completion', icon: XCircle, badge: counts.travelCompletion },
         { name: 'Vehicle Management', path: '/admin/vehicles', icon: Car },
-        { name: 'Driver Management', path: '/admin/drivers', icon: UserCheck },
-        { name: 'Head Management', path: '/admin/heads', icon: Users },
-        { name: 'User Management', path: '/admin/users', icon: Shield },
+        { name: 'User Management', path: '/admin/users', icon: Users },
         { name: 'Rate Settings', path: '/admin/rates', icon: Settings },
         { name: 'Export Data', path: '/admin/export', icon: FileSpreadsheet },
         { name: 'Audit Logs', path: '/admin/audit', icon: Shield },
@@ -163,7 +161,7 @@ const Sidebar = ({ isOpen, onClose }) => {
       {/* Sidebar */}
       <aside
         className={`fixed top-16 left-0 h-[calc(100vh-4rem)] bg-white border-r border-gray-200 transition-transform duration-300 z-40 ${isOpen ? 'translate-x-0' : '-translate-x-full'
-          } lg:translate-x-0 w-64`}
+          } lg:translate-x-0 w-72`}
       >
         <div className="h-full overflow-y-auto py-4">
           <nav className="px-3 space-y-1">

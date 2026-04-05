@@ -23,7 +23,7 @@ const apiLimiter = rateLimit({
  */
 const uploadLimiter = rateLimit({
     windowMs: 15 * 60 * 1000, // 15 minutes
-    max: 10, // 10 uploads per 15 minutes
+    max: 100, // 100 uploads per 15 minutes
     message: {
         success: false,
         error: {

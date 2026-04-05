@@ -1,94 +1,81 @@
 /* eslint-disable */
 import { useState } from 'react';
-import { Upload, X, FileText, Image, AlertCircle } from 'lucide-react';
-import { uploadAttachment, deleteAttachment } from '../../services/cloudinaryService';
+import { Upload, X, FileText, Image, AlertCircle, CheckCircle, Loader } from 'lucide-react';
+import { uploadFileTemp, deleteAttachment } from '../../services/cloudinaryService';
 import toast from 'react-hot-toast';
 import { MAX_FILE_SIZE, ALLOWED_FILE_TYPES } from '../../utils/constants';
 import { isValidFileSize, isValidFileType } from '../../utils/helpers';
 
-const FileUpload = ({ onUploadComplete, onFileSelect, onRemove, existingFiles = [], requestId = null }) => {
+/**
+ * FileUpload component.
+ * 
+ * Two modes:
+ * 1. No requestId → immediately uploads to Cloudinary via /upload/temp, calls onUploadComplete(fileData)
+ * 2. With requestId (edit page) → immediate upload + DB link via legacy flow
+ * 
+ * Props:
+ *   onUploadComplete(fileData) — called when a file successfully uploads to Cloudinary
+ *   onRemove(index)            — called when a pre-uploaded file is removed
+ *   uploadedFiles              — array of already-uploaded file data objects (from parent state)
+ *   existingFiles              — server-saved attachment objects (for edit pages)
+ *   disabled                   — disables the upload area when true
+ */
+const FileUpload = ({ onUploadStart, onUploadComplete, onRemove, uploadedFiles = [], existingFiles = [], disabled = false }) => {
   const [uploading, setUploading] = useState(false);
-  const [localFiles, setLocalFiles] = useState([]); // For files selected but not yet uploaded (used in NewRequest)
 
   const handleFileSelect = async (e) => {
     const selectedFile = e.target.files[0];
     if (!selectedFile) return;
 
-    // Validate file type
     if (!isValidFileType(selectedFile.type, ALLOWED_FILE_TYPES)) {
-      toast.error('Invalid file type. Only PDF and images are allowed.');
+      toast.error('Invalid file type. Only PDF, JPG, PNG are allowed.');
       return;
     }
 
-    // Validate file size
     if (!isValidFileSize(selectedFile.size, MAX_FILE_SIZE)) {
       toast.error('File size must be less than 5MB');
       return;
     }
 
-    // Case 1: If we have a requestId, upload immediately
-    if (requestId) {
-      setUploading(true);
-      try {
-        const { data, error } = await uploadAttachment(selectedFile, requestId);
+    setUploading(true);
+    if (onUploadStart) onUploadStart();
+    const uploadToast = toast.loading(`Uploading "${selectedFile.name}"...`);
 
-        if (error) {
-          toast.error(error);
-          return;
-        }
+    try {
+      const { data, error } = await uploadFileTemp(selectedFile);
 
-        if (onUploadComplete) onUploadComplete(data);
-        toast.success('File uploaded successfully');
-      } catch (error) {
-        toast.error('Failed to upload file');
-      } finally {
-        setUploading(false);
+      if (error || !data) {
+        toast.dismiss(uploadToast);
+        toast.error(`Upload failed: ${error || 'Unknown error'}`);
+        if (onUploadComplete) onUploadComplete(null);
+        return;
       }
-    } 
-    // Case 2: If no requestId, just notify parent of the selected file object
-    else {
-      setLocalFiles(prev => [...prev, selectedFile]);
-      if (onFileSelect) onFileSelect(selectedFile);
-    }
-    
-    // Reset input
-    e.target.value = '';
-  };
 
-  const handleRemove = async (file, index) => {
-    // If it's a file that was already uploaded (has an id)
-    if (file.id) {
-      if (!window.confirm('Are you sure you want to delete this attachment?')) return;
-      
-      try {
-        const { success, error } = await deleteAttachment(file.id);
-        if (success) {
-          if (onRemove) onRemove(file.id);
-          toast.success('Attachment deleted');
-        } else {
-          toast.error(error);
-        }
-      } catch (err) {
-        toast.error('Failed to delete attachment');
-      }
-    } 
-    // If it's a locally selected file
-    else {
-      setLocalFiles(prev => prev.filter((_, i) => i !== index));
-      if (onRemove) onRemove(index, true); // true indicates local removal
+      toast.dismiss(uploadToast);
+      toast.success(`"${selectedFile.name}" uploaded!`);
+      if (onUploadComplete) onUploadComplete(data);
+    } catch (err) {
+      toast.dismiss(uploadToast);
+      toast.error('Upload failed. Please try again.');
+      if (onUploadComplete) onUploadComplete(null);
+      console.error('Upload error:', err);
+    } finally {
+      setUploading(false);
     }
   };
 
   const getFileIcon = (fileType = '') => {
-    if (fileType.startsWith('image/')) {
+    if (['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileType.toLowerCase())) {
       return <Image className="w-5 h-5 text-blue-600" />;
     }
     return <FileText className="w-5 h-5 text-red-600" />;
   };
 
+  const allFiles = [...(existingFiles || []), ...(uploadedFiles || [])];
+
   return (
     <div className="mb-4">
-      {/* Upload Button */}
+      {/* Upload Drop Zone */}
       <div className="mb-4">
         <input
           type="file"
@@ -96,19 +83,23 @@ const FileUpload = ({ onUploadComplete, onFileSelect, onRemove, existingFiles = 
           className="hidden"
           accept=".pdf,.jpg,.jpeg,.png"
           onChange={handleFileSelect}
-          disabled={uploading}
+          disabled={uploading || disabled}
         />
-        <label htmlFor="file-upload">
+        <label htmlFor={uploading || disabled ? undefined : 'file-upload'}>
           <div className={`
-            border-2 border-dashed rounded-xl p-6 text-center cursor-pointer transition-all
-            ${uploading ? 'bg-gray-50 border-gray-200' : 'bg-blue-50/30 border-blue-200 hover:border-blue-400 hover:bg-blue-50'}
+            border-2 border-dashed rounded-xl p-6 text-center transition-all
+            ${uploading || disabled
+              ? 'bg-gray-50 border-gray-200 cursor-not-allowed opacity-60'
+              : 'bg-blue-50/30 border-blue-200 hover:border-blue-400 hover:bg-blue-50 cursor-pointer'}
           `}>
             <div className="flex flex-col items-center">
               <div className={`p-3 rounded-full mb-3 ${uploading ? 'bg-gray-100' : 'bg-blue-100'}`}>
-                <Upload className={`w-6 h-6 ${uploading ? 'text-gray-400' : 'text-blue-600'}`} />
+                {uploading
+                  ? <Loader className="w-6 h-6 text-blue-600 animate-spin" />
+                  : <Upload className="w-6 h-6 text-blue-600" />}
               </div>
               <p className="text-sm font-bold text-gray-900">
-                {uploading ? 'Uploading attachment...' : 'Click to upload or drag and drop'}
+                {uploading ? 'Uploading...' : 'Click to upload or drag and drop'}
               </p>
               <p className="text-xs text-gray-500 mt-1 uppercase tracking-wider font-semibold">
                 PDF, JPG, PNG (Max 5MB)
@@ -118,76 +109,59 @@ const FileUpload = ({ onUploadComplete, onFileSelect, onRemove, existingFiles = 
         </label>
       </div>
 
-      {!requestId && localFiles.length > 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-lg p-3 mb-4 flex items-start gap-2">
-          <AlertCircle className="w-4 h-4 text-amber-600 mt-0.5 flex-shrink-0" />
-          <p className="text-xs text-amber-800">
-            Files will be uploaded after you submit the request.
-          </p>
-        </div>
-      )}
-
-      {/* Uploaded / Selected Files List */}
-      {(existingFiles.length > 0 || localFiles.length > 0) && (
+      {/* File List */}
+      {allFiles.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          {/* Show server-side files */}
-          {existingFiles.map((file, index) => (
-            <div
-              key={file.id || `ext-${index}`}
-              className="flex items-center justify-between p-3 bg-white rounded-xl border border-gray-200 shadow-sm"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex-shrink-0">
-                  {getFileIcon(file.file_type)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-gray-900 truncate">
-                    {file.file_name}
-                  </p>
-                  <p className="text-[10px] font-bold text-gray-400 uppercase">
-                    {(file.file_size / 1024).toFixed(1)} KB • UPLOADED
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemove(file, index)}
-                className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
-                title="Delete attachment"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+          {allFiles.map((file, index) => {
+            const isExisting = !!file.id; // server-saved file has an `id`
+            const fileName = file.file_name || file.name || 'File';
+            const fileType = file.file_type || file.type || '';
+            const fileSize = file.file_size || file.size || 0;
+            const fileUrl = file.file_url || file.thumbnail_url || null;
 
-          {/* Show local files */}
-          {localFiles.map((file, index) => (
-            <div
-              key={`local-${index}`}
-              className="flex items-center justify-between p-3 bg-blue-50/50 rounded-xl border border-blue-100 shadow-sm animate-pulse"
-            >
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="flex-shrink-0">
-                  {getFileIcon(file.type)}
-                </div>
-                <div className="min-w-0">
-                  <p className="text-sm font-bold text-blue-900 truncate text-opacity-70">
-                    {file.name}
-                  </p>
-                  <p className="text-[10px] font-bold text-blue-400 uppercase">
-                    {(file.size / 1024).toFixed(1)} KB • PENDING
-                  </p>
-                </div>
-              </div>
-              <button
-                type="button"
-                onClick={() => handleRemove(file, index)}
-                className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors"
+            return (
+              <div
+                key={isExisting ? file.id : `up-${index}`}
+                className={`flex items-center justify-between p-3 rounded-xl border shadow-sm ${
+                  isExisting
+                    ? 'bg-white border-gray-200'
+                    : 'bg-green-50 border-green-200'
+                }`}
               >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-          ))}
+                <div className="flex items-center gap-3 min-w-0">
+                  {/* Thumbnail or icon */}
+                  {fileUrl && ['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(fileType.toLowerCase()) ? (
+                    <img
+                      src={fileUrl}
+                      alt={fileName}
+                      className="w-10 h-10 object-cover rounded-lg flex-shrink-0 border border-gray-200"
+                    />
+                  ) : (
+                    <div className="flex-shrink-0">{getFileIcon(fileType)}</div>
+                  )}
+                  <div className="min-w-0">
+                    <p className="text-sm font-bold text-gray-900 truncate">{fileName}</p>
+                    <div className="flex items-center gap-1 mt-0.5">
+                      {!isExisting && (
+                        <CheckCircle className="w-3 h-3 text-green-500 flex-shrink-0" />
+                      )}
+                      <p className={`text-[10px] font-bold uppercase ${isExisting ? 'text-gray-400' : 'text-green-600'}`}>
+                        {(fileSize / 1024).toFixed(1)} KB • {isExisting ? 'SAVED' : 'UPLOADED ✓'}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => onRemove && onRemove(index, isExisting ? file.id : null)}
+                  className="p-1.5 hover:bg-red-50 text-gray-400 hover:text-red-600 rounded-lg transition-colors flex-shrink-0"
+                  title="Remove"
+                >
+                  <X className="w-4 h-4" />
+                </button>
+              </div>
+            );
+          })}
         </div>
       )}
     </div>
