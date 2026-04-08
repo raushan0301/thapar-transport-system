@@ -112,47 +112,75 @@ router.get('/trips', async (req, res) => {
  */
 router.post('/complete-trip', async (req, res) => {
     try {
-        const { request_id, driver_id } = req.body;
+        const { 
+            request_id, 
+            driver_id,
+            opening_meter,
+            closing_meter,
+            fuel_consumed,
+            tolls_parking,
+            remarks,
+            trip_type,
+            total_distance
+        } = req.body;
 
         if (!request_id) {
             return res.status(400).json({ success: false, message: 'request_id required' });
         }
 
         const db = supabaseAdmin || supabase;
-        const usingAdmin = !!supabaseAdmin;
 
-        // 1. Update Trip status
-        const { data: updatedData, error, count } = await db.from('transport_requests')
-            .update({ current_status: 'travel_completed', updated_at: new Date().toISOString() })
+        // 1. Fetch current trip to preserve existing purpose/logs
+        const { data: trip } = await db.from('transport_requests').select('*').eq('id', request_id).maybeSingle();
+        if (!trip) return res.status(404).json({ success: false, message: 'Trip not found' });
+
+        // 2. Format the driver log into a string to store in 'purpose' as a fallback
+        const driverLogHeader = "\n\n--- [DRIVER LOG] ---";
+        const fuelLog = fuel_consumed ? `\nFuel: ${fuel_consumed}L` : "";
+        const tollLog = tolls_parking ? `\nTolls/Parking: ₹${tolls_parking}` : "";
+        const remarkLog = remarks ? `\nDriver Remarks: ${remarks}` : "";
+        
+        const updatedPurpose = (trip.purpose || "") + driverLogHeader + fuelLog + tollLog + remarkLog;
+
+        // 3. Update Trip status and log details (Using only confirmed schema columns)
+        const updateObj = { 
+            current_status: 'travel_completed', 
+            updated_at: new Date().toISOString(),
+            purpose: updatedPurpose,
+            trip_type: trip_type || trip.trip_type
+        };
+
+        // Add meter readings verified from add_travel_completion_fields.sql
+        if (opening_meter) updateObj.opening_meter = parseInt(opening_meter);
+        if (closing_meter) updateObj.closing_meter = parseInt(closing_meter);
+        if (total_distance) updateObj.total_distance = Math.round(parseFloat(total_distance));
+
+        const { data: updatedData, error } = await db.from('transport_requests')
+            .update(updateObj)
             .eq('id', request_id)
-            .select('*', { count: 'exact' });
+            .select('*');
 
         if (error) {
-            throw error;
-        }
-
-        let tripResult = updatedData?.[0];
-
-        if (!count || count === 0) {
-            // Check if it was already updated (likely double-click or simultaneous requests)
-            const { data: existingTrip } = await db.from('transport_requests')
-                .select('*')
+            // Ultimate Fallback: Just update status and purpose if anything else fails
+            const safeUpdate = {
+                current_status: 'travel_completed',
+                purpose: updatedPurpose + (opening_meter ? `\nOdometer: ${opening_meter} - ${closing_meter}` : ""),
+                updated_at: new Date().toISOString()
+            };
+            const { data: retryData, error: retryError } = await db.from('transport_requests')
+                .update(safeUpdate)
                 .eq('id', request_id)
-                .maybeSingle();
+                .select('*');
             
-            if (existingTrip && ['travel_completed', 'completed'].includes(existingTrip.current_status)) {
-                tripResult = existingTrip;
-            } else {
-                return res.status(404).json({ success: false, message: 'Trip record not found or no changes allowed' });
-            }
+            if (retryError) throw retryError;
+            updatedData = retryData;
         }
 
-        // 2. Free up driver and vehicle if driver_id is provided
-        if (driver_id) {
-            // Run driver update and vehicle lookup in parallel
-            await db.from('drivers').update({ is_available: true, assigned_vehicle_id: null }).eq('id', driver_id);
+        let tripResult = updatedData?.[0] || trip;
 
-            // Use vehicle_id from the trip record we already have
+        // 4. Free up driver and vehicle
+        if (driver_id) {
+            await db.from('drivers').update({ is_available: true, assigned_vehicle_id: null }).eq('id', driver_id);
             const vehicleId = tripResult?.vehicle_id;
             if (vehicleId) {
                 await db.from('vehicles').update({ is_available: true }).eq('id', vehicleId);
@@ -161,7 +189,7 @@ router.post('/complete-trip', async (req, res) => {
 
         res.json({ 
             success: true, 
-            message: count > 0 ? 'Trip marked as complete' : 'Trip already complete',
+            message: 'Trip details logged successfully. Sent for admin review.',
             trip: tripResult
         });
     } catch (err) {

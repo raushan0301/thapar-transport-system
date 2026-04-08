@@ -5,12 +5,12 @@ import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
 import { createNotification } from '../../services/requestService';
-import { CheckCircle2, Search, X, Calculator, DollarSign } from 'lucide-react';
+import { CheckCircle2, Search, X, Calculator, DollarSign, Truck, FileText } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { useAuth } from '../../context/AuthContext';
 
 const TravelCompletion = () => {
-  
+
   const { user } = useAuth();
   const [requests, setRequests] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -65,14 +65,29 @@ const TravelCompletion = () => {
     }
   };
 
-  const handleCompleteClick = (request) => {
+  const [requestAttachments, setRequestAttachments] = useState([]);
+
+  const handleCompleteClick = async (request) => {
     setSelectedRequest(request);
     setFormData({
-      opening_meter: '',
-      closing_meter: '',
-      rate_per_km: '',
-      trip_type: 'official'
+      opening_meter: request.opening_meter || '',
+      closing_meter: request.closing_meter || '',
+      rate_per_km: request.rate_per_km || '',
+      trip_type: request.trip_type || 'official'
     });
+
+    // Fetch attachments for this request
+    try {
+      const { data, error } = await supabase
+        .from('attachments')
+        .select('*')
+        .eq('request_id', request.id);
+
+      if (!error) setRequestAttachments(data || []);
+    } catch (err) {
+      console.error('Error fetching attachments:', err);
+    }
+
     setShowModal(true);
   };
 
@@ -96,6 +111,21 @@ const TravelCompletion = () => {
     return distance * rate;
   };
 
+  const parseDriverLog = (purpose) => {
+    if (!purpose || !purpose.includes('--- [DRIVER LOG] ---')) return {};
+
+    const logSection = purpose.split('--- [DRIVER LOG] ---')[1];
+    const fuelMatch = logSection.match(/Fuel:\s*([\d.]+L)/);
+    const tollMatch = logSection.match(/Tolls\/Parking:\s*₹?([\d.]+)/);
+    const remarkMatch = logSection.match(/Driver Remarks:\s*([\s\S]+)/);
+
+    return {
+      fuel: fuelMatch ? fuelMatch[1] : null,
+      tolls: tollMatch ? tollMatch[1] : null,
+      remarks: remarkMatch ? remarkMatch[1].trim() : null
+    };
+  };
+
   const validateForm = () => {
     if (!formData.opening_meter || !formData.closing_meter || !formData.rate_per_km) {
       toast.error('Please fill in all required fields');
@@ -106,13 +136,13 @@ const TravelCompletion = () => {
     const closing = parseFloat(formData.closing_meter);
     const rate = parseFloat(formData.rate_per_km);
 
-    if (closing <= opening) {
-      toast.error('Closing meter must be greater than opening meter');
+    if (closing < opening) {
+      toast.error('Closing meter cannot be less than opening meter');
       return false;
     }
 
-    if (rate <= 0) {
-      toast.error('Rate per KM must be greater than 0');
+    if (rate < 0) {
+      toast.error('Rate per KM cannot be negative');
       return false;
     }
 
@@ -161,11 +191,11 @@ const TravelCompletion = () => {
 
       // Notify the requester
       await createNotification({
-          user_id: selectedRequest.user_id,
-          title: 'Travel Completed',
-          message: `Your transport trip (${selectedRequest.request_number}) has been marked as completed. Distance: ${distance} km.`,
-          type: 'info',
-          related_request_id: selectedRequest.id
+        user_id: selectedRequest.user_id,
+        title: 'Travel Completed',
+        message: `Your transport trip (${selectedRequest.request_number}) has been marked as completed. Distance: ${distance} km.`,
+        type: 'info',
+        related_request_id: selectedRequest.id
       });
 
       // Mark vehicle as available
@@ -181,59 +211,59 @@ const TravelCompletion = () => {
 
       // Mark driver as available if registered
       if (selectedRequest.driver_id) {
-          const { error: driverError } = await supabase
-            .from('drivers')
-            .update({
-              is_available: true,
-              assigned_vehicle_id: null,
-              updated_at: new Date().toISOString()
-            })
-            .eq('id', selectedRequest.driver_id);
-            
-          if (driverError) throw driverError;
+        const { error: driverError } = await supabase
+          .from('drivers')
+          .update({
+            is_available: true,
+            assigned_vehicle_id: null,
+            updated_at: new Date().toISOString()
+          })
+          .eq('id', selectedRequest.driver_id);
+
+        if (driverError) throw driverError;
       }
 
       toast.success('Trip completed successfully! Vehicle and Driver are now available.');
-      
+
       // Notify the driver that the trip is completed
       try {
-          let targetDriverUid = null;
+        let targetDriverUid = null;
 
-          if (selectedRequest.driver_id) {
-              // Route 1: driver_id exists — lookup from drivers table
-              const { data: dData } = await supabase.from('drivers').select('id, full_name, phone, user_id').eq('id', selectedRequest.driver_id).maybeSingle();
-              if (dData) {
-                  targetDriverUid = dData.user_id;
-                  if (!targetDriverUid) {
-                      const { data: ud } = await supabase.from('users').select('id').eq('role', 'driver')
-                        .or(`phone.eq.${dData.phone || ''},full_name.ilike.%${dData.full_name || ''}%`).maybeSingle();
-                      targetDriverUid = ud?.id;
-                  }
-              }
+        if (selectedRequest.driver_id) {
+          // Route 1: driver_id exists — lookup from drivers table
+          const { data: dData } = await supabase.from('drivers').select('id, full_name, phone, user_id').eq('id', selectedRequest.driver_id).maybeSingle();
+          if (dData) {
+            targetDriverUid = dData.user_id;
+            if (!targetDriverUid) {
+              const { data: ud } = await supabase.from('users').select('id').eq('role', 'driver')
+                .or(`phone.eq.${dData.phone || ''},full_name.ilike.%${dData.full_name || ''}%`).maybeSingle();
+              targetDriverUid = ud?.id;
+            }
           }
-          
-          // Route 2: No driver_id — search by driver_name/driver_contact on the request
-          if (!targetDriverUid && (selectedRequest.driver_name || selectedRequest.driver_contact)) {
-              const filters = [];
-              if (selectedRequest.driver_contact) filters.push(`phone.eq.${selectedRequest.driver_contact}`);
-              if (selectedRequest.driver_name) filters.push(`full_name.ilike.%${selectedRequest.driver_name}%`);
-              
-              if (filters.length > 0) {
-                  const { data: ud } = await supabase.from('users').select('id').eq('role', 'driver')
-                    .or(filters.join(',')).maybeSingle();
-                  targetDriverUid = ud?.id;
-              }
-          }
+        }
 
-          if (targetDriverUid) {
-              await supabase.from('notifications').insert([{
-                  user_id: targetDriverUid,
-                  title: 'Trip Completed',
-                  message: `Your trip to ${selectedRequest.place_of_visit} on ${selectedRequest.date_of_visit} has been marked as completed by admin.`,
-                  type: 'completed',
-                  related_request_id: selectedRequest.id,
-              }]);
+        // Route 2: No driver_id — search by driver_name/driver_contact on the request
+        if (!targetDriverUid && (selectedRequest.driver_name || selectedRequest.driver_contact)) {
+          const filters = [];
+          if (selectedRequest.driver_contact) filters.push(`phone.eq.${selectedRequest.driver_contact}`);
+          if (selectedRequest.driver_name) filters.push(`full_name.ilike.%${selectedRequest.driver_name}%`);
+
+          if (filters.length > 0) {
+            const { data: ud } = await supabase.from('users').select('id').eq('role', 'driver')
+              .or(filters.join(',')).maybeSingle();
+            targetDriverUid = ud?.id;
           }
+        }
+
+        if (targetDriverUid) {
+          await supabase.from('notifications').insert([{
+            user_id: targetDriverUid,
+            title: 'Trip Completed',
+            message: `Your trip to ${selectedRequest.place_of_visit} on ${selectedRequest.date_of_visit} has been marked as completed by admin.`,
+            type: 'completed',
+            related_request_id: selectedRequest.id,
+          }]);
+        }
       } catch (notifyErr) {
       }
 
@@ -336,24 +366,74 @@ const TravelCompletion = () => {
 
             <div className="p-6 space-y-6">
               {/* Trip Details */}
-              <div className="bg-gray-50 rounded-lg p-4">
-                <h3 className="font-semibold text-gray-900 mb-3">Trip Details</h3>
-                <div className="grid grid-cols-2 gap-3 text-sm">
-                  <div>
-                    <span className="text-gray-500">User:</span>
-                    <p className="font-medium">{selectedRequest.user?.full_name}</p>
+              <div className="bg-gray-50 rounded-lg p-4 grid grid-cols-2 gap-4">
+                <div className="space-y-4">
+                  <h3 className="font-bold text-gray-900 border-b pb-2">Trip Info</h3>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    <div><span className="text-gray-500">User:</span> <p className="font-medium">{selectedRequest.user?.full_name}</p></div>
+                    <div><span className="text-gray-500">Vehicle:</span> <p className="font-medium">{selectedRequest.vehicle?.vehicle_number}</p></div>
+                    <div><span className="text-gray-500">Destination:</span> <p className="font-medium">{selectedRequest.place_of_visit}</p></div>
                   </div>
-                  <div>
-                    <span className="text-gray-500">Vehicle:</span>
-                    <p className="font-medium">{selectedRequest.vehicle?.vehicle_number}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Date:</span>
-                    <p className="font-medium">{formatDate(selectedRequest.date_of_visit)}</p>
-                  </div>
-                  <div>
-                    <span className="text-gray-500">Destination:</span>
-                    <p className="font-medium">{selectedRequest.place_of_visit}</p>
+                </div>
+                <div className="space-y-4 border-l pl-4">
+                  <h3 className="font-bold text-blue-900 border-b border-blue-100 pb-2 flex items-center gap-2">
+                    <Truck className="w-4 h-4" /> Driver's Log
+                  </h3>
+                  <div className="grid grid-cols-1 gap-2 text-sm">
+                    {(() => {
+                      const logs = parseDriverLog(selectedRequest.purpose);
+                      const hasLogs = logs.fuel || logs.tolls || logs.remarks;
+
+                      if (!hasLogs && !selectedRequest.fuel_consumed && !selectedRequest.tolls_parking && !selectedRequest.driver_remarks) {
+                        return <p className="text-xs text-gray-400 italic">No extra logs provided by driver</p>;
+                      }
+
+                      return (
+                        <>
+                          {(logs.fuel || selectedRequest.fuel_consumed) && (
+                            <div><span className="text-gray-500">Fuel:</span> <p className="font-bold text-blue-700">{logs.fuel || (selectedRequest.fuel_consumed + 'L')}</p></div>
+                          )}
+                          {(logs.tolls || selectedRequest.tolls_parking) && (
+                            <div><span className="text-gray-500">Tolls/Parking:</span> <p className="font-bold text-blue-700">₹{logs.tolls || selectedRequest.tolls_parking}</p></div>
+                          )}
+                          {(logs.remarks || selectedRequest.driver_remarks) && (
+                            <div className="col-span-full bg-blue-50 p-2 rounded-lg border border-blue-100 mt-1">
+                              <span className="text-[10px] uppercase font-black text-blue-400">Driver Remarks:</span>
+                              <p className="text-xs italic text-blue-900 mt-1">"{logs.remarks || selectedRequest.driver_remarks}"</p>
+                            </div>
+                          )}
+                        </>
+                      );
+                    })()}
+
+                    {/* Completion Attachments (Receipts) */}
+                    {requestAttachments.length > 0 && (
+                      <div className="mt-4 pt-4 border-t border-blue-100">
+                        <p className="text-[10px] uppercase font-black text-blue-400 mb-2">Attachments & Proofs:</p>
+                        <div className="flex flex-wrap gap-2">
+                          {requestAttachments.map((file) => (
+                            <a
+                              key={file.id}
+                              href={file.file_url}
+                              target="_blank"
+                              rel="noopener noreferrer"
+                              className="group relative w-16 h-16 rounded-lg border border-gray-200 overflow-hidden hover:border-blue-500 transition-all"
+                            >
+                              {['jpg', 'jpeg', 'png', 'gif', 'webp'].includes(file.file_type?.toLowerCase()) ? (
+                                <img src={file.file_url} alt="Receipt" className="w-full h-full object-cover group-hover:scale-110 transition-transform" />
+                              ) : (
+                                <div className="w-full h-full bg-gray-50 flex items-center justify-center">
+                                  <FileText className="w-6 h-6 text-gray-400" />
+                                </div>
+                              )}
+                              <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-opacity text-white">
+                                <Search className="w-4 h-4" />
+                              </div>
+                            </a>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               </div>
@@ -367,6 +447,9 @@ const TravelCompletion = () => {
                   <input
                     type="number"
                     name="opening_meter"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                     value={formData.opening_meter}
                     onChange={handleInputChange}
                     placeholder="e.g., 12000"
@@ -381,6 +464,9 @@ const TravelCompletion = () => {
                   <input
                     type="number"
                     name="closing_meter"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                     value={formData.closing_meter}
                     onChange={handleInputChange}
                     placeholder="e.g., 12250"
@@ -408,6 +494,9 @@ const TravelCompletion = () => {
                     type="number"
                     step="0.01"
                     name="rate_per_km"
+                    autoComplete="off"
+                    autoCorrect="off"
+                    spellCheck="false"
                     value={formData.rate_per_km}
                     onChange={handleInputChange}
                     placeholder="e.g., 12.50"
@@ -435,6 +524,7 @@ const TravelCompletion = () => {
                     name="trip_type"
                     value={formData.trip_type}
                     onChange={handleInputChange}
+                    autoComplete="off"
                     className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   >
                     <option value="official">Official</option>

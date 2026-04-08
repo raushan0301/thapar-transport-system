@@ -5,69 +5,19 @@ import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
-  User, Phone, Mail, CreditCard, Save, Edit2, X, Building2, FileText,
-  Car, Shield, AlertCircle, Camera} from 'lucide-react';
+  User, Phone, Mail, CreditCard, Save, Camera,
+  Car, Shield, AlertCircle, Building, FileText, Calendar
+} from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadProfileImage } from '../../services/cloudinaryService';
-
-const FieldGroup = ({ label, value, editing, onChange, type = 'text', placeholder, icon: Icon, readOnly = false }) => (
-  <div>
-    <label className="block text-xs font-bold uppercase tracking-wider text-gray-500 mb-1.5">{label}</label>
-    <div className="relative">
-      {Icon && <Icon className="absolute left-3.5 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" />}
-      <input
-        type={type}
-        value={value}
-        onChange={onChange}
-        disabled={!editing || readOnly}
-        placeholder={placeholder}
-        className={`w-full ${Icon ? 'pl-10' : 'pl-4'} pr-4 py-3 border rounded-xl text-sm font-medium transition-all ${
-          readOnly
-            ? 'bg-gray-50 border-gray-100 text-gray-400 cursor-not-allowed'
-            : editing
-            ? 'border-gray-300 bg-white text-gray-900 focus:ring-2 focus:ring-teal-500 focus:border-teal-500 outline-none'
-            : 'bg-gray-50 border-gray-100 text-gray-700 cursor-default'
-        }`}
-      />
-      {readOnly && (
-        <Shield className="absolute right-3.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
-      )}
-    </div>
-    {readOnly && <p className="text-[10px] text-gray-400 mt-1">This field is managed by admin</p>}
-  </div>
-);
-
-// eslint-disable-next-line no-unused-vars
-const StatCard = ({ icon: Icon, label, value, color = 'gray' }) => {
-  const colors = {
-    blue: 'from-blue-500 to-blue-600',
-    green: 'from-green-500 to-emerald-600',
-    amber: 'from-amber-500 to-orange-500',
-    teal: 'from-teal-500 to-cyan-500',
-    purple: 'from-purple-500 to-violet-600',
-    gray: 'from-gray-400 to-gray-500',
-  };
-  return (
-    <div className="bg-white rounded-xl p-4 border border-gray-100 shadow-sm flex items-center gap-3">
-      <div className={`w-10 h-10 rounded-xl bg-gradient-to-br ${colors[color]} flex items-center justify-center shadow-md`}>
-        <Icon className="w-5 h-5 text-white" strokeWidth={1.5} />
-      </div>
-      <div>
-        <p className="text-lg font-black text-gray-900 leading-tight">{value}</p>
-        <p className="text-xs text-gray-400 font-medium">{label}</p>
-      </div>
-    </div>
-  );
-};
 
 const DriverProfile = () => {
   const { profile, refreshProfile } = useAuth();
   const [driverRecord, setDriverRecord] = useState(null);
-
   const [loading, setLoading] = useState(true);
-  const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [hasChanges, setHasChanges] = useState(false);
   const [form, setForm] = useState({
     full_name: '',
     phone: '',
@@ -79,7 +29,6 @@ const DriverProfile = () => {
     if (!profile) return;
     setLoading(true);
     try {
-      // Robust driver lookup
       let drv = null;
       ({ data: drv } = await supabase.from('drivers')
         .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
@@ -90,15 +39,12 @@ const DriverProfile = () => {
           .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
           .ilike('full_name', profile.full_name || '').maybeSingle());
       }
-
       if (!drv && profile.phone) {
         ({ data: drv } = await supabase.from('drivers')
           .select('*, vehicle:vehicles(id, vehicle_number, vehicle_type, model, capacity)')
           .eq('phone', profile.phone).maybeSingle());
       }
-
       setDriverRecord(drv);
-
     } catch (err) {
     } finally {
       setLoading(false);
@@ -117,6 +63,12 @@ const DriverProfile = () => {
     }
   }, [profile, fetchData]);
 
+  const handleChange = (e) => {
+    const { name, value } = e.target;
+    setForm(p => ({ ...p, [name]: value }));
+    setHasChanges(true);
+  };
+
   const handleSave = async (e) => {
     e.preventDefault();
     if (!form.full_name.trim()) { toast.error('Name cannot be empty'); return; }
@@ -128,7 +80,7 @@ const DriverProfile = () => {
       if (error) throw error;
       await refreshProfile();
       toast.success('Profile updated successfully!');
-      setEditing(false);
+      setHasChanges(false);
     } catch (err) {
       toast.error(err.message || 'Failed to update');
     } finally {
@@ -136,43 +88,39 @@ const DriverProfile = () => {
     }
   };
 
-  const cancelEdit = () => {
-    setEditing(false);
+  const handleCancel = () => {
     setForm({ full_name: profile.full_name || '', phone: profile.phone || '', department: profile.department || '', designation: profile.designation || '' });
+    setHasChanges(false);
   };
 
   const handleAvatarSelect = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
-
-    if (!file.type.startsWith('image/')) {
-      toast.error('Please select an image file');
-      return;
-    }
-
+    if (!file.type.startsWith('image/')) { toast.error('Please select an image file'); return; }
     setUploadingAvatar(true);
-    const uploadToast = toast.loading('Uploading profile image...');
-    
+    const t = toast.loading('Uploading profile image...');
     try {
       const { data, error } = await uploadProfileImage(file);
-      
       if (error) throw new Error(error);
-      
-      toast.success('Profile image updated!', { id: uploadToast });
+      toast.success('Profile image updated!', { id: t });
       await refreshProfile();
     } catch (err) {
-      toast.error(err.message || 'Failed to upload image', { id: uploadToast });
+      toast.error(err.message || 'Failed to upload image', { id: t });
     } finally {
       setUploadingAvatar(false);
-      // Reset input
       e.target.value = '';
     }
   };
 
-  const isDirty = form.full_name !== (profile?.full_name || '') ||
-    form.phone !== (profile?.phone || '') ||
-    form.department !== (profile?.department || '') ||
-    form.designation !== (profile?.designation || '');
+  const fmtDate = (d) => {
+    if (!d) return '—';
+    try { return new Date(d).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }); }
+    catch { return d; }
+  };
+
+  const licenseExpired = driverRecord?.license_expiry && new Date(driverRecord.license_expiry) < new Date();
+  const licenseExpiringSoon = driverRecord?.license_expiry && !licenseExpired &&
+    new Date(driverRecord.license_expiry) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
 
   if (loading) return (
     <DashboardLayout>
@@ -180,285 +128,267 @@ const DriverProfile = () => {
     </DashboardLayout>
   );
 
-  const licenseExpired = driverRecord?.license_expiry && new Date(driverRecord.license_expiry) < new Date();
-  const licenseExpiringSoon = driverRecord?.license_expiry && !licenseExpired &&
-    new Date(driverRecord.license_expiry) < new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
-
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100">
+    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">
       <DashboardLayout>
+        <div className="max-w-3xl mx-auto">
 
-        {/* Header */}
-        <div className="mb-8" style={{ animation: 'slideDown 0.4s ease-out' }}>
-          <h1 className="text-3xl font-bold text-gray-900 mb-1">My Profile</h1>
-          <p className="text-gray-500 text-sm">Manage your personal information and driver details</p>
-        </div>
-
-        {/* License warnings */}
-        {licenseExpired && (
-          <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
-            <div>
-              <p className="font-bold text-red-800 text-sm">License Expired</p>
-              <p className="text-xs text-red-700">Your driving license expired on {new Date(driverRecord.license_expiry).toLocaleDateString('en-IN')}. Contact admin immediately.</p>
+          {/* Header */}
+          <div className="mb-8">
+            <div className="flex items-center space-x-3 mb-2">
+              <User className="w-8 h-8 text-blue-600" strokeWidth={1.5} />
+              <h1 className="text-4xl font-bold text-gray-900">My Profile</h1>
             </div>
+            <p className="text-gray-600">Manage your personal information and driver details</p>
           </div>
-        )}
-        {licenseExpiringSoon && !licenseExpired && (
-          <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
-            <p className="text-sm font-semibold text-amber-800">
-              License expiring soon — {new Date(driverRecord.license_expiry).toLocaleDateString('en-IN')}
-            </p>
-          </div>
-        )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-
-          {/* Left sidebar */}
-          <div className="space-y-5">
-            {/* Avatar Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ animation: 'slideUp 0.5s ease-out both' }}>
-              <div className="bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 p-8 text-center relative group">
-                <div className="relative w-24 h-24 mx-auto mb-4">
-                  {profile?.avatar_url ? (
-                    <img 
-                      src={profile.avatar_url} 
-                      alt={profile.full_name || 'Avatar'}
-                      className="w-full h-full rounded-full object-cover shadow-xl ring-4 ring-white/30 bg-white"
-                    />
-                  ) : (
-                    <div className="w-full h-full rounded-full bg-white/25 backdrop-blur flex items-center justify-center shadow-xl ring-4 ring-white/30">
-                      <span className="text-5xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
-                    </div>
-                  )}
-
-                  {/* Upload Avatar Overlay/Button */}
-                  <label className={`absolute bottom-0 right-0 p-1.5 bg-white rounded-full shadow-lg cursor-pointer hover:bg-gray-100 transition-colors ${uploadingAvatar ? 'opacity-50 pointer-events-none' : ''}`}>
-                    <input 
-                      type="file" 
-                      accept="image/*" 
-                      className="hidden" 
-                      onChange={handleAvatarSelect}
-                      disabled={uploadingAvatar}
-                    />
-                    <Camera className="w-4 h-4 text-teal-600" />
-                  </label>
-                </div>
-                <h2 className="text-xl font-black text-white">{profile?.full_name}</h2>
-                <p className="text-teal-100 text-sm font-medium mt-1">{profile?.designation || 'Driver'}</p>
-                <div className="mt-3 flex flex-wrap gap-2 justify-center">
-                  <span className="px-3 py-1 bg-white/20 rounded-full text-xs font-bold text-white">🚗 Driver</span>
-                </div>
-              </div>
-
-              <div className="p-5 space-y-2.5">
-                {[
-                  { icon: Mail, text: profile?.email },
-                  { icon: Phone, text: profile?.phone || 'No phone set' },
-                  { icon: Building2, text: profile?.department || 'Transport Division' },
-                ].map(({ icon: Icon, text }) => (
-                  <div key={text} className="flex items-center gap-3 text-sm">
-                    <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-700 truncate">{text}</span>
-                  </div>
-                ))}
+          {/* License warnings */}
+          {licenseExpired && (
+            <div className="mb-4 bg-red-50 border border-red-200 rounded-xl p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-red-600 flex-shrink-0" />
+              <div>
+                <p className="font-bold text-red-800 text-sm">License Expired</p>
+                <p className="text-xs text-red-700">Expired on {fmtDate(driverRecord.license_expiry)}. Contact admin immediately.</p>
               </div>
             </div>
+          )}
+          {licenseExpiringSoon && !licenseExpired && (
+            <div className="mb-4 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-center gap-3">
+              <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0" />
+              <p className="text-sm font-semibold text-amber-800">
+                License expiring soon — {fmtDate(driverRecord.license_expiry)}
+              </p>
+            </div>
+          )}
 
-            {/* Driver Record card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ animation: 'slideUp 0.5s ease-out 100ms both' }}>
-              <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                <CreditCard className="w-4 h-4 text-purple-600" />
-                <h3 className="font-bold text-gray-900">Driver Record</h3>
-              </div>
-              <div className="p-5">
-                {driverRecord ? (
-                  <div className="space-y-3">
-                    {[
-                      { label: 'License No.', value: driverRecord.license_number || '—' },
-                      {
-                        label: 'License Expiry',
-                        value: driverRecord.license_expiry
-                          ? new Date(driverRecord.license_expiry).toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' })
-                          : '—'
-                      },
-                      { label: 'Experience', value: driverRecord.experience ? `${driverRecord.experience} years` : '—' },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                        <span className="text-xs font-semibold text-gray-400 uppercase tracking-wide">{label}</span>
-                        <span className="text-sm font-bold text-gray-900">{value}</span>
-                      </div>
-                    ))}
-                  </div>
+          {/* ── Main Card ── */}
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8"
+            style={{ animation: 'slideUp 0.5s ease-out 100ms both' }}>
+
+            {/* Avatar + Name header */}
+            <div className="flex items-center space-x-6 mb-8 pb-8 border-b border-gray-200">
+              <div className="relative">
+                {profile?.avatar_url ? (
+                  <img
+                    src={profile.avatar_url}
+                    alt={profile.full_name}
+                    className="w-20 h-20 rounded-full object-cover shadow-lg ring-2 ring-gray-200"
+                  />
                 ) : (
-                  <div className="py-6 text-center">
-                    <AlertCircle className="w-10 h-10 mx-auto mb-2 text-amber-300" />
-                    <p className="text-sm font-semibold text-amber-700">Not Linked</p>
-                    <p className="text-xs text-gray-400 mt-1">Ask admin to link your driver record</p>
+                  <div className="w-20 h-20 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-full flex items-center justify-center shadow-lg">
+                    <span className="text-3xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
                   </div>
+                )}
+                <label className={`absolute bottom-0 right-0 w-7 h-7 bg-white rounded-full shadow-lg flex items-center justify-center border-2 border-gray-100 hover:bg-gray-50 transition-colors cursor-pointer ${uploadingAvatar ? 'opacity-50 pointer-events-none' : ''}`}>
+                  <input type="file" accept="image/*" className="hidden" onChange={handleAvatarSelect} disabled={uploadingAvatar} />
+                  <Camera className="w-4 h-4 text-gray-600" strokeWidth={1.5} />
+                </label>
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-gray-900">{profile?.full_name || 'Driver'}</h2>
+                <p className="text-gray-500 capitalize">{profile?.designation || 'Driver'}</p>
+                {hasChanges && (
+                  <p className="text-sm text-amber-600 mt-1">● Unsaved changes</p>
                 )}
               </div>
             </div>
 
-            {/* Assigned Vehicle */}
-            {driverRecord?.vehicle && (
-              <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ animation: 'slideUp 0.5s ease-out 200ms both' }}>
-                <div className="px-5 py-4 border-b border-gray-100 flex items-center gap-2">
-                  <Car className="w-4 h-4 text-blue-600" />
-                  <h3 className="font-bold text-gray-900">Assigned Vehicle</h3>
-                </div>
-                <div className="p-5">
-                  <div className="bg-gradient-to-r from-blue-50 to-cyan-50 border border-blue-100 rounded-xl p-4 text-center mb-3">
-                    <p className="text-3xl font-black tracking-widest text-blue-700">{driverRecord.vehicle.vehicle_number}</p>
-                    <p className="text-sm text-blue-500 capitalize mt-1">{driverRecord.vehicle.vehicle_type?.replace('_', ' ')}</p>
-                  </div>
-                  {[
-                    { label: 'Model', value: driverRecord.vehicle.model },
-                    { label: 'Capacity', value: driverRecord.vehicle.capacity ? `${driverRecord.vehicle.capacity} persons` : '—' },
-                  ].map(({ label, value }) => (
-                    <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                      <span className="text-xs font-semibold text-gray-400 uppercase">{label}</span>
-                      <span className="text-sm font-bold text-gray-900">{value || '—'}</span>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-          </div>
+            {/* Form Fields */}
+            <form onSubmit={handleSave} className="space-y-5">
 
-          {/* Right — Edit Form */}
-          <div className="lg:col-span-2 space-y-5">
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden" style={{ animation: 'slideUp 0.5s ease-out 50ms both' }}>
-              <div className="px-6 py-5 border-b border-gray-100 flex items-center justify-between">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                {/* Full Name */}
                 <div>
-                  <h2 className="text-lg font-bold text-gray-900">Personal Information</h2>
-                  <p className="text-xs text-gray-400 mt-0.5">Update your contact details and profile info</p>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Full Name</label>
+                  <div className="relative">
+                    <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={1.8} />
+                    <input
+                      type="text"
+                      name="full_name"
+                      value={form.full_name}
+                      onChange={handleChange}
+                      placeholder="Your full name"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
                 </div>
-                {!editing ? (
-                  <button
-                    onClick={() => setEditing(true)}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-700 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-                  >
-                    <Edit2 className="w-4 h-4" />
-                    Edit Profile
-                  </button>
-                ) : (
-                  <button
-                    onClick={cancelEdit}
-                    className="flex items-center gap-2 px-4 py-2 text-sm font-semibold text-gray-600 bg-gray-100 hover:bg-gray-200 rounded-xl transition-colors"
-                  >
-                    <X className="w-4 h-4" />
-                    Cancel
-                  </button>
-                )}
+
+                {/* Phone */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Phone Number</label>
+                  <div className="relative">
+                    <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={1.8} />
+                    <input
+                      type="tel"
+                      name="phone"
+                      value={form.phone}
+                      onChange={handleChange}
+                      placeholder="+91 XXXXX XXXXX"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Department */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Department</label>
+                  <div className="relative">
+                    <Building className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={1.8} />
+                    <input
+                      type="text"
+                      name="department"
+                      value={form.department}
+                      onChange={handleChange}
+                      placeholder="e.g. Transport"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
+
+                {/* Designation */}
+                <div>
+                  <label className="block text-sm font-semibold text-gray-700 mb-1.5">Designation</label>
+                  <div className="relative">
+                    <FileText className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={1.8} />
+                    <input
+                      type="text"
+                      name="designation"
+                      value={form.designation}
+                      onChange={handleChange}
+                      placeholder="e.g. Senior Driver"
+                      className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 transition-all"
+                    />
+                  </div>
+                </div>
               </div>
 
-              <form onSubmit={handleSave} className="p-6">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                  <FieldGroup
-                    label="Full Name"
-                    value={form.full_name}
-                    onChange={e => setForm(p => ({ ...p, full_name: e.target.value }))}
-                    editing={editing}
-                    icon={User}
-                    placeholder="Your full name"
-                  />
-                  <FieldGroup
-                    label="Phone Number"
-                    value={form.phone}
-                    onChange={e => setForm(p => ({ ...p, phone: e.target.value }))}
-                    editing={editing}
-                    type="tel"
-                    icon={Phone}
-                    placeholder="+91 XXXXX XXXXX"
-                  />
-                  <FieldGroup
-                    label="Department"
-                    value={form.department}
-                    onChange={e => setForm(p => ({ ...p, department: e.target.value }))}
-                    editing={editing}
-                    icon={Building2}
-                    placeholder="e.g. Transport"
-                  />
-                  <FieldGroup
-                    label="Designation"
-                    value={form.designation}
-                    onChange={e => setForm(p => ({ ...p, designation: e.target.value }))}
-                    editing={editing}
-                    icon={FileText}
-                    placeholder="e.g. Senior Driver"
-                  />
-                </div>
-
-                <div className="mt-5">
-                  <FieldGroup
-                    label="Email Address"
-                    value={profile?.email || ''}
-                    editing={false}
-                    readOnly
-                    icon={Mail}
+              {/* Email — read only */}
+              <div>
+                <label className="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
+                <div className="relative">
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-gray-400" strokeWidth={1.8} />
+                  <input
                     type="email"
+                    value={profile?.email || ''}
+                    disabled
+                    className="w-full pl-10 pr-4 py-2.5 border border-gray-200 rounded-lg text-sm bg-gray-50 text-gray-400 cursor-not-allowed"
                   />
                 </div>
-
-                {editing && (
-                  <div className="mt-6 flex items-center justify-between border-t border-gray-100 pt-5">
-                    {isDirty ? (
-                      <p className="text-xs text-amber-600 font-semibold flex items-center gap-1">
-                        <AlertCircle className="w-3.5 h-3.5" />
-                        Unsaved changes
-                      </p>
-                    ) : (
-                      <p className="text-xs text-gray-400">No changes made</p>
-                    )}
-                    <button
-                      type="submit"
-                      disabled={saving || !isDirty}
-                      className="flex items-center gap-2 px-6 py-2.5 bg-gradient-to-r from-teal-500 to-cyan-600 hover:from-teal-600 hover:to-cyan-700 text-white rounded-xl font-semibold text-sm shadow-lg shadow-teal-200 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
-                    >
-                      {saving ? (
-                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                      ) : (
-                        <Save className="w-4 h-4" />
-                      )}
-                      {saving ? 'Saving...' : 'Save Changes'}
-                    </button>
-                  </div>
-                )}
-              </form>
-            </div>
-
-            {/* Notes from admin */}
-            {driverRecord?.notes && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-5">
-                <p className="text-xs font-bold uppercase tracking-wider text-amber-700 mb-2 flex items-center gap-1.5">
-                  <FileText className="w-3.5 h-3.5" />
-                  Notes from Admin
-                </p>
-                <p className="text-sm text-amber-800">{driverRecord.notes}</p>
+                <p className="text-xs text-gray-400 mt-1">Email cannot be changed</p>
               </div>
-            )}
 
-            {/* Security Note */}
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-5">
-              <div className="flex items-start gap-3">
-                <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
+              {/* Action buttons */}
+              <div className="pt-4 border-t border-gray-200 flex justify-end gap-3">
+                <button
+                  type="button"
+                  onClick={handleCancel}
+                  disabled={!hasChanges || saving}
+                  className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={saving || !hasChanges}
+                  className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white text-sm font-semibold rounded-lg transition-colors shadow-sm disabled:opacity-40 disabled:cursor-not-allowed"
+                >
+                  {saving ? (
+                    <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                  ) : (
+                    <Save className="w-4 h-4" />
+                  )}
+                  {saving ? 'Saving...' : 'Save Changes'}
+                </button>
+              </div>
+            </form>
+
+            {/* Info note */}
+            <div className="mt-5 bg-blue-50 border border-blue-200 rounded-lg p-4">
+              <p className="text-sm text-blue-800">
+                <strong>Note:</strong> Changes to your profile will be reflected across the system. Make sure all information is accurate.
+              </p>
+            </div>
+          </div>
+
+          {/* ── Driver Record Card ── */}
+          {driverRecord && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-5"
+              style={{ animation: 'slideUp 0.5s ease-out 200ms both' }}>
+              <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+                <CreditCard className="w-5 h-5 text-blue-600" strokeWidth={1.5} />
+                <h3 className="text-lg font-bold text-gray-900">Driver Record</h3>
+                <span className="ml-auto text-xs font-semibold text-gray-400 bg-gray-100 px-2 py-1 rounded-full">Read-only — managed by admin</span>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <div>
-                  <p className="font-semibold text-blue-800 text-sm">Profile Security</p>
-                  <p className="text-xs text-blue-700 mt-1">
-                    Your email and driver license details are managed by the administrator. To make changes to these fields, please contact the admin through the transport department.
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">License Number</p>
+                  <p className="text-sm font-bold text-gray-900">{driverRecord.license_number || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">License Expiry</p>
+                  <p className={`text-sm font-bold ${licenseExpired ? 'text-red-600' : licenseExpiringSoon ? 'text-amber-600' : 'text-gray-900'}`}>
+                    {fmtDate(driverRecord.license_expiry)}
                   </p>
                 </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Experience</p>
+                  <p className="text-sm font-bold text-gray-900">{driverRecord.experience ? `${driverRecord.experience} years` : '—'}</p>
+                </div>
               </div>
             </div>
+          )}
+
+          {/* ── Assigned Vehicle Card ── */}
+          {driverRecord?.vehicle && (
+            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 mt-5"
+              style={{ animation: 'slideUp 0.5s ease-out 300ms both' }}>
+              <div className="flex items-center gap-2 mb-6 pb-4 border-b border-gray-200">
+                <Car className="w-5 h-5 text-blue-600" strokeWidth={1.5} />
+                <h3 className="text-lg font-bold text-gray-900">Assigned Vehicle</h3>
+              </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Vehicle Number</p>
+                  <p className="text-xl font-black tracking-widest text-gray-900">{driverRecord.vehicle.vehicle_number}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Type</p>
+                  <p className="text-sm font-bold text-gray-900 capitalize">{driverRecord.vehicle.vehicle_type?.replace('_', ' ') || '—'}</p>
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-1">Model / Capacity</p>
+                  <p className="text-sm font-bold text-gray-900">{driverRecord.vehicle.model || '—'}</p>
+                  <p className="text-xs text-gray-500">{driverRecord.vehicle.capacity ? `${driverRecord.vehicle.capacity} persons` : ''}</p>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Admin notes */}
+          {driverRecord?.notes && (
+            <div className="mt-5 bg-amber-50 border border-amber-200 rounded-xl p-5">
+              <p className="text-xs font-bold text-amber-700 uppercase tracking-wider mb-1.5 flex items-center gap-1.5">
+                <FileText className="w-3.5 h-3.5" /> Note from Admin
+              </p>
+              <p className="text-sm text-amber-800">{driverRecord.notes}</p>
+            </div>
+          )}
+
+          {/* Security note */}
+          <div className="mt-5 mb-8 bg-blue-50 border border-blue-100 rounded-xl p-5">
+            <div className="flex items-start gap-3">
+              <Shield className="w-4 h-4 text-blue-600 flex-shrink-0 mt-0.5" strokeWidth={1.5} />
+              <p className="text-sm text-blue-800">
+                Your email address and driver license details are managed by the administrator. To update these, contact the transport department.
+              </p>
+            </div>
           </div>
+
         </div>
       </DashboardLayout>
 
       <style>{`
         @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-12px); } to { opacity: 1; transform: translateY(0); } }
       `}</style>
     </div>
   );

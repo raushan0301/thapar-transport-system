@@ -5,13 +5,17 @@ import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Truck, MapPin, User, Phone, Calendar, Clock,
-  CheckCircle2, AlertCircle, Package, Navigation,
-  Users, Info, Car, CreditCard, RefreshCw, Building2,
-  ArrowRight, History
+  Truck, MapPin, User, Phone, Calendar,
+  CheckCircle2, AlertCircle, Navigation,
+  Users, Car, RefreshCcw, Building2,
+  ArrowRight, ClipboardList, Route,
+  BadgeCheck, Clock3, Gauge, FileCheck2,
+  ChevronRight, Milestone, Layers
 } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
+import { linkAttachment } from '../../services/cloudinaryService';
+import TripCompletionModal from '../../components/forms/TripCompletionModal';
 
 const fmtDate = (d) => {
   if (!d) return '—';
@@ -21,14 +25,13 @@ const fmtDate = (d) => {
 
 const StatusPill = ({ status }) => {
   const cfg = {
-    vehicle_assigned: { label: 'Active Trip', cls: 'bg-blue-100 text-blue-700', dot: 'animate-pulse bg-blue-500' },
-    travel_completed: { label: 'Pending Review', cls: 'bg-amber-100 text-amber-700', dot: 'bg-amber-500' },
-    completed: { label: 'Completed', cls: 'bg-green-100 text-green-700', dot: 'bg-green-500' },
-    approved_awaiting_vehicle: { label: 'Awaiting Vehicle', cls: 'bg-yellow-100 text-yellow-700', dot: 'bg-yellow-500' },
+    vehicle_assigned: { label: 'Active Trip', cls: 'bg-blue-50 text-blue-700 border border-blue-200', dot: 'bg-blue-500 animate-pulse' },
+    travel_completed: { label: 'Pending Admin Review', cls: 'bg-amber-50 text-amber-700 border border-amber-200', dot: 'bg-amber-500' },
+    completed: { label: 'Completed', cls: 'bg-green-50 text-green-700 border border-green-200', dot: 'bg-green-500' },
   };
-  const c = cfg[status] || { label: status?.replace(/_/g, ' '), cls: 'bg-gray-100 text-gray-600', dot: 'bg-gray-400' };
+  const c = cfg[status] || { label: status?.replace(/_/g, ' '), cls: 'bg-gray-100 text-gray-600 border border-gray-200', dot: 'bg-gray-400' };
   return (
-    <span className={`inline-flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold ${c.cls}`}>
+    <span className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs font-bold ${c.cls}`}>
       <span className={`w-1.5 h-1.5 rounded-full ${c.dot}`} />
       {c.label}
     </span>
@@ -43,7 +46,8 @@ const DriverDashboard = () => {
   const [tripHistory, setTripHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [actionLoading, setActionLoading] = useState(false);
-  const [confirming, setConfirming] = useState(false);
+  const [showCompletionForm, setShowCompletionForm] = useState(null);
+  const [stats, setStats] = useState({ active: 0, pending: 0, completed: 0 });
 
   const fetchDriverData = useCallback(async () => {
     if (!profile) return;
@@ -51,7 +55,7 @@ const DriverDashboard = () => {
     try {
       let apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
       if (apiBase && !apiBase.includes('/api/v1')) apiBase = `${apiBase.replace(/\/$/, '')}/api/v1`;
-      
+
       const { data: { session } } = await supabase.auth.getSession();
       const headers = session?.access_token ? { 'Authorization': `Bearer ${session.access_token}` } : {};
 
@@ -61,47 +65,19 @@ const DriverDashboard = () => {
       if (!data.success) throw new Error(data.message || 'Failed to fetch dashboard data');
 
       setDriverRecord(data.driver);
-
       const allTrips = data.trips || [];
       const active = allTrips.find(t => t.current_status === 'vehicle_assigned');
       const history = allTrips.filter(t => t.current_status === 'travel_completed' || t.current_status === 'completed');
 
       setCurrentTrip(active);
-      setTripHistory(history.slice(0, 10));
-
+      setTripHistory(history.slice(0, 5));
+      setStats({
+        active: allTrips.filter(t => t.current_status === 'vehicle_assigned').length,
+        pending: allTrips.filter(t => t.current_status === 'travel_completed').length,
+        completed: allTrips.filter(t => t.current_status === 'completed').length,
+      });
     } catch (err) {
-      toast.error('Failed to load dashboard. Falling back to notification sync...');
-
-      // Minimal notification fallback
-      try {
-        const { data: notifs } = await supabase
-          .from('notifications')
-          .select('*')
-          .eq('user_id', profile.id)
-          .not('related_request_id', 'is', null)
-          .order('created_at', { ascending: false })
-          .limit(20);
-
-        if (notifs?.length > 0) {
-          const tripMap = new Map();
-          notifs.forEach(n => {
-            if (!tripMap.has(n.related_request_id)) {
-              tripMap.set(n.related_request_id, {
-                id: n.related_request_id,
-                place_of_visit: n.message?.split('to ')[1]?.split(' on ')[0] || 'Unknown',
-                date_of_visit: n.created_at,
-                current_status: (n.title?.includes('Completed') || n.message?.includes('completed')) ? 'travel_completed' : 'vehicle_assigned',
-                is_reconstructed: true,
-                user: { full_name: 'Requester (via alert)' }
-              });
-            }
-          });
-          const trips = Array.from(tripMap.values());
-          setCurrentTrip(trips.find(t => t.current_status === 'vehicle_assigned'));
-          setTripHistory(trips.filter(t => t.current_status !== 'vehicle_assigned'));
-        }
-      } catch (inner) {
-      }
+      toast.error('Failed to load dashboard.');
     } finally {
       setLoading(false);
     }
@@ -109,8 +85,9 @@ const DriverDashboard = () => {
 
   useEffect(() => { fetchDriverData(); }, [fetchDriverData]);
 
-  const handleCompleteTrip = async () => {
+  const handleCompleteTrip = async (formData) => {
     if (!currentTrip) return;
+    const { attachments, ...tripData } = formData;
     setActionLoading(true);
     try {
       let apiBase = process.env.REACT_APP_API_BASE_URL || 'http://localhost:5001/api/v1';
@@ -121,25 +98,24 @@ const DriverDashboard = () => {
       if (session?.access_token) headers['Authorization'] = `Bearer ${session.access_token}`;
 
       const response = await fetch(`${apiBase}/driver/complete-trip`, {
-        method: 'POST',
-        headers,
-        body: JSON.stringify({ request_id: currentTrip.id, driver_id: driverRecord?.id })
+        method: 'POST', headers,
+        body: JSON.stringify({ request_id: currentTrip.id, driver_id: driverRecord?.id, ...tripData })
       });
       const data = await response.json();
-
       if (!data.success) throw new Error(data.message || 'Failed to complete trip');
 
-      toast.success('Trip marked as complete! Sent for admin review.');
-      
-      // Delay full refresh slightly for production consistency
-      setTimeout(() => {
-        fetchDriverData();
-      }, 800);
+      if (attachments?.length > 0) {
+        try { await Promise.all(attachments.map(f => linkAttachment(currentTrip.id, f))); }
+        catch (e) { console.error('Attachment link error:', e); }
+      }
+
+      toast.success('Trip completed & sent for admin review.');
+      setShowCompletionForm(null);
+      setTimeout(() => fetchDriverData(), 800);
     } catch (err) {
       toast.error('Failed to complete trip: ' + err.message);
     } finally {
       setActionLoading(false);
-      setConfirming(false);
     }
   };
 
@@ -147,215 +123,196 @@ const DriverDashboard = () => {
     <DashboardLayout>
       <div className="flex flex-col items-center justify-center h-64 gap-3">
         <Loader size="lg" />
-        <p className="text-sm text-gray-400 animate-pulse">Loading dashboard...</p>
+        <p className="text-sm text-gray-400 animate-pulse">Loading your dashboard...</p>
       </div>
     </DashboardLayout>
   );
+
   const requester = currentTrip?.user || {};
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-gray-50 to-slate-100">
+    <div className="min-h-screen bg-gray-50">
       <DashboardLayout>
 
-        {/* Header */}
-        <div className="mb-8 flex items-center justify-between" style={{ animation: 'slideDown 0.4s ease-out' }}>
-          <div className="flex items-center gap-4">
-            <div className="w-14 h-14 bg-gradient-to-br from-teal-500 to-cyan-600 rounded-2xl flex items-center justify-center shadow-lg shadow-teal-200">
-              <Truck className="w-7 h-7 text-white" strokeWidth={1.5} />
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-gray-900">
-                Welcome, {profile?.full_name?.split(' ')[0]}! 👋
-              </h1>
-              <p className="text-gray-400 text-sm">Driver Dashboard — Your trips and assignments</p>
-            </div>
+        {/* ── Header ── */}
+        <div className="mb-6 flex items-center justify-between">
+          <div>
+            <h1 className="text-2xl font-bold text-gray-900">
+              Good day, {profile?.full_name?.split(' ')[0]} 👋
+            </h1>
+            <p className="text-sm text-gray-500 mt-0.5">
+              {driverRecord ? `License: ${driverRecord.license_number || 'On file'}` : 'Profile not linked — contact admin'}
+            </p>
           </div>
-          <button onClick={() => { setLoading(true); fetchDriverData(); }}
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 shadow-sm transition-all">
-            <RefreshCw className="w-4 h-4" /> Refresh
+          <button
+            onClick={() => { setLoading(true); fetchDriverData(); }}
+            className="flex items-center gap-2 px-3 py-2 bg-white border border-gray-200 rounded-xl text-sm font-semibold text-gray-600 hover:bg-gray-50 shadow-sm transition-all"
+          >
+            <RefreshCcw className="w-4 h-4" />
+            <span className="hidden sm:inline">Refresh</span>
           </button>
         </div>
 
         {/* Unlinked warning */}
         {!driverRecord && (
           <div className="mb-6 bg-amber-50 border border-amber-200 rounded-xl p-4 flex items-start gap-3">
-            <AlertCircle className="w-5 h-5 text-amber-600 flex-shrink-0 mt-0.5" />
+            <AlertCircle className="w-5 h-5 text-amber-500 flex-shrink-0 mt-0.5" />
             <div>
-              <p className="text-sm font-bold text-amber-800">Profile Not Linked to Driver Record</p>
-              <p className="text-xs text-amber-700 mt-0.5">
-                Contact admin to link your account. Some features may be limited.
-              </p>
+              <p className="text-sm font-bold text-amber-800">Account Not Linked</p>
+              <p className="text-xs text-amber-700 mt-0.5">Your profile isn't linked to a driver record. Contact the transport admin.</p>
             </div>
           </div>
         )}
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* ── Stats Row ── */}
+        <div className="grid grid-cols-3 gap-3 mb-6">
+          {[
+            { icon: Route, label: 'Active', value: stats.active, color: 'text-blue-600', bg: 'bg-blue-50', border: 'border-blue-100' },
+            { icon: Clock3, label: 'Pending Review', value: stats.pending, color: 'text-amber-600', bg: 'bg-amber-50', border: 'border-amber-100' },
+            { icon: FileCheck2, label: 'Completed', value: stats.completed, color: 'text-green-600', bg: 'bg-green-50', border: 'border-green-100' },
+          ].map(({ icon: Icon, label, value, color, bg, border }) => (
+            <div key={label} className={`${bg} border ${border} rounded-xl p-4`}>
+              <Icon className={`w-5 h-5 ${color} mb-2`} strokeWidth={1.8} />
+              <p className={`text-2xl font-black ${color}`}>{value}</p>
+              <p className="text-xs text-gray-500 font-semibold mt-0.5">{label}</p>
+            </div>
+          ))}
+        </div>
 
-          {/* ── Main Column: Active Trip + History ── */}
-          <div className="lg:col-span-2 space-y-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
 
-            {/* Active Trip Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 200ms both' }}>
+          {/* ── Main Column ── */}
+          <div className="lg:col-span-2 space-y-5">
 
-              {currentTrip && <div className="h-1.5 bg-gradient-to-r from-blue-500 via-cyan-400 to-teal-400" />}
-
-              <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            {/* ── Current Assignment ── */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <Navigation className="w-4.5 h-4.5 text-blue-600" />
-                  </div>
-                  <h2 className="text-lg font-bold text-gray-900">Current Assignment</h2>
+                  <Navigation className="w-5 h-5 text-blue-600" strokeWidth={1.8} />
+                  <h2 className="text-base font-bold text-gray-900">Current Assignment</h2>
                 </div>
                 {currentTrip && <StatusPill status={currentTrip.current_status} />}
               </div>
 
               {!currentTrip ? (
-                <div className="p-14 text-center">
-                  <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center mx-auto mb-4">
-                    <Truck className="w-10 h-10 text-gray-300" strokeWidth={1} />
-                  </div>
-                  <p className="text-gray-600 font-bold text-lg">No Active Trip</p>
-                  <p className="text-gray-400 text-sm mt-1">You'll see your next assignment once admin assigns a trip.</p>
+                <div className="py-14 text-center px-6">
+                  <Truck className="w-12 h-12 mx-auto mb-3 text-gray-200" strokeWidth={1} />
+                  <p className="text-base font-bold text-gray-500">No Active Trip</p>
+                  <p className="text-sm text-gray-400 mt-1 max-w-xs mx-auto">Admin will assign your next trip here. Check back or refresh.</p>
                   <button
                     onClick={() => navigate('/driver/assignments')}
-                    className="mt-4 inline-flex items-center gap-2 px-5 py-2 bg-blue-50 text-blue-600 rounded-xl text-sm font-semibold hover:bg-blue-100 transition-all border border-blue-100"
+                    className="mt-4 inline-flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition-colors shadow-sm"
                   >
                     View All Assignments <ArrowRight className="w-4 h-4" />
                   </button>
                 </div>
               ) : (
-                <div className="p-5 space-y-4">
-                  {/* Trip Info */}
-                  <div className="bg-gradient-to-br from-blue-50 to-cyan-50 border border-blue-100 rounded-xl p-4">
-                    <p className="text-xs font-bold text-blue-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                      <Info className="w-3.5 h-3.5" /> Trip Details
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { icon: MapPin, label: 'Destination', value: currentTrip.place_of_visit },
-                        { icon: Calendar, label: 'Date', value: fmtDate(currentTrip.date_of_visit) },
-                        { icon: Clock, label: 'Time', value: currentTrip.time_of_visit || '—' },
-                        { icon: Users, label: 'Passengers', value: currentTrip.number_of_persons ? `${currentTrip.number_of_persons} persons` : '—' },
-                      ].map(({ icon: Icon, label, value }) => (
-                        <div key={label} className="flex items-start gap-2">
-                          <Icon className="w-4 h-4 text-blue-500 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-[9px] font-bold uppercase text-blue-400 mb-0.5">{label}</p>
-                            <p className="text-sm font-bold text-gray-900">{value || '—'}</p>
-                          </div>
-                        </div>
-                      ))}
+                <div className="divide-y divide-gray-50">
+                  {/* Trip info rows */}
+                  <div className="px-5 py-4 grid grid-cols-2 gap-4">
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Destination</p>
+                      <div className="flex items-center gap-1.5">
+                        <MapPin className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                        <p className="text-sm font-bold text-gray-900 truncate">{currentTrip.place_of_visit || '—'}</p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Date & Time</p>
+                      <div className="flex items-center gap-1.5">
+                        <Calendar className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                        <p className="text-sm font-bold text-gray-900">{fmtDate(currentTrip.date_of_visit)}</p>
+                      </div>
+                      <p className="text-xs text-gray-400 ml-5">{currentTrip.time_of_visit || '—'}</p>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Passengers</p>
+                      <div className="flex items-center gap-1.5">
+                        <Users className="w-3.5 h-3.5 text-blue-500 flex-shrink-0" />
+                        <p className="text-sm font-bold text-gray-900">
+                          {currentTrip.number_of_persons ? `${currentTrip.number_of_persons} person${currentTrip.number_of_persons > 1 ? 's' : ''}` : '—'}
+                        </p>
+                      </div>
+                    </div>
+                    <div>
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Request #</p>
+                      <p className="text-sm font-mono font-bold text-blue-700">{currentTrip.request_number || '—'}</p>
                     </div>
                   </div>
 
-                  {/* Requester Info */}
-                  <div className="bg-gradient-to-br from-purple-50 to-indigo-50 border border-purple-100 rounded-xl p-4">
-                    <p className="text-xs font-bold text-purple-700 uppercase tracking-wide mb-3 flex items-center gap-1.5">
-                      <User className="w-3.5 h-3.5" /> Passenger / Requester
-                    </p>
-                    <div className="grid grid-cols-2 gap-3">
-                      {[
-                        { icon: User, label: 'Name', value: requester.full_name },
-                        { icon: Building2, label: 'Department', value: requester.department || currentTrip.department },
-                        { icon: Phone, label: 'Contact', value: requester.phone },
-                        { icon: Info, label: 'Designation', value: requester.designation || currentTrip.designation },
-                      ].map(({ icon: Icon, label, value }) => (
-                        <div key={label} className="flex items-start gap-2">
-                          <Icon className="w-4 h-4 text-purple-500 flex-shrink-0 mt-0.5" />
-                          <div>
-                            <p className="text-[9px] font-bold uppercase text-purple-400 mb-0.5">{label}</p>
-                            <p className="text-sm font-semibold text-gray-900">{value || '—'}</p>
-                          </div>
-                        </div>
-                      ))}
+                  {/* Requester info */}
+                  <div className="px-5 py-4">
+                    <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-3">Requester Details</p>
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-full bg-blue-100 flex items-center justify-center flex-shrink-0">
+                        <span className="text-base font-black text-blue-700">
+                          {requester.full_name?.charAt(0)?.toUpperCase() || '?'}
+                        </span>
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-sm font-bold text-gray-900 truncate">{requester.full_name || 'Unknown'}</p>
+                        <p className="text-xs text-gray-500">{requester.department || currentTrip.department || '—'} · {requester.phone || '—'}</p>
+                      </div>
                     </div>
                   </div>
+
+                  {/* Purpose */}
+                  {currentTrip.purpose && (
+                    <div className="px-5 py-4">
+                      <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-1">Purpose of Visit</p>
+                      <p className="text-sm text-gray-700 leading-relaxed line-clamp-2">{currentTrip.purpose}</p>
+                    </div>
+                  )}
 
                   {/* Action */}
-                  <div className="flex items-center justify-between pt-2 border-t border-gray-100">
-                    <div>
-                      <p className="text-[10px] text-gray-400 uppercase font-bold">Request ID</p>
-                      <p className="font-mono font-black text-blue-700">{currentTrip.request_number || '—'}</p>
-                    </div>
-                    <div className="flex gap-3">
-                      {confirming ? (
-                        <div className="flex items-center gap-2 bg-blue-50/50 p-1.5 rounded-2xl border border-blue-100" style={{ animation: 'slideIn 0.3s ease-out' }}>
-                          <span className="text-[10px] font-black text-blue-600 uppercase tracking-widest px-2">Final Step:</span>
-                          <button
-                            onClick={handleCompleteTrip}
-                            disabled={actionLoading}
-                            className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-600 text-white rounded-xl text-xs font-black shadow-lg shadow-green-200 disabled:opacity-50 flex items-center gap-2"
-                          >
-                            {actionLoading && <div className="w-3 h-3 border-2 border-white border-t-transparent rounded-full animate-spin" />}
-                            {actionLoading ? 'Saving...' : 'Yes, Confirm'}
-                          </button>
-                          <button
-                            onClick={() => setConfirming(false)}
-                            className="px-6 py-2 bg-white text-gray-500 rounded-xl text-xs font-bold border border-gray-200"
-                          >
-                            No
-                          </button>
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => setConfirming(true)}
-                          disabled={actionLoading}
-                          className="flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-blue-600 to-indigo-700 text-white rounded-2xl font-black text-sm shadow-xl shadow-blue-100 transition-all hover:scale-[1.02] active:scale-95 disabled:opacity-50"
-                        >
-                          {actionLoading
-                            ? <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin" />
-                            : <CheckCircle2 className="w-5 h-5" />}
-                          {actionLoading ? 'Saving...' : 'Mark Trip Complete'}
-                        </button>
-                      )}
-                    </div>
+                  <div className="px-5 py-4 bg-gray-50">
+                    <button
+                      onClick={() => setShowCompletionForm(currentTrip)}
+                      disabled={actionLoading}
+                      className="w-full flex items-center justify-center gap-2 py-3 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl font-bold text-sm transition-colors shadow-sm disabled:opacity-50"
+                    >
+                      {actionLoading
+                        ? <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
+                        : <BadgeCheck className="w-4 h-4" />}
+                      {actionLoading ? 'Submitting...' : 'Mark Trip as Complete'}
+                    </button>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Trip History */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 300ms both' }}>
-              <div className="p-5 border-b border-gray-100 flex items-center justify-between">
+            {/* ── Trip History ── */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex items-center justify-between px-5 py-4 border-b border-gray-100">
                 <div className="flex items-center gap-2.5">
-                  <div className="w-9 h-9 rounded-xl bg-teal-100 flex items-center justify-center">
-                    <History className="w-4.5 h-4.5 text-teal-600" />
-                  </div>
-                  <h2 className="text-lg font-bold text-gray-900">Trip History</h2>
+                  <ClipboardList className="w-5 h-5 text-gray-500" strokeWidth={1.8} />
+                  <h2 className="text-base font-bold text-gray-900">Trip History</h2>
                 </div>
-                {tripHistory.length > 0 && (
-                  <button onClick={() => navigate('/driver/assignments')}
-                    className="text-xs font-semibold text-blue-600 hover:underline flex items-center gap-1">
-                    See All <ArrowRight className="w-3 h-3" />
-                  </button>
-                )}
+                <button
+                  onClick={() => navigate('/driver/assignments')}
+                  className="text-xs font-bold text-blue-600 hover:underline flex items-center gap-1"
+                >
+                  View All <ArrowRight className="w-3 h-3" />
+                </button>
               </div>
 
               {tripHistory.length === 0 ? (
-                <div className="p-10 text-center">
-                  <Package className="w-12 h-12 mx-auto mb-3 text-gray-200" strokeWidth={1} />
-                  <p className="text-gray-400 text-sm font-medium">No completed trips yet</p>
+                <div className="py-12 text-center">
+                  <Layers className="w-10 h-10 mx-auto mb-2 text-gray-200" strokeWidth={1} />
+                  <p className="text-sm text-gray-400 font-medium">No past trips yet</p>
                 </div>
               ) : (
                 <div className="divide-y divide-gray-50">
                   {tripHistory.map((trip, i) => (
-                    <div key={trip.id} className="p-4 hover:bg-gray-50 transition-colors"
-                      style={{ animation: `slideRight 0.3s ease-out ${i * 40}ms both` }}>
-                      <div className="flex items-center justify-between gap-3">
-                        <div className="flex-1 min-w-0">
-                          <p className="font-mono text-xs text-blue-600 font-bold">{trip.request_number || '—'}</p>
-                          <p className="text-sm font-bold text-gray-900 truncate mt-0.5">{trip.place_of_visit}</p>
-                          <p className="text-xs text-gray-400 mt-0.5">
-                            {trip.user?.full_name || '—'} · {trip.user?.department || '—'}
-                          </p>
+                    <div key={trip.id} className="flex items-center justify-between gap-3 px-5 py-3.5 hover:bg-gray-50 transition-colors">
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <Milestone className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" />
+                          <p className="text-sm font-bold text-gray-900 truncate">{trip.place_of_visit}</p>
                         </div>
-                        <div className="flex flex-col items-end gap-1 flex-shrink-0">
-                          <StatusPill status={trip.current_status} />
-                          <p className="text-xs text-gray-400">{fmtDate(trip.date_of_visit)}</p>
-                        </div>
+                        <p className="text-xs text-gray-400 ml-5">{fmtDate(trip.date_of_visit)} · {trip.request_number || '—'}</p>
                       </div>
+                      <StatusPill status={trip.current_status} />
                     </div>
                   ))}
                 </div>
@@ -363,112 +320,120 @@ const DriverDashboard = () => {
             </div>
           </div>
 
-          {/* ── Right Column: Profile + Vehicle ── */}
-          <div className="space-y-5">
-            {/* Driver Profile Card */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 150ms both' }}>
-              <div className="bg-gradient-to-br from-teal-500 via-cyan-500 to-blue-500 p-6 text-center">
-                <div className="w-16 h-16 rounded-full bg-white/25 ring-4 ring-white/30 flex items-center justify-center mx-auto mb-3 shadow-xl">
-                  <span className="text-3xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+          {/* ── Right Column ── */}
+          <div className="space-y-4">
+
+            {/* Driver Info Card */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="bg-gradient-to-br from-blue-600 to-indigo-700 px-5 pt-6 pb-8">
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-full bg-white/20 ring-2 ring-white/30 flex items-center justify-center">
+                    <span className="text-xl font-black text-white">{profile?.full_name?.charAt(0)?.toUpperCase() || '?'}</span>
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-black text-white truncate">{profile?.full_name}</p>
+                    <p className="text-blue-200 text-xs mt-0.5">{profile?.designation || 'Driver'}</p>
+                  </div>
                 </div>
-                <h3 className="font-black text-lg text-white">{profile?.full_name}</h3>
-                <p className="text-teal-100 text-sm mt-0.5">{profile?.designation || 'Driver'}</p>
               </div>
 
-              <div className="p-4 space-y-2">
+              <div className="-mt-4 mx-4 mb-4 bg-white rounded-xl border border-gray-100 shadow-sm divide-y divide-gray-50">
                 {[
-                  { icon: Phone, label: profile?.phone || driverRecord?.phone || 'No phone' },
-                  { icon: CreditCard, label: driverRecord?.license_number || 'License: Not linked' },
-                  { icon: Calendar, label: driverRecord?.license_expiry ? `Expires: ${fmtDate(driverRecord.license_expiry)}` : 'Expiry: N/A' },
-                ].map(({ icon: Icon, label }) => (
-                  <div key={label} className="flex items-center gap-2.5 text-sm py-1.5 border-b border-gray-50 last:border-0">
-                    <Icon className="w-4 h-4 text-gray-400 flex-shrink-0" />
-                    <span className="text-gray-700 truncate">{label}</span>
+                  { icon: Phone, label: 'Phone', value: profile?.phone || driverRecord?.phone || 'Not set' },
+                  { icon: Gauge, label: 'License', value: driverRecord?.license_number || 'Not linked' },
+                  { icon: Calendar, label: 'Expiry', value: driverRecord?.license_expiry ? fmtDate(driverRecord.license_expiry) : 'N/A' },
+                ].map(({ icon: Icon, label, value }) => (
+                  <div key={label} className="flex items-center gap-3 px-3 py-2.5">
+                    <Icon className="w-3.5 h-3.5 text-gray-400 flex-shrink-0" strokeWidth={1.8} />
+                    <div className="min-w-0 flex-1">
+                      <p className="text-[10px] text-gray-400 font-bold uppercase tracking-wider">{label}</p>
+                      <p className="text-xs font-bold text-gray-800 truncate">{value}</p>
+                    </div>
                   </div>
                 ))}
+              </div>
+
+              <div className="px-4 pb-4">
                 <button
                   onClick={() => navigate('/driver/profile')}
-                  className="w-full mt-3 py-2 text-sm font-semibold text-teal-600 bg-teal-50 hover:bg-teal-100 rounded-xl transition-all border border-teal-100"
+                  className="w-full py-2.5 border border-blue-200 text-blue-700 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
                 >
-                  Edit Profile
+                  <User className="w-4 h-4" /> Edit Profile
                 </button>
               </div>
             </div>
 
             {/* Assigned Vehicle */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 overflow-hidden"
-              style={{ animation: 'slideUp 0.5s ease-out 250ms both' }}>
-              <div className="p-4 border-b border-gray-100 flex items-center gap-2">
-                <div className="w-8 h-8 rounded-lg bg-purple-100 flex items-center justify-center">
-                  <Car className="w-4 h-4 text-purple-600" />
-                </div>
-                <h2 className="font-bold text-gray-900">Assigned Vehicle</h2>
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm overflow-hidden">
+              <div className="flex items-center gap-2.5 px-5 py-4 border-b border-gray-100">
+                <Car className="w-4 h-4 text-gray-500" strokeWidth={1.8} />
+                <h3 className="font-bold text-gray-900 text-sm">Assigned Vehicle</h3>
               </div>
-              <div className="p-4">
-                {driverRecord?.vehicle ? (
-                  <>
-                    <div className="bg-gradient-to-r from-purple-50 to-blue-50 border border-purple-100 rounded-xl p-4 text-center mb-3">
-                      <p className="text-3xl font-black tracking-widest text-purple-700">{driverRecord.vehicle.vehicle_number}</p>
-                      <p className="text-sm text-purple-500 capitalize mt-1">{driverRecord.vehicle.vehicle_type?.replace('_', ' ')}</p>
-                    </div>
-                    {[
-                      { label: 'Model', value: driverRecord.vehicle.model || '—' },
-                      { label: 'Capacity', value: driverRecord.vehicle.capacity ? `${driverRecord.vehicle.capacity} persons` : '—' },
-                    ].map(({ label, value }) => (
-                      <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
-                        <span className="text-xs font-semibold text-gray-400 uppercase">{label}</span>
-                        <span className="text-sm font-bold text-gray-900">{value}</span>
-                      </div>
-                    ))}
-                  </>
-                ) : (
-                  <div className="text-center py-8">
-                    <Truck className="w-10 h-10 mx-auto mb-2 text-gray-200" strokeWidth={1} />
-                    <p className="text-sm text-gray-400">No vehicle assigned</p>
+              {driverRecord?.vehicle ? (
+                <div className="p-4">
+                  <div className="bg-gray-50 border border-gray-100 rounded-xl px-4 py-3 text-center mb-3">
+                    <p className="text-2xl font-black tracking-widest text-gray-900">{driverRecord.vehicle.vehicle_number}</p>
+                    <p className="text-xs text-gray-500 capitalize mt-0.5">{driverRecord.vehicle.vehicle_type?.replace('_', ' ')}</p>
                   </div>
-                )}
-              </div>
+                  {[
+                    { label: 'Model', value: driverRecord.vehicle.model || '—' },
+                    { label: 'Capacity', value: driverRecord.vehicle.capacity ? `${driverRecord.vehicle.capacity} persons` : '—' },
+                  ].map(({ label, value }) => (
+                    <div key={label} className="flex justify-between items-center py-2 border-b border-gray-50 last:border-0">
+                      <span className="text-xs font-bold text-gray-400 uppercase tracking-wider">{label}</span>
+                      <span className="text-xs font-bold text-gray-800">{value}</span>
+                    </div>
+                  ))}
+                </div>
+              ) : (
+                <div className="py-8 text-center">
+                  <Car className="w-9 h-9 mx-auto mb-2 text-gray-200" strokeWidth={1} />
+                  <p className="text-xs text-gray-400 font-medium">No vehicle assigned</p>
+                </div>
+              )}
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-4"
-              style={{ animation: 'slideUp 0.5s ease-out 300ms both' }}>
-              <p className="text-xs font-bold uppercase tracking-wider text-gray-400 mb-3">Quick Actions</p>
-              <div className="space-y-2">
+            {/* Quick Nav */}
+            <div className="bg-white rounded-2xl border border-gray-200 shadow-sm p-3">
+              <p className="text-[10px] font-black text-gray-400 uppercase tracking-widest px-2 mb-2">Quick Navigation</p>
+              {[
+                { icon: ClipboardList, label: 'All Assignments', path: '/driver/assignments' },
+                { icon: User, label: 'My Profile', path: '/driver/profile' },
+              ].map(({ icon: Icon, label, path }) => (
                 <button
-                  onClick={() => navigate('/driver/assignments')}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-blue-50 hover:bg-blue-100 rounded-xl text-sm font-semibold text-blue-700 transition-all border border-blue-100"
+                  key={path}
+                  onClick={() => navigate(path)}
+                  className="w-full flex items-center justify-between px-3 py-2.5 rounded-xl hover:bg-gray-50 transition-colors text-sm font-semibold text-gray-700 group"
                 >
-                  <span className="flex items-center gap-2"><Package className="w-4 h-4" /> View All Assignments</span>
-                  <ArrowRight className="w-4 h-4" />
+                  <span className="flex items-center gap-2.5">
+                    <Icon className="w-4 h-4 text-gray-400 group-hover:text-blue-600 transition-colors" strokeWidth={1.8} />
+                    {label}
+                  </span>
+                  <ChevronRight className="w-4 h-4 text-gray-300 group-hover:text-gray-500 transition-colors" />
                 </button>
-                <button
-                  onClick={() => navigate('/driver/profile')}
-                  className="w-full flex items-center justify-between px-4 py-3 bg-teal-50 hover:bg-teal-100 rounded-xl text-sm font-semibold text-teal-700 transition-all border border-teal-100"
-                >
-                  <span className="flex items-center gap-2"><User className="w-4 h-4" /> Update Profile</span>
-                  <ArrowRight className="w-4 h-4" />
-                </button>
-              </div>
+              ))}
             </div>
 
             {/* Admin Notes */}
             {driverRecord?.notes && (
-              <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4">
-                <p className="text-xs font-bold text-amber-700 uppercase tracking-wide mb-1.5">Admin Notes</p>
-                <p className="text-sm text-amber-800 leading-relaxed">{driverRecord.notes}</p>
+              <div className="bg-amber-50 border border-amber-200 rounded-xl p-4">
+                <p className="text-[10px] font-black text-amber-700 uppercase tracking-widest mb-1.5">Note from Admin</p>
+                <p className="text-xs text-amber-800 leading-relaxed">{driverRecord.notes}</p>
               </div>
             )}
           </div>
         </div>
+
       </DashboardLayout>
 
-      <style>{`
-        @keyframes slideUp { from { opacity: 0; transform: translateY(20px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideDown { from { opacity: 0; transform: translateY(-15px); } to { opacity: 1; transform: translateY(0); } }
-        @keyframes slideRight { from { opacity: 0; transform: translateX(-12px); } to { opacity: 1; transform: translateX(0); } }
-      `}</style>
+      {showCompletionForm && (
+        <TripCompletionModal
+          trip={showCompletionForm}
+          onClose={() => setShowCompletionForm(null)}
+          onFinish={handleCompleteTrip}
+          actionLoading={actionLoading}
+        />
+      )}
     </div>
   );
 };

@@ -46,7 +46,7 @@ const Sidebar = ({ isOpen, onClose }) => {
         if (profile.role === ROLES.ADMIN) {
           const { count: pendingCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'pending_admin');
           const { count: vehicleCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'approved_awaiting_vehicle');
-          const { count: travelCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).eq('current_status', 'vehicle_assigned');
+          const { count: travelCount } = await supabase.from('transport_requests').select('*', { count: 'exact', head: true }).in('current_status', ['vehicle_assigned', 'travel_completed']);
           
           setCounts(prev => ({
             ...prev,
