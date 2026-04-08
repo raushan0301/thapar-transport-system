@@ -60,10 +60,6 @@ const NewRequest = () => {
     if (errors.head) setErrors((prev) => ({ ...prev, head: '' }));
   };
 
-  const handleUploadComplete = (fileData) => {
-    setUploadedFiles(prev => [...prev, fileData]);
-    setUploading(false);
-  };
 
   const handleFileRemove = (index) => {
     setUploadedFiles(prev => prev.filter((_, i) => i !== index));

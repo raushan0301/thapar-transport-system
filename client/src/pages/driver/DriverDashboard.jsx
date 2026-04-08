@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
@@ -6,8 +5,8 @@ import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
   Truck, MapPin, User, Phone, Calendar,
-  CheckCircle2, AlertCircle, Navigation,
-  Users, Car, RefreshCcw, Building2,
+  AlertCircle, Navigation,
+  Users, Car, RefreshCcw,
   ArrowRight, ClipboardList, Route,
   BadgeCheck, Clock3, Gauge, FileCheck2,
   ChevronRight, Milestone, Layers

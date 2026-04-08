@@ -1,13 +1,12 @@
-/* eslint-disable */
 import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
-  Truck, Search, MapPin, Calendar, Clock, CheckCircle2,
-  AlertCircle, User, RefreshCcw, Navigation,
-  Users, Info, Phone, BadgeCheck, ClipboardList, Milestone
+  Search, MapPin, Calendar, Clock, CheckCircle2,
+  AlertCircle, RefreshCcw, Navigation,
+  Users, BadgeCheck, ClipboardList
 } from 'lucide-react';
 import { linkAttachment } from '../../services/cloudinaryService';
 import TripCompletionModal from '../../components/forms/TripCompletionModal';

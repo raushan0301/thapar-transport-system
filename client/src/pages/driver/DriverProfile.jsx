@@ -1,4 +1,3 @@
-/* eslint-disable */
 import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
@@ -6,7 +5,7 @@ import { supabase } from '../../services/supabase';
 import { useAuth } from '../../context/AuthContext';
 import {
   User, Phone, Mail, CreditCard, Save, Camera,
-  Car, Shield, AlertCircle, Building, FileText, Calendar
+  Car, Shield, AlertCircle, Building, FileText
 } from 'lucide-react';
 import toast from 'react-hot-toast';
 import { uploadProfileImage } from '../../services/cloudinaryService';
@@ -100,7 +99,7 @@ const DriverProfile = () => {
     setUploadingAvatar(true);
     const t = toast.loading('Uploading profile image...');
     try {
-      const { data, error } = await uploadProfileImage(file);
+      const { error } = await uploadProfileImage(file);
       if (error) throw new Error(error);
       toast.success('Profile image updated!', { id: t });
       await refreshProfile();
