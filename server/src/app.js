@@ -13,6 +13,9 @@ const { PORT, FRONTEND_URL, NODE_ENV } = require('./config/constants');
 // Create Express app
 const app = express();
 
+// Trust the first proxy hop (Render sits the app behind a reverse proxy)
+app.set('trust proxy', 1);
+
 // Security middleware
 app.use(helmet());
 
