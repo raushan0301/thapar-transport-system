@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Routes, Route, Navigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import PrivateRoute from './PrivateRoute';
@@ -51,13 +51,38 @@ import Loader from '../components/common/Loader';
 
 // Dashboard Router - Shows correct dashboard based on user role
 const DashboardRouter = () => {
-  const { profile } = useAuth();
+  const { profile, loading, refreshProfile } = useAuth();
+  const [showRetry, setShowRetry] = useState(false);
 
-  // Show loader while profile is loading
-  if (!profile) {
+  // If auth has finished loading and profile still hasn't arrived after a short
+  // grace period, stop spinning forever and offer a retry instead.
+  useEffect(() => {
+    if (loading || profile) {
+      setShowRetry(false);
+      return;
+    }
+    const timer = setTimeout(() => setShowRetry(true), 1500);
+    return () => clearTimeout(timer);
+  }, [loading, profile]);
+
+  if (loading || (!profile && !showRetry)) {
     return (
       <div className="flex justify-center items-center h-64">
         <Loader size="lg" />
+      </div>
+    );
+  }
+
+  if (!profile) {
+    return (
+      <div className="flex flex-col items-center justify-center h-64 gap-4">
+        <p className="text-gray-600">We couldn't load your profile.</p>
+        <button
+          onClick={refreshProfile}
+          className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700"
+        >
+          Retry
+        </button>
       </div>
     );
   }

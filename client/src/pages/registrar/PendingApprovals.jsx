@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
-import Loader from '../../components/common/Loader';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import Modal from '../../components/common/Modal';
 import Textarea from '../../components/common/Textarea';
 import { useAuth } from '../../context/AuthContext';
@@ -174,9 +174,8 @@ const PendingApprovals = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex justify-center items-center h-64">
-          <Loader size="lg" />
-        </div>
+        <div className="skeleton-shimmer h-8 w-72 rounded-md mb-6" />
+        <SkeletonTable rows={6} cols={6} />
       </DashboardLayout>
     );
   }

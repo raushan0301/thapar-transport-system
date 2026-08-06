@@ -9,6 +9,7 @@ import {
   Users, BadgeCheck, ClipboardList
 } from 'lucide-react';
 import { linkAttachment } from '../../services/cloudinaryService';
+import { notifyAdmins } from '../../services/requestService';
 import TripCompletionModal from '../../components/forms/TripCompletionModal';
 import toast from 'react-hot-toast';
 
@@ -209,6 +210,13 @@ const MyAssignments = () => {
         try { await Promise.all(attachments.map(f => linkAttachment(requestId, f))); }
         catch (e) { console.error('Attachment link error:', e); }
       }
+
+      await notifyAdmins({
+        title: 'Trip Completed — Review Required',
+        message: `${profile?.full_name || 'A driver'} has completed the trip for request ${selectedTripForCompletion.request_number || ''} and it is awaiting your review.`,
+        type: 'travel_completed',
+        related_request_id: requestId,
+      });
 
       toast.success('Trip completed! Sent for admin review.');
       setSelectedTripForCompletion(null);

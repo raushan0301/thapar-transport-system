@@ -14,6 +14,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { linkAttachment } from '../../services/cloudinaryService';
+import { notifyAdmins } from '../../services/requestService';
 import TripCompletionModal from '../../components/forms/TripCompletionModal';
 
 const fmtDate = (d) => {
@@ -107,6 +108,13 @@ const DriverDashboard = () => {
         try { await Promise.all(attachments.map(f => linkAttachment(currentTrip.id, f))); }
         catch (e) { console.error('Attachment link error:', e); }
       }
+
+      await notifyAdmins({
+        title: 'Trip Completed — Review Required',
+        message: `${profile?.full_name || 'A driver'} has completed the trip for request ${currentTrip.request_number || ''} and it is awaiting your review.`,
+        type: 'travel_completed',
+        related_request_id: currentTrip.id,
+      });
 
       toast.success('Trip completed & sent for admin review.');
       setShowCompletionForm(null);

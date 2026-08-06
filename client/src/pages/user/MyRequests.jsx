@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import { StatusBadge } from '../../components/common/Badge';
-import Loader from '../../components/common/Loader';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
@@ -44,7 +44,17 @@ const MyRequests = () => {
     return matchesSearch && matchesFilter;
   });
 
-  if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="mb-8">
+          <div className="skeleton-shimmer h-9 w-48 rounded-md mb-2" />
+          <div className="skeleton-shimmer h-4 w-64 rounded-md" />
+        </div>
+        <SkeletonTable rows={6} cols={5} />
+      </DashboardLayout>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-gray-50 to-gray-100">

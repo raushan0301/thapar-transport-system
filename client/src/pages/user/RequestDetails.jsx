@@ -3,7 +3,7 @@ import { useParams, useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import { StatusBadge } from '../../components/common/Badge';
-import Loader from '../../components/common/Loader';
+import { SkeletonDetail } from '../../components/common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate, formatDateTime } from '../../utils/helpers';
@@ -86,7 +86,7 @@ const RequestDetails = () => {
     navigate(`/edit-request/${request.id}?resubmit=true`);
   };
 
-  if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
+  if (loading) return <DashboardLayout><SkeletonDetail fields={8} /></DashboardLayout>;
   if (!request) return <DashboardLayout><div className="text-center py-12"><p className="text-gray-500">Request not found</p></div></DashboardLayout>;
 
   // Check if current user is the request owner

@@ -37,7 +37,7 @@ export const AuthProvider = ({ children }) => {
           setUser(session.user);
           await Promise.race([
             loadProfile(session.user.id, session.user.email),
-            new Promise(resolve => setTimeout(resolve, 5000))
+            new Promise(resolve => setTimeout(resolve, 2000))
           ]);
         }
 
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }) => {
               setUser(session.user);
               await Promise.race([
                 loadProfile(session.user.id, session.user.email),
-                new Promise(resolve => setTimeout(resolve, 5000))
+                new Promise(resolve => setTimeout(resolve, 2000))
               ]);
             }
 

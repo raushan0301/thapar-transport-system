@@ -4,7 +4,7 @@ import DashboardLayout from '../../components/layout/DashboardLayout';
 import Card from '../../components/common/Card';
 import Button from '../../components/common/Button';
 import Badge from '../../components/common/Badge';
-import Loader from '../../components/common/Loader';
+import { SkeletonTable } from '../../components/common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate, formatTime } from '../../utils/helpers';
@@ -93,9 +93,8 @@ const ApprovalHistory = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <div className="flex justify-center items-center h-64">
-          <Loader size="lg" />
-        </div>
+        <div className="skeleton-shimmer h-8 w-64 rounded-md mb-6" />
+        <SkeletonTable rows={6} cols={5} />
       </DashboardLayout>
     );
   }

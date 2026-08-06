@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Button from '../../components/common/Button';
 import { StatusBadge } from '../../components/common/Badge';
-import Loader from '../../components/common/Loader';
+import { SkeletonStatCards, SkeletonList } from '../../components/common/Skeleton';
 import { useAuth } from '../../context/AuthContext';
 import { supabase } from '../../services/supabase';
 import { formatDate } from '../../utils/helpers';
@@ -49,7 +49,18 @@ const RegistrarDashboard = () => {
     fetchDashboardData();
   }, [user?.id]);
 
-  if (loading) return <DashboardLayout><div className="flex justify-center items-center h-64"><Loader size="lg" /></div></DashboardLayout>;
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <div className="mb-8">
+          <div className="skeleton-shimmer h-9 w-56 rounded-md mb-2" />
+          <div className="skeleton-shimmer h-4 w-80 rounded-md" />
+        </div>
+        <SkeletonStatCards count={4} />
+        <SkeletonList rows={5} />
+      </DashboardLayout>
+    );
+  }
 
   const statsData = [
     { title: 'Total Requests', value: stats.total, icon: FileText, color: 'blue' },
