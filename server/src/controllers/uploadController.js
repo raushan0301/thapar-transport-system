@@ -126,6 +126,20 @@ const linkAttachmentController = async (req, res, next) => {
             throw new ValidationError('requestId, file_url, and file_name are required');
         }
 
+        // IDOR Protection: standard users may only attach to their own requests
+        if (req.profile.role === 'user') {
+            const { data: reqCheck, error: checkErr } = await supabaseAdmin
+                .from('transport_requests')
+                .select('user_id')
+                .eq('id', requestId)
+                .single();
+
+            if (checkErr || !reqCheck) throw new NotFoundError('Transport request not found');
+            if (reqCheck.user_id !== req.user.id) {
+                return res.status(403).json({ success: false, message: 'Unauthorized to attach files to this request' });
+            }
+        }
+
         const attachment = await saveAttachmentMetadata(
             requestId,
             {

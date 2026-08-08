@@ -197,7 +197,7 @@ const UserDashboard = () => {
                     <Button
                       variant="primary"
                       icon={Plus}
-                      onClick={() => navigate('/user/new-request')}
+                      onClick={() => navigate('/new-request')}
                     >
                       Create Your First Request
                     </Button>

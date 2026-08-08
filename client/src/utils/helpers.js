@@ -68,6 +68,18 @@ export const formatCurrency = (amount) => {
   return `₹${parseFloat(amount).toFixed(2)}`;
 };
 
+// Escape HTML — required for any value interpolated into a print/export window,
+// since those are built with document.write and bypass React's escaping.
+export const escapeHtml = (value) => {
+  if (value === null || value === undefined) return '';
+  return String(value)
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+};
+
 // Truncate text
 export const truncateText = (text, maxLength = 50) => {
   if (!text) return '';

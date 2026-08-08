@@ -3,6 +3,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 import Loader from '../../components/common/Loader';
 import { supabase } from '../../services/supabase';
+import { escapeHtml } from '../../utils/helpers';
 import {
   FileText, Search, Filter, Download, RefreshCcw,
   CheckCircle2, XCircle, Clock, Truck,
@@ -273,13 +274,13 @@ const AuditLogs = () => {
   const printAuditLog = () => {
     const rows = filtered.map(e => `
       <tr>
-        <td>${fmtDT(e.timestamp)}</td>
-        <td>${EVENT_CFG[e.type]?.label || e.type}</td>
-        <td>${e.requestNumber || '—'}</td>
-        <td>${e.userName || '—'}</td>
-        <td>${e.destination || '—'}</td>
-        <td>${e.actor || '—'} (${e.actorRole || '—'})</td>
-        <td>${e.detail || '—'}</td>
+        <td>${escapeHtml(fmtDT(e.timestamp))}</td>
+        <td>${escapeHtml(EVENT_CFG[e.type]?.label || e.type)}</td>
+        <td>${escapeHtml(e.requestNumber || '—')}</td>
+        <td>${escapeHtml(e.userName || '—')}</td>
+        <td>${escapeHtml(e.destination || '—')}</td>
+        <td>${escapeHtml(e.actor || '—')} (${escapeHtml(e.actorRole || '—')})</td>
+        <td>${escapeHtml(e.detail || '—')}</td>
       </tr>`).join('');
 
     const printWindow = window.open('', '_blank', 'width=1200,height=800');

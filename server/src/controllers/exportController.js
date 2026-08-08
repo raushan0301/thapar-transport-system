@@ -1,7 +1,7 @@
 const { generateRequestPDF } = require('../services/pdfService');
 const { generateRequestsExcel, generateVehiclesExcel, generateAnalyticsExcel } = require('../services/excelService');
 const { successResponse } = require('../utils/responseFormatter');
-const { NotFoundError } = require('../utils/errorTypes');
+const { NotFoundError, ValidationError } = require('../utils/errorTypes');
 const { supabase } = require('../config/database');
 
 /**
@@ -31,7 +31,14 @@ const generateRequestPDFController = async (req, res, next) => {
         res.setHeader('Content-Type', 'application/pdf');
         res.setHeader('Content-Disposition', `attachment; filename=transport-request-${id}.pdf`);
 
-        // Pipe PDF to response
+        // A client disconnecting mid-download emits an error on the stream; without
+        // a handler it surfaces as an unhandled rejection and kills the process.
+        pdfDoc.on('error', (err) => {
+            if (!res.headersSent) return next(err);
+            res.destroy();
+        });
+        res.on('close', () => pdfDoc.destroy());
+
         pdfDoc.pipe(res);
         pdfDoc.end();
     } catch (error) {

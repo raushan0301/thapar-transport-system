@@ -2,6 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import DashboardLayout from '../../components/layout/DashboardLayout';
 
 import { supabase } from '../../services/supabase';
+import { escapeHtml } from '../../utils/helpers';
 import Loader from '../../components/common/Loader';
 import {
   Download, FileText, Printer, RefreshCcw,
@@ -130,7 +131,7 @@ const doPrint = (records, title) => {
   const headers = Object.keys(rows[0]);
 
   const tableRows = rows.map(r =>
-    `<tr>${headers.map(h => `<td>${r[h]}</td>`).join('')}</tr>`
+    `<tr>${headers.map(h => `<td>${escapeHtml(r[h])}</td>`).join('')}</tr>`
   ).join('');
 
   const w = window.open('', '_blank', 'width=1400,height=900');
@@ -170,7 +171,7 @@ const doPrint = (records, title) => {
       <div class="info-item">${records.reduce((s,r)=>s+(Number(r.total_distance)||0),0).toFixed(1)} km<span>Total Distance</span></div>
     </div>
     <table>
-      <thead><tr>${headers.map(h=>`<th>${h}</th>`).join('')}</tr></thead>
+      <thead><tr>${headers.map(h=>`<th>${escapeHtml(h)}</th>`).join('')}</tr></thead>
       <tbody>${tableRows}</tbody>
     </table>
     <div class="footer">Thapar Institute of Engineering &amp; Technology — Transport Management System — Confidential &nbsp;|&nbsp; Printed on ${fmtDT(new Date().toISOString())}</div>

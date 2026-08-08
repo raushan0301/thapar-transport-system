@@ -50,15 +50,24 @@ router.post('/', optionalAuth, async (req, res) => {
             // If user already exists in Auth, we try to recover their ID and UPDATE their password/metadata
             if (authError.message.includes('already been registered') || authError.status === 422) {
 
+                // Overwriting an existing account resets its password, so it is an
+                // admin-only recovery path. Self-registration must never reach it.
+                if (req.profile?.role !== 'admin') {
+                    return res.status(409).json({
+                        success: false,
+                        message: 'An account with this email already exists. Please log in or reset your password.'
+                    });
+                }
+
                 // Fetch user by email to get their ID
                 const { data: listData, error: listError } = await supabaseAdmin.auth.admin.listUsers();
                 if (listError) throw listError;
-                
+
                 const existingUser = listData.users.find(u => u.email === email);
                 if (!existingUser) {
                   throw new Error('User reported as existing but not found in list.');
                 }
-                
+
                 // Update their password and metadata so the current attempt is authoritative
                 const { data: updateData, error: updateError } = await supabaseAdmin.auth.admin.updateUserById(
                   existingUser.id,

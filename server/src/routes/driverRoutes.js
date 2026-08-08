@@ -134,6 +134,19 @@ router.post('/complete-trip', async (req, res) => {
         const { data: trip } = await db.from('transport_requests').select('*').eq('id', request_id).maybeSingle();
         if (!trip) return res.status(404).json({ success: false, message: 'Trip not found' });
 
+        // Only the driver assigned to this trip (or a manager) may complete it.
+        const isManager = ['admin', 'registrar'].includes(req.profile?.role);
+        if (!isManager) {
+            const { data: callerDriver } = await db.from('drivers')
+                .select('id')
+                .eq('user_id', req.user.id)
+                .maybeSingle();
+
+            if (!callerDriver || trip.driver_id !== callerDriver.id) {
+                return res.status(403).json({ success: false, message: 'Unauthorized to complete this trip' });
+            }
+        }
+
         // 2. Format the driver log into a string to store in 'purpose' as a fallback
         const driverLogHeader = "\n\n--- [DRIVER LOG] ---";
         const fuelLog = fuel_consumed ? `\nFuel: ${fuel_consumed}L` : "";
@@ -155,7 +168,7 @@ router.post('/complete-trip', async (req, res) => {
         if (closing_meter) updateObj.closing_meter = parseInt(closing_meter);
         if (total_distance) updateObj.total_distance = Math.round(parseFloat(total_distance));
 
-        const { data: updatedData, error } = await db.from('transport_requests')
+        let { data: updatedData, error } = await db.from('transport_requests')
             .update(updateObj)
             .eq('id', request_id)
             .select('*');
